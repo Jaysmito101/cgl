@@ -64,6 +64,28 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 
 #if 1 // Just to use code folding
 
+// data structures
+
+struct CGL_list;
+typedef struct CGL_list CGL_list;
+
+CGL_list* CGL_list_create(size_t item_size);
+void CGL_list_destroy(CGL_list* list);
+void CGL_list_set_increase_factor(CGL_list* list, float increase_factor);
+float CGL_list_get_increase_factor(CGL_list* list);
+size_t CGL_list_get_item_size(CGL_list* list);
+size_t CGL_list_get_size(CGL_list* list);
+size_t CGL_list_get_capacity(CGL_list* list);
+size_t CGL_list_push(CGL_list* list, void* data);
+size_t CGL_list_pop(CGL_list* list, void* data);
+void* CGL_list_get(CGL_list* list, size_t index, void* data);
+void* CGL_list_set(CGL_list* list, size_t index, void* data);
+bool CGL_list_is_empty(CGL_list* list);
+size_t CGL_list_find(CGL_list* list, void* data);
+void CGL_list_reserve(CGL_list* list, size_t size);
+void CGL_list_fill(CGL_list* list, size_t size);
+
+
 // math
 
 struct CGL_vec2
@@ -528,6 +550,124 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 #endif
 #endif
 
+#if 1
+
+// data structures
+struct CGL_list
+{
+    size_t size;
+    size_t capacity;
+    size_t item_size;
+    float increase_factor;
+    void* data;
+};
+
+CGL_list* CGL_list_create(size_t item_size)
+{
+    CGL_list* list = (CGL_list*)malloc(sizeof(CGL_list));
+    list->size = 0;
+    list->capacity = 5;
+    list->item_size = item_size;
+    list->increase_factor = 1.5f;
+    list->data = malloc(list->capacity * item_size);
+    return list;
+}
+
+void CGL_list_destroy(CGL_list* list)
+{
+    free(list->data);
+    free(list);
+}
+
+void CGL_list_set_increase_factor(CGL_list* list, float increase_factor)
+{
+    list->increase_factor = increase_factor;
+}
+
+float CGL_list_get_increase_factor(CGL_list* list)
+{
+    return list->increase_factor;
+}
+
+size_t CGL_list_get_item_size(CGL_list* list)
+{
+    return list->item_size;
+}
+
+size_t CGL_list_get_size(CGL_list* list)
+{
+    return list->size;
+}
+
+size_t CGL_list_get_capacity(CGL_list* list)
+{
+    return list->capacity;
+}
+
+size_t CGL_list_push(CGL_list* list, void* data)
+{
+    if(list->size == list->capacity)
+    {
+        size_t new_capacity = (size_t)(list->capacity * list->increase_factor);
+        list->data = realloc(list->data, new_capacity * list->item_size);
+        list->capacity = new_capacity;
+    }
+    memcpy( ((char*)list->data + list->size * list->item_size), data, list->item_size );
+    list->size += 1;
+    return list->size - 1;
+}
+
+size_t CGL_list_pop(CGL_list* list, void* data)
+{
+    if(list->size == 0) return 0;
+    list->size -= 1;
+    if(data) memcpy( data, ((char*)list->data + list->size * list->item_size), list->item_size );
+    return list->size; 
+}
+
+void* CGL_list_get(CGL_list* list, size_t index, void* data)
+{
+    if(index > list->size) return NULL;
+    if(data) memcpy( data, ((char*)list->data + index * list->item_size), list->item_size );
+    return ((char*)list->data + index * list->item_size);
+}
+
+void* CGL_list_set(CGL_list* list, size_t index, void* data)
+{
+    if(index > list->size) return NULL;
+    if(data) memcpy( ((char*)list->data + index * list->item_size), data, list->item_size );
+    return ((char*)list->data + index * list->item_size);
+}
+
+bool CGL_list_is_empty(CGL_list* list)
+{
+    return list->size == 0;
+}
+
+size_t CGL_list_find(CGL_list* list, void* data)
+{
+    for(size_t i = 0 ; i < list->size ; i++)
+        if(memcmp(((char*)list->data + i * list->item_size), data, list->item_size) == 0)
+            return i;
+    return UINT64_MAX;
+}
+
+void CGL_list_reserve(CGL_list* list, size_t size)
+{
+    if(list->capacity > size) return;
+    size_t new_capacity = size;
+    list->data = realloc(list->data, new_capacity * list->item_size);
+    list->capacity = new_capacity;
+}
+
+void CGL_list_fill(CGL_list* list, size_t size)
+{
+    CGL_list_reserve(list, size);
+    list->size = max(size, list->size);
+}
+
+
+#endif
 
 // common lib
 
