@@ -57,6 +57,7 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 #define CGL_utils_random_vec3(min, max) ((CGL_vec3){CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z})
 #define CGL_utils_random_vec4(min, max) ((CGL_vec4){CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z, CGL_utils_random_float() * (max.w - min.w) + min.w})
 #define CGL_utils_random_color() ((CGL_color){CGL_utils_random_float(), CGL_utils_random_float(), CGL_utils_random_float(), 1.0f})
+#define CGL_utils_clamp(x, minl, maxl) (x < minl ? minl : (x > maxl ? maxl : x))
 
 #define CGL_free(ptr) free(ptr)
 #define CGL_exit(code) exit(code)
@@ -107,7 +108,7 @@ typedef struct CGL_mat3 CGL_mat3;
 
 struct CGL_mat4
 {
-    float m[4][4];
+    float m[16];
 };
 typedef struct CGL_mat4 CGL_mat4;
 
@@ -155,17 +156,42 @@ typedef struct CGL_mat4 CGL_mat4;
 #define CGL_vec4_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w)
 
 #define CGL_mat4_identity() (CGL_mat4){1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_translate(x, y, z) (CGL_mat4){1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, x, y, z, 0.0f, 1.0f}
 #define CGL_mat4_scale(x, y, z) (CGL_mat4){x, 0.0f, 0.0f, 0.0f, 0.0f, y, 0.0f, 0.0f, 0.0f, 0.0f, z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_perspective(fov, aspect, nea_r, fa_r) (CGL_mat4){1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, 0.0f, 0.0f, -(fa_r + nea_r) / (nea_r - fa_r), 2.0f * fa_r * nea_r / (nea_r - fa_r), 0.0f, 0.0f, -1.0f, 0.0f}
-#define CGL_mat4_orthographic(left, right, bottom, top, nea_r, fa_r) (CGL_mat4){2.0f / (right - left), 0.0f, 0.0f, 0.0f, 0.0f, 2.0f / (top - bottom), 0.0f, 0.0f, 0.0f, 0.0f, -2.0f / (fa_r - nea_r), 0.0f, -(left + right) / (right - left), -(top + bottom) / (top - bottom), -(fa_r + nea_r) / (fa_r - nea_r), 1.0f}
-
+#define CGL_mat4_translate(x, y, z) (CGL_mat4){1.0f, 0.0f, 0.0f, x, 0.0f, 1.0f, 0.0f, y, 0.0f, 0.0f, 1.0f, z, 0.0f, 0.0f, 0.0f, 1.0f}
+#define CGL_mat4_rotate_x(x) (CGL_mat4){1.0f, 0.0f, 0.0f, 0.0f, 0.0f, cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
+#define CGL_mat4_rotate_y(x) (CGL_mat4){cosf(x), 0.0f, -sinf(x), 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, sinf(x), 0.0f, cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
+#define CGL_mat4_rotate_z(x) (CGL_mat4){cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
+#define CGL_mat4_add(a, b) (CGL_mat4){a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8], a.m[9] + b.m[9], a.m[10] + b.m[10], a.m[11] + b.m[11], a.m[12] + b.m[12], a.m[13] + b.m[13], a.m[14] + b.m[14], a.m[15] + b.m[15]}
+#define CGL_mat4_sub(a, b) (CGL_mat4){a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8], a.m[9] - b.m[9], a.m[10] - b.m[10], a.m[11] - b.m[11], a.m[12] - b.m[12], a.m[13] - b.m[13], a.m[14] - b.m[14], a.m[15] - b.m[15]}
+#define CGL_mat4_mul(a, b) (CGL_mat4){ \
+    a.m[0] * b.m[0] + a.m[4] * b.m[1] + a.m[8] * b.m[2] + a.m[12] * b.m[3], \
+    a.m[1] * b.m[0] + a.m[5] * b.m[1] + a.m[9] * b.m[2] + a.m[13] * b.m[3], \
+    a.m[2] * b.m[0] + a.m[6] * b.m[1] + a.m[10] * b.m[2] + a.m[14] * b.m[3], \
+    a.m[3] * b.m[0] + a.m[7] * b.m[1] + a.m[118] * b.m[2] + a.m[15] * b.m[3], \
+\
+    a.m[0] * b.m[4] + a.m[4] * b.m[5] + a.m[8] * b.m[6] + a.m[12] * b.m[7], \
+    a.m[1] * b.m[4] + a.m[5] * b.m[5] + a.m[9] * b.m[6] + a.m[13] * b.m[7], \
+    a.m[2] * b.m[4] + a.m[6] * b.m[5] + a.m[10] * b.m[6] + a.m[14] * b.m[7], \
+    a.m[3] * b.m[4] + a.m[7] * b.m[5] + a.m[118] * b.m[6] + a.m[15] * b.m[7], \
+\
+    a.m[0] * b.m[8] + a.m[4] * b.m[9] + a.m[8] * b.m[10] + a.m[12] * b.m[11], \
+    a.m[1] * b.m[8] + a.m[5] * b.m[9] + a.m[9] * b.m[10] + a.m[13] * b.m[11], \
+    a.m[2] * b.m[8] + a.m[6] * b.m[9] + a.m[10] * b.m[10] + a.m[14] * b.m[11], \
+    a.m[3] * b.m[8] + a.m[7] * b.m[9] + a.m[11] * b.m[10] + a.m[15] * b.m[11], \
+\
+    a.m[0] * b.m[12] + a.m[4] * b.m[13] + a.m[8] * b.m[14] + a.m[12] * b.m[15], \
+    a.m[1] * b.m[12] + a.m[5] * b.m[13] + a.m[9] * b.m[14] + a.m[13] * b.m[15], \
+    a.m[2] * b.m[12] + a.m[6] * b.m[13] + a.m[10] * b.m[14] + a.m[14] * b.m[15], \
+    a.m[3] * b.m[12] + a.m[7] * b.m[13] + a.m[118] * b.m[14] + a.m[15] * b.m[15] \
+}
+#define CGL_mat4_perspective(aspect, fov, znear, zfar) (CGL_mat4){1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, 0.0f, 0.0f, -1.0f * ( (zfar + znear) / (zfar - znear) ), -1.0f, 0.0f, 0.0f, -2.0f * znear * zfar / (zfar - znear), 1.0f}
+CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 
 #endif
 
 #if 1 // Just to use code folding
 
-// CGL window management library (using GLFW)
+// CGL window management library (usinfg GLFW)
 
 #ifdef CGL_EXPOSE_GLFW_API
 #include <GLFW/glfw3.h> // GLFW
@@ -437,7 +463,7 @@ void CGL_gl_shutdown(); // clean up
 CGL_mesh_gpu* CGL_mesh_gpu_create(); // create mesh (gpu)
 void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh); // destroy mesh (gpu)
 void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh); // render mesh (gpu)
-void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count); // render mesh instanced (gpu)
+void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count); // render mesh instanfced (gpu)
 void CGL_mesh_gpu_set_user_data(CGL_mesh_gpu* mesh, void* user_data); // set mesh user data
 void* CGL_mesh_gpu_get_user_data(CGL_mesh_gpu* mesh); // get mesh user data
 void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw); // upload mesh from (cpu) to (gpu)
@@ -506,6 +532,33 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 // common lib
 
 #if 1 // Just to use code folding
+
+CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
+{
+    CGL_vec3 z_axis = CGL_vec3_sub(eye, target);
+    CGL_vec3_normalize(z_axis);
+    CGL_vec3 x_axis = CGL_vec3_cross(up, z_axis);
+    CGL_vec3_normalize(x_axis);
+    CGL_vec3 y_axis = CGL_vec3_cross(z_axis, x_axis);
+    CGL_mat4 mat;
+    mat.m[0] = x_axis.x;
+    mat.m[1] = x_axis.y;
+    mat.m[2] = x_axis.z;
+    mat.m[3] = -1.0f * CGL_vec3_dot(x_axis, eye);
+    mat.m[4] = y_axis.x;
+    mat.m[5] = y_axis.y;
+    mat.m[6] = y_axis.z;
+    mat.m[7] = -1.0f * CGL_vec3_dot(x_axis, eye);
+    mat.m[8] = z_axis.x;
+    mat.m[9] = z_axis.y;
+    mat.m[10] = z_axis.z;
+    mat.m[11] = -1.0f * CGL_vec3_dot(x_axis, eye);
+    mat.m[12] = 0.0f;
+    mat.m[13] = 0.0f;
+    mat.m[14] = 0.0f;
+    mat.m[15] = 1.0f;
+    return mat;
+}
 
 struct CGL_context
 {
@@ -660,7 +713,7 @@ CGL_window* CGL_window_create(int width, int height, const char* title)
 	// tell glfw to use the opengl core profile and not the compatibility profile
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	// disabling resing gets rid of managing things like aspect ration and stuff
+	// disabling resinfg gets rid of managing things like aspect ration and stuff
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     CGL_window* window = (CGL_window*)malloc(sizeof(CGL_window));
     if(window == NULL)
@@ -779,48 +832,48 @@ void CGL_window_get_framebuffer_size(CGL_window* window, int* width, int* height
 // set key callback
 void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback callback)
 {
-    if(window->key_callback != NULL)
-        glfwSetKeyCallback(window->handle, NULL);
+    if(window->key_callback == NULL)
+        glfwSetKeyCallback(window->handle, __CGL_window_key_callback);
     window->key_callback = callback;
 }
 
 // set mouse button callback
 void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_button_callback callback)
 {
-    if(window->mouse_button_callback != NULL)
-        glfwSetMouseButtonCallback(window->handle, NULL);
+    if(window->mouse_button_callback == NULL)
+        glfwSetMouseButtonCallback(window->handle, __CGL_window_mouse_button_callback);
     window->mouse_button_callback = callback;
 }
 
 // set mouse position callback
 void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse_position_callback callback)
 {
-    if(window->mouse_position_callback != NULL)
-        glfwSetCursorPosCallback(window->handle, NULL);
+    if(window->mouse_position_callback == NULL)
+        glfwSetCursorPosCallback(window->handle, __CGL_window_mouse_position_callback);
     window->mouse_position_callback = callback;
 }
 
 // set mouse scroll callback
 void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback)
 {
-    if(window->mouse_scroll_callback != NULL)
-        glfwSetScrollCallback(window->handle, NULL);
+    if(window->mouse_scroll_callback == NULL)
+        glfwSetScrollCallback(window->handle, __CGL_window_mouse_scroll_callback);
     window->mouse_scroll_callback = callback;
 }
 
 // set framebuffer size callback
 void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback)
 {
-    if(window->framebuffer_size_callback != NULL)
-        glfwSetFramebufferSizeCallback(window->handle, NULL);
+    if(window->framebuffer_size_callback == NULL)
+        glfwSetFramebufferSizeCallback(window->handle, __CGL_window_framebuffer_size_callback);
     window->framebuffer_size_callback = callback;
 }
 
 // set close callback
 void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback)
 {
-    if(window->close_callback != NULL)
-        glfwSetWindowCloseCallback(window->handle, NULL);
+    if(window->close_callback == NULL)
+        glfwSetWindowCloseCallback(window->handle, __CGL_window_close_callback);
     window->close_callback = callback;
 }
 
@@ -1339,7 +1392,7 @@ void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
     glDrawElements(GL_TRIANGLES, (GLsizei)mesh->index_count, GL_UNSIGNED_INT, 0);
 }
 
-// render mesh instanced (gpu)
+// render mesh instanfced (gpu)
 void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
 {
     if(mesh->index_count <= 0)
