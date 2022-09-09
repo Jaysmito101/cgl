@@ -69,7 +69,7 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 struct CGL_list;
 typedef struct CGL_list CGL_list;
 
-CGL_list* CGL_list_create(size_t item_size);
+CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity);
 void CGL_list_destroy(CGL_list* list);
 void CGL_list_set_increase_factor(CGL_list* list, float increase_factor);
 float CGL_list_get_increase_factor(CGL_list* list);
@@ -189,12 +189,12 @@ typedef struct CGL_mat4 CGL_mat4;
     a.m[0] * b.m[0] + a.m[4] * b.m[1] + a.m[8] * b.m[2] + a.m[12] * b.m[3], \
     a.m[1] * b.m[0] + a.m[5] * b.m[1] + a.m[9] * b.m[2] + a.m[13] * b.m[3], \
     a.m[2] * b.m[0] + a.m[6] * b.m[1] + a.m[10] * b.m[2] + a.m[14] * b.m[3], \
-    a.m[3] * b.m[0] + a.m[7] * b.m[1] + a.m[118] * b.m[2] + a.m[15] * b.m[3], \
+    a.m[3] * b.m[0] + a.m[7] * b.m[1] + a.m[11] * b.m[2] + a.m[15] * b.m[3], \
 \
     a.m[0] * b.m[4] + a.m[4] * b.m[5] + a.m[8] * b.m[6] + a.m[12] * b.m[7], \
     a.m[1] * b.m[4] + a.m[5] * b.m[5] + a.m[9] * b.m[6] + a.m[13] * b.m[7], \
     a.m[2] * b.m[4] + a.m[6] * b.m[5] + a.m[10] * b.m[6] + a.m[14] * b.m[7], \
-    a.m[3] * b.m[4] + a.m[7] * b.m[5] + a.m[118] * b.m[6] + a.m[15] * b.m[7], \
+    a.m[3] * b.m[4] + a.m[7] * b.m[5] + a.m[11] * b.m[6] + a.m[15] * b.m[7], \
 \
     a.m[0] * b.m[8] + a.m[4] * b.m[9] + a.m[8] * b.m[10] + a.m[12] * b.m[11], \
     a.m[1] * b.m[8] + a.m[5] * b.m[9] + a.m[9] * b.m[10] + a.m[13] * b.m[11], \
@@ -204,9 +204,10 @@ typedef struct CGL_mat4 CGL_mat4;
     a.m[0] * b.m[12] + a.m[4] * b.m[13] + a.m[8] * b.m[14] + a.m[12] * b.m[15], \
     a.m[1] * b.m[12] + a.m[5] * b.m[13] + a.m[9] * b.m[14] + a.m[13] * b.m[15], \
     a.m[2] * b.m[12] + a.m[6] * b.m[13] + a.m[10] * b.m[14] + a.m[14] * b.m[15], \
-    a.m[3] * b.m[12] + a.m[7] * b.m[13] + a.m[118] * b.m[14] + a.m[15] * b.m[15] \
+    a.m[3] * b.m[12] + a.m[7] * b.m[13] + a.m[11] * b.m[14] + a.m[15] * b.m[15] \
 }
 #define CGL_mat4_perspective(aspect, fov, znear, zfar) (CGL_mat4){1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, 0.0f, 0.0f, -1.0f * ( (zfar + znear) / (zfar - znear) ), -1.0f, 0.0f, 0.0f, -2.0f * znear * zfar / (zfar - znear), 1.0f}
+#define CGL_mat4_transpose(a) (CGL_mat4){a.m[0], a.m[4], a.m[12], a.m[1], a.m[5], a.m[9], a.m[13], a.m[2], a.m[6], a.m[10], a.m[14], a.m[3], a.m[7], a.m[11], a.m[15]}
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 
 #endif
@@ -492,6 +493,8 @@ void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static
 
 // mesh generation
 
+CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count);
+CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
 void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
@@ -535,6 +538,12 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 
 #endif
 
+#if 1
+
+
+
+#endif
+
 // Implementation of CGL
 
 #ifdef CGL_IMPLEMENTATION
@@ -562,11 +571,11 @@ struct CGL_list
     void* data;
 };
 
-CGL_list* CGL_list_create(size_t item_size)
+CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity)
 {
     CGL_list* list = (CGL_list*)malloc(sizeof(CGL_list));
     list->size = 0;
-    list->capacity = 5;
+    list->capacity = initial_capacity;
     list->item_size = item_size;
     list->increase_factor = 1.5f;
     list->data = malloc(list->capacity * item_size);
@@ -627,14 +636,14 @@ size_t CGL_list_pop(CGL_list* list, void* data)
 
 void* CGL_list_get(CGL_list* list, size_t index, void* data)
 {
-    if(index > list->size) return NULL;
+    if(index >= list->size || index < 0) return NULL;
     if(data) memcpy( data, ((char*)list->data + index * list->item_size), list->item_size );
     return ((char*)list->data + index * list->item_size);
 }
 
 void* CGL_list_set(CGL_list* list, size_t index, void* data)
 {
-    if(index > list->size) return NULL;
+    if (index >= list->size || index < 0) return NULL;
     if(data) memcpy( ((char*)list->data + index * list->item_size), data, list->item_size );
     return ((char*)list->data + index * list->item_size);
 }
@@ -675,7 +684,7 @@ void CGL_list_fill(CGL_list* list, size_t size)
 
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
 {
-    CGL_vec3 z_axis = CGL_vec3_sub(eye, target);
+    CGL_vec3 z_axis = CGL_vec3_sub(target, eye);
     CGL_vec3_normalize(z_axis);
     CGL_vec3 x_axis = CGL_vec3_cross(up, z_axis);
     CGL_vec3_normalize(x_axis);
@@ -688,11 +697,11 @@ CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
     mat.m[4] = y_axis.x;
     mat.m[5] = y_axis.y;
     mat.m[6] = y_axis.z;
-    mat.m[7] = -1.0f * CGL_vec3_dot(x_axis, eye);
+    mat.m[7] = -1.0f * CGL_vec3_dot(y_axis, eye);
     mat.m[8] = z_axis.x;
     mat.m[9] = z_axis.y;
     mat.m[10] = z_axis.z;
-    mat.m[11] = -1.0f * CGL_vec3_dot(x_axis, eye);
+    mat.m[11] = -1.0f * CGL_vec3_dot(z_axis, eye);
     mat.m[12] = 0.0f;
     mat.m[13] = 0.0f;
     mat.m[14] = 0.0f;
@@ -1577,7 +1586,7 @@ void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh)
 }
 
 // create mesh (cpu)
-CGL_mesh_cpu* __CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
+CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
 {
     CGL_mesh_cpu* mesh = (CGL_mesh_cpu*)malloc(sizeof(CGL_mesh_cpu));
     if(mesh == NULL)
@@ -1600,10 +1609,117 @@ CGL_mesh_cpu* __CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
     return mesh;
 }
 
+void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, int count)
+{
+    char* begin = line;
+    char* end = line + strlen(line);
+    int i = 0, j = 0;
+    while ((begin < end) && (i < count))
+    {
+        if (line[j++] == ' ')
+        {
+            line[j - 1] = '\0';
+            items[i++] = (float)atof(begin);
+            begin = line + j;
+        }
+    }
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
+{
+    char temp_buffer[1024];
+    CGL_list* vertex_positions = CGL_list_create(sizeof(float) * 4, 1000);
+    CGL_list* vertex_normals = CGL_list_create(sizeof(float) * 4, 1000);
+    CGL_list* vertex_texture_coordinates = CGL_list_create(sizeof(float) * 4, 1000);
+    CGL_list* vertices = CGL_list_create(sizeof(CGL_mesh_vertex), 1000);
+    CGL_list* indices = CGL_list_create(sizeof(uint32_t), 1000);
+    size_t file_size = 0;
+    char* file_data = CGL_utils_read_file(path, &file_size);
+    if(file_size == 0) return NULL;
+    char* line = strtok(file_data, "\n");
+    int object_count = 0;
+    float item_data[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    uint32_t index = 0;
+    while(line != NULL)
+    {
+        if (line[0] == 'v' && line[1] == ' ')
+        {
+            sprintf(temp_buffer, "%s ", (line + 2));
+            __CGL_mesh_cpu_load_obj_helper_parse_obj_line(temp_buffer, item_data, 3);
+            CGL_list_push(vertex_positions, item_data);
+        }
+        else if (line[0] == 'v' && line[1] == 'n')
+        {
+            sprintf(temp_buffer, "%s ", (line + 3));
+            __CGL_mesh_cpu_load_obj_helper_parse_obj_line(temp_buffer, item_data, 3);
+            CGL_list_push(vertex_normals, item_data);
+        }
+        else if (line[0] == 'v' && line[1] == 't')
+        {
+            sprintf(temp_buffer, "%s ", (line + 3));
+            __CGL_mesh_cpu_load_obj_helper_parse_obj_line(temp_buffer, item_data, 2);
+            CGL_list_push(vertex_texture_coordinates, item_data);
+        }
+        else if (line[0] == 'f' && line[1] == ' ')
+        {
+            sprintf(temp_buffer, "%s ", (line + 2));
+            uint32_t index_v_vt_vn[4][3];
+            memset(index_v_vt_vn, 0, sizeof(index_v_vt_vn));
+            char* begin = temp_buffer;
+            char* end = temp_buffer + strlen(temp_buffer);
+            int i = 0, j = 0, k = 0;
+            while ((begin < end) && (i < 3))
+            {
+                if (temp_buffer[j] == '/' || temp_buffer[j] == ' ')
+                {
+                    char c = temp_buffer[j];
+                    temp_buffer[j] = '\0';
+                    index_v_vt_vn[i][k++] = (uint32_t)atoll(begin);
+                    begin = temp_buffer + j + 1;
+                    if (c == ' ') { k = 0; i++; }
+                }
+                j++;
+            }            
+            CGL_mesh_vertex current_vertex;
+            for (int i = 0; i < 3; i++)
+            {
+                if (!CGL_list_get(vertex_positions, index_v_vt_vn[i][0] - 1, &current_vertex.position))
+                    current_vertex.position = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+                if (!CGL_list_get(vertex_texture_coordinates, index_v_vt_vn[i][1] - 1, &current_vertex.texture_coordinates))
+                    current_vertex.texture_coordinates= CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+                if (!CGL_list_get(vertex_normals, index_v_vt_vn[i][2] - 1, &current_vertex.normal))
+                    current_vertex.normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+                CGL_list_push(vertices, &current_vertex);
+            }
+
+            CGL_list_push(indices, &index); index++;
+            CGL_list_push(indices, &index); index++;
+            CGL_list_push(indices, &index); index++;            
+        }
+        else if (line[0] == 'o' && line[1] == ' ')
+            object_count++;
+        line = strtok(NULL, "\n");
+        if(object_count == 2) break; // only one object is parsed as of now
+    }
+
+    size_t index_count = CGL_list_get_size(indices);
+    size_t vertex_count = CGL_list_get_size(vertices);
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(vertex_count, index_count);
+    memcpy(mesh->indices, CGL_list_get(indices, 0, NULL), sizeof(uint32_t) * index_count);
+    memcpy(mesh->vertices, CGL_list_get(vertices, 0, NULL), sizeof(CGL_mesh_vertex) * vertex_count);
+    CGL_free(file_data);
+    CGL_list_destroy(vertices);
+    CGL_list_destroy(indices);
+    CGL_list_destroy(vertex_positions);
+    CGL_list_destroy(vertex_normals);
+    CGL_list_destroy(vertex_texture_coordinates);
+    return mesh;
+}
+
 // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 {
-    CGL_mesh_cpu* mesh = __CGL_mesh_cpu_create(3, 3);
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(3, 3);
     if(mesh == NULL)
         return NULL;
     CGL_vec3 ab = CGL_vec3_sub(b, a);
@@ -1628,7 +1744,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
 {
-    CGL_mesh_cpu* mesh = __CGL_mesh_cpu_create(4, 6);
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(4, 6);
     if(mesh == NULL)
         return NULL;
     CGL_vec3 ab = CGL_vec3_sub(b, a);
