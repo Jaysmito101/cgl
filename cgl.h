@@ -541,6 +541,38 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 #if 1
 
 
+struct CGL_camera;
+typedef struct CGL_camera CGL_camera;
+
+CGL_camera* CGL_camera_create();
+void CGL_camera_destroy(CGL_camera* camera);
+bool CGL_camera_is_perspective(CGL_camera* camera);
+bool CGL_camera_is_orthographic(CGL_camera* camera);
+float CGL_camera_get_fov(CGL_camera* camera);
+float CGL_camera_get_aspect_ratio(CGL_camera* camera);
+float CGL_camera_get_z_near(CGL_camera* camera);
+float CGL_camera_get_z_far(CGL_camera* camera);
+CGL_vec4 CGL_camera_get_orthographic_limits(CGL_camera* camera);
+void CGL_camera_set_fov(CGL_camera* camera, float fov);
+void CGL_camera_set_aspect_ratio(CGL_camera* camera, float aspect_ratio);
+void CGL_camera_set_z_near(CGL_camera* camera, float z_near);
+void CGL_camera_set_z_far(CGL_camera* camera, float z_far);
+void CGL_camera_set_orthographic_limits(CGL_camera* camera, CGL_vec4 ortho_limits);
+void CGL_camera_set_perspective(CGL_camera* camera);
+void CGL_camera_set_orthographic(CGL_camera* camera);
+CGL_mat4 CGL_camera_get_projection_mat(CGL_camera* camera);
+CGL_mat4* CGL_camera_get_projection_mat_ptr(CGL_camera* camera);
+CGL_mat4 CGL_camera_get_view_mat(CGL_camera* camera);
+CGL_mat4* CGL_camera_get_view_mat_ptr(CGL_camera* camera);
+CGL_mat4 CGL_camera_get_pv_mat(CGL_camera* camera);
+CGL_mat4* CGL_camera_get_pv_mat_ptr(CGL_camera* camera);
+void CGL_camera_set_position(CGL_camera* camera, CGL_vec3 position);
+void CGL_camera_set_rotation(CGL_camera* camera, CGL_vec3 ratation);
+CGL_vec3 CGL_camera_get_position(CGL_camera* camera);
+CGL_vec3 CGL_camera_get_rotation(CGL_camera* camera);
+CGL_vec3* CGL_camera_get_position_ptr(CGL_camera* camera);
+CGL_vec3* CGL_camera_get_rotation_ptr(CGL_camera* camera);
+void CGL_camera_recalculate_mat(CGL_camera* camera);
 
 #endif
 
@@ -2049,6 +2081,194 @@ void* CGL_shader_get_user_data(CGL_shader* shader)
 }
 
 #endif
+
+
+#if 1
+
+struct CGL_camera
+{
+    bool is_perspective;
+    CGL_vec4 ortho_limits;
+    CGL_vec3 position;
+    CGL_vec3 rotation;
+    float fov;
+    float aspect;
+    float z_near;
+    float z_far;
+    CGL_mat4 projection;
+    CGL_mat4 view;
+    CGL_mat4 pv;    
+};
+
+CGL_camera* CGL_camera_create()
+{
+    CGL_camera* camera = (CGL_camera*)malloc(sizeof(CGL_camera));
+    if(!camera) return NULL;
+    camera->is_perspective = true;
+    camera->ortho_limits = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    camera->position = CGL_vec3_init(0.0f, 0.0f, -1.0f);
+    camera->rotation = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    camera->fov = 45.0f;
+    camera->aspect = 1.0f;
+    camera->z_near = 0.001f;
+    camera->z_far = 1000.0f;
+    return camera;
+}
+
+void CGL_camera_destroy(CGL_camera* camera)
+{
+    CGL_free(camera);
+}
+
+bool CGL_camera_is_perspective(CGL_camera* camera)
+{
+    return camera->is_perspective;
+}
+
+bool CGL_camera_is_orthographic(CGL_camera* camera)
+{
+    return !camera->is_perspective;
+}
+
+float CGL_camera_get_fov(CGL_camera* camera)
+{
+    return camera->fov;
+}
+
+float CGL_camera_get_aspect_ratio(CGL_camera* camera)
+{
+    return camera->aspect;
+}
+
+float CGL_camera_get_z_near(CGL_camera* camera)
+{
+    return camera->z_near;
+}
+
+float CGL_camera_get_z_far(CGL_camera* camera)
+{
+    return camera->z_far;
+}
+
+CGL_vec4 CGL_camera_get_orthographic_limits(CGL_camera* camera)
+{
+    return camera->ortho_limits;
+}
+
+void CGL_camera_set_fov(CGL_camera* camera, float fov)
+{
+    camera->fov = fov;
+}
+
+void CGL_camera_set_aspect_ratio(CGL_camera* camera, float aspect_ratio)
+{
+    if(fabs(aspect_ratio) < 0.001f || fabs(aspect_ratio) > 100.0f )aspect_ratio = 1.0f;
+    camera->aspect = aspect_ratio;
+}
+
+void CGL_camera_set_z_near(CGL_camera* camera, float z_near)
+{
+    camera->z_near = z_near;
+}
+
+void CGL_camera_set_z_far(CGL_camera* camera, float z_far)
+{
+    camera->z_far = z_far;
+}
+
+void CGL_camera_set_orthographic_limits(CGL_camera* camera, CGL_vec4 ortho_limits)
+{
+    camera->ortho_limits = ortho_limits;
+}
+
+void CGL_camera_set_perspective(CGL_camera* camera)
+{
+    camera->is_perspective = true;
+}
+
+void CGL_camera_set_orthographic(CGL_camera* camera)
+{
+    camera->is_perspective = false;
+}
+
+CGL_mat4 CGL_camera_get_projection_mat(CGL_camera* camera)
+{
+    return camera->projection;
+}
+
+CGL_mat4* CGL_camera_get_projection_mat_ptr(CGL_camera* camera)
+{
+    return &camera->projection;
+}
+
+CGL_mat4 CGL_camera_get_view_mat(CGL_camera* camera)
+{
+    return camera->view;
+}
+
+CGL_mat4* CGL_camera_get_view_mat_ptr(CGL_camera* camera)
+{
+    return &camera->view;
+}
+
+CGL_mat4 CGL_camera_get_pv_mat(CGL_camera* camera)
+{
+    return camera->pv;
+}
+
+CGL_mat4* CGL_camera_get_pv_mat_ptr(CGL_camera* camera)
+{
+    return &camera->pv;
+}
+
+void CGL_camera_set_position(CGL_camera* camera, CGL_vec3 position)
+{
+    camera->position = position;
+}
+
+void CGL_camera_set_rotation(CGL_camera* camera, CGL_vec3 rotation)
+{
+    camera->rotation = rotation;
+}
+
+CGL_vec3 CGL_camera_get_position(CGL_camera* camera)
+{
+    return camera->position;
+}
+
+CGL_vec3 CGL_camera_get_rotation(CGL_camera* camera)
+{
+    return camera->rotation;
+}
+
+CGL_vec3* CGL_camera_get_position_ptr(CGL_camera* camera)
+{
+    return &camera->position;
+}
+
+CGL_vec3* CGL_camera_get_rotation_ptr(CGL_camera* camera)
+{
+    return &camera->rotation;
+}
+
+void CGL_camera_recalculate_mat(CGL_camera* camera)
+{
+    if(camera->is_perspective)
+        camera->projection = CGL_mat4_perspective(camera->aspect, camera->fov, camera->z_near, camera->z_far);
+    else
+    {printf("Ortho graphic projections not yet supported!\n");CGL_exit(EXIT_FAILURE);}
+    camera->view = CGL_mat4_look_at(camera->position, CGL_vec3_init(camera->position.x, camera->position.y, camera->position.z - 1.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));    
+    CGL_mat4 rotx = CGL_mat4_rotate_x(camera->rotation.y);
+    CGL_mat4 roty = CGL_mat4_rotate_y(camera->rotation.x);
+    CGL_mat4 rotz = CGL_mat4_rotate_z(camera->rotation.z);
+    camera->view = CGL_mat4_mul(rotx, camera->view);
+    camera->view = CGL_mat4_mul(roty, camera->view);
+    camera->view = CGL_mat4_mul(rotz, camera->view);
+    camera->pv = CGL_mat4_mul(camera->projection, camera->view);
+}
+
+#endif
+
 
 #endif // CGL_IMPLEMENTATION
 
