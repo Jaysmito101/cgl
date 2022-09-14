@@ -45,6 +45,7 @@ void CGL_shutdown(); // shutdown CGL
 
 #endif
 
+#if 1
 // CGL utils
 
 char* CGL_utils_read_file(const char* path, size_t* size); // read file into memory
@@ -58,9 +59,12 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 #define CGL_utils_random_vec4(min, max) ((CGL_vec4){CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z, CGL_utils_random_float() * (max.w - min.w) + min.w})
 #define CGL_utils_random_color() ((CGL_color){CGL_utils_random_float(), CGL_utils_random_float(), CGL_utils_random_float(), 1.0f})
 #define CGL_utils_clamp(x, minl, maxl) (x < minl ? minl : (x > maxl ? maxl : x))
+#define CGL_utils_array_size(array) (sizeof(array) / sizeof(array[0]))
 
 #define CGL_free(ptr) free(ptr)
 #define CGL_exit(code) exit(code)
+
+#endif
 
 #if 1 // Just to use code folding
 
@@ -418,6 +422,16 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 #define CGL_OPENGL_VERSION_MAJOR_STR "4"
 #define CGL_OPENGL_VERSION_MINOR_STR "6"
 
+struct CGL_image
+{
+    void* data;
+    uint32_t height;
+    uint32_t width;
+    uint32_t bytes_per_channel;
+    uint32_t channels;
+};
+typedef struct CGL_image CGL_image;
+
 // forward declarations
 struct CGL_texture;
 typedef struct CGL_texture CGL_texture;
@@ -453,7 +467,8 @@ struct CGL_ssbo;
 typedef struct CGL_ssbo CGL_ssbo;
 
 // texture
-CGL_texture* CGL_texture_create(int width, int height, GLenum format, GLenum internal_format, GLenum type); // create texture
+CGL_texture* CGL_texture_create(CGL_image* image);
+CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLenum internal_format, GLenum type); // create texture
 void CGL_texture_destroy(CGL_texture* texture); // destroy texture
 void CGL_texture_bind(CGL_texture* texture, int unit); // bind texture to unit
 void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
@@ -573,6 +588,66 @@ CGL_vec3 CGL_camera_get_rotation(CGL_camera* camera);
 CGL_vec3* CGL_camera_get_position_ptr(CGL_camera* camera);
 CGL_vec3* CGL_camera_get_rotation_ptr(CGL_camera* camera);
 void CGL_camera_recalculate_mat(CGL_camera* camera);
+
+#endif
+
+// The phong renderer
+#if 1
+
+#ifndef CGL_EXCLUDE_PHONG_RENDERER
+
+#define CGL_PHONG_LIGHT_DIRECTIONAL     0
+#define CGL_PHONG_LIGHT_POINT           1
+#define CGL_PHONG_LIGHT_SPOT            2
+
+struct CGL_phong_mat;
+typedef struct CGL_phong_mat CGL_phong_mat;
+
+struct CGL_phong_pipeline;
+typedef struct CGL_phong_pipeline CGL_phong_pipeline;
+
+struct CGL_phong_light;
+typedef struct CGL_phong_light CGL_phong_light;
+
+CGL_phong_pipeline* CGL_phong_pipeline_create();
+void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline);
+void CGL_phong_pipeline_set_user_data(CGL_phong_pipeline* pipeline, void* data);
+void* CGL_phong_pipeline_get_user_data(CGL_phong_pipeline* pipeline);
+bool CGL_phong_pipeline_is_using_blinn(CGL_phong_pipeline* pipeline);
+void CGL_phong_pipeline_enable_blinn(CGL_phong_pipeline* pipeline);
+void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline);
+uint32_t CGL_phong_pipeline_add_light(CGL_phong_pipeline* pipeline, CGL_phong_light* light);
+CGL_phong_light* CGL_phong_pipeline_remove_light(CGL_phong_pipeline* pipeline, uint32_t light_id);
+
+CGL_phong_mat* CGL_phong_mat_create();
+void CGL_phong_mat_destroy(CGL_phong_mat* mat);
+void CGL_phong_mat_set_diffuse_color(CGL_phong_mat* mat, CGL_vec3 color);
+void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image);
+void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color);
+void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image);
+void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image);
+void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, float shininess);
+void CGL_phong_mat_set_user_data(CGL_phong_mat* mat, void* data);
+void* CGL_phong_mat_get_user_data(CGL_phong_mat* mat);
+void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat);
+void CGL_phong_mat_enable_wireframe(CGL_phong_mat* mat);
+void CGL_phong_mat_disable_wireframe(CGL_phong_mat* mat);
+float CGL_phong_mat_get_shininess(CGL_phong_mat* mat);
+
+CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color, float itensity);
+CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, float itensity, float constant, float linear, float quadratic);
+void CGL_phong_light_destroy(CGL_phong_light* light);
+void CGL_phong_light_set_intensity(CGL_phong_light* light, float intensity);
+void CGL_phong_light_set_color(CGL_phong_light* light, CGL_vec3 color);
+float CGL_phong_light_get_intensity(CGL_phong_light* light);
+CGL_vec3 CGL_phong_light_get_color(CGL_phong_light* light);
+uint32_t CGL_phong_light_get_type(CGL_phong_light* light);
+
+void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera);
+void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_pipeline* pipeline, CGL_camera* camera);
+void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
+
+#endif
 
 #endif
 
@@ -776,6 +851,7 @@ void CGL_shutdown()
 
 #endif
 
+#if 1 // just to use code folding in ide
 
 // read file into memory
 char* CGL_utils_read_file(const char* path, size_t* size_ptr)
@@ -812,7 +888,6 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size)
 }
 
 
-#if 1 // just to use code folding in ide
 
 #ifndef CGL_EXPOSE_GLFW_API
 #include <GLFW/glfw3.h> // GLFW
@@ -1102,7 +1177,43 @@ struct CGL_texture
 };
 
 // create texture
-CGL_texture* CGL_texture_create(int width, int height, GLenum format, GLenum internal_format, GLenum type)
+CGL_texture* CGL_texture_create(CGL_image* image)
+{
+    GLenum format, internal_format, type;
+    if(image->channels == 3)
+        format = internal_format = GL_RGB;
+    else if(image->channels == 4)
+        format = internal_format = GL_RGBA;
+    else
+    {printf("Invalid channel count for image\n");return NULL;}
+    if(image->bytes_per_channel == 8)
+        type = GL_UNSIGNED_BYTE;
+    else if(image->bytes_per_channel == 16)
+        type = GL_UNSIGNED_SHORT;
+    else if(image->bytes_per_channel == 32)
+        type = GL_FLOAT;
+    else
+    {printf("Invalid bit depth for image\n");return NULL;}        
+    CGL_texture* texture = malloc(sizeof(CGL_texture));
+    texture->width = image->width;
+    texture->height = image->height;
+    texture->format = format;
+    texture->internal_format = internal_format;
+    texture->type = type;
+    texture->user_data = NULL;
+    glGenTextures(1, &texture->handle);
+    glBindTexture(GL_TEXTURE_2D, texture->handle);
+    glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image->width, image->height, 0, format, type, image->data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return texture;
+}
+
+// create texture
+CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLenum internal_format, GLenum type)
 {
     CGL_texture* texture = malloc(sizeof(CGL_texture));
     texture->width = width;
@@ -2082,7 +2193,6 @@ void* CGL_shader_get_user_data(CGL_shader* shader)
 
 #endif
 
-
 #if 1
 
 struct CGL_camera
@@ -2268,6 +2378,367 @@ void CGL_camera_recalculate_mat(CGL_camera* camera)
 }
 
 #endif
+
+
+// The phong renderer
+#if 1
+
+#ifndef CGL_EXCLUDE_PHONG_RENDERER
+
+
+struct CGL_phong_mat
+{
+    bool use_diffuse_texture;
+    CGL_vec3 diffuse_color;
+    CGL_texture* diffuse_texture;
+    CGL_image* diffuse_image;    
+    bool use_specular_texture;
+    CGL_vec3 specular_color;
+    CGL_texture* specular_texture;
+    CGL_image* specular_image;
+    bool use_normal_map;
+    CGL_texture* normal_map_texture;
+    CGL_image* normal_map_image;
+    float shininess;    
+    bool wireframe;
+    void* user_data;
+};
+
+struct CGL_phong_pipeline
+{
+    bool use_blinn;
+    CGL_shader* shader;
+    CGL_phong_light* lights[16];
+    uint32_t light_count;
+    void* user_data;
+    // uniforms
+
+};
+
+struct CGL_phong_light
+{
+    uint32_t light_type;
+    CGL_vec3 vector;
+    CGL_vec3 color;
+    float intensity;
+    float constant;
+    float linear;
+    float quadratic;
+    void* user_data;
+};
+
+/*
+#version 460 core
+
+void main()
+{
+
+}
+*/
+static const char* __CGL_PHONG_VERTEX_SHADER = "";
+
+/*
+#version 460 core
+
+void main()
+{
+    
+}
+*/
+static const char* __CGL_PHONG_FRAGMENT_SHADER = "";
+
+// pipeline_create
+CGL_phong_pipeline* CGL_phong_pipeline_create()
+{
+    CGL_phong_pipeline* pipeline = (CGL_phong_pipeline*)malloc(sizeof(CGL_phong_pipeline));
+    pipeline->use_blinn = false;
+    memset(pipeline->lights, 0, sizeof(pipeline->lights));
+    pipeline->light_count = 0;
+    pipeline->user_data = NULL;
+    pipeline->shader = CGL_shader_create(__CGL_PHONG_VERTEX_SHADER, __CGL_PHONG_FRAGMENT_SHADER, NULL);
+    // Load uniforms
+    return pipeline;
+}
+
+// pipeline_destroy
+void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline)
+{
+    CGL_shader_destroy(pipeline->shader);
+    for(int i = 0 ; i < CGL_utils_array_size(pipeline->lights); i++)
+        if(pipeline->lights[i])
+            CGL_phong_light_destroy(pipeline->lights[i]);
+    CGL_free(pipeline);
+}
+
+// pipeline_set_user_data
+void CGL_phong_pipeline_set_user_data(CGL_phong_pipeline* pipeline, void* data)
+{
+    pipeline->user_data = data;
+}
+
+// pipeline_get_user_data
+void* CGL_phong_pipeline_get_user_data(CGL_phong_pipeline* pipeline)
+{
+    return pipeline->user_data;
+}
+
+// pipeline_is_using_blinn
+bool CGL_phong_pipeline_is_using_blinn(CGL_phong_pipeline* pipeline)
+{
+    return pipeline->use_blinn;
+}
+
+// pipeline_enable_blinn
+void CGL_phong_pipeline_enable_blinn(CGL_phong_pipeline* pipeline)
+{
+    pipeline->use_blinn = true;
+}
+
+// pipeline_disable_blinn
+void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline)
+{
+    pipeline->use_blinn = false;
+}
+
+// pipeline_add_light
+uint32_t CGL_phong_pipeline_add_light(CGL_phong_pipeline* pipeline, CGL_phong_light* light)
+{
+    for(int i = 0 ; i < CGL_utils_array_size(pipeline->lights);i++)
+    {
+        if(pipeline->lights[i] == NULL)
+        {
+            pipeline->light_count += 1;
+            pipeline->lights[i] = light;
+            return i;
+        }
+    }
+    return UINT32_MAX;
+}
+
+// pipeline_remove_light
+CGL_phong_light* CGL_phong_pipeline_remove_light(CGL_phong_pipeline* pipeline, uint32_t light_id)
+{
+    if(light_id < 0 || light_id >= CGL_utils_array_size(pipeline->lights))
+        return;
+    pipeline->light_count -= 1;
+    CGL_phong_light* light = pipeline->lights[light_id];
+    pipeline->lights[light_id] = NULL;
+    return light;
+}
+
+// mat_create
+CGL_phong_mat* CGL_phong_mat_create()
+{
+    CGL_phong_mat* mat = (CGL_phong_mat*)malloc(sizeof(CGL_phong_mat));
+    mat->use_diffuse_texture = false;
+    mat->diffuse_color = CGL_vec3_init(0.8f, 0.8f, 0.8f);
+    mat->diffuse_image = NULL;
+    mat->diffuse_texture = NULL;
+    mat->use_specular_texture = false;
+    mat->specular_color = CGL_vec3_init(0.8f, 0.8f, 0.8f);
+    mat->specular_image = NULL;
+    mat->specular_texture = NULL;
+    mat->use_normal_map = false;
+    mat->normal_map_image = NULL;
+    mat->normal_map_texture = NULL;
+    mat->shininess = 0.5f;
+    mat->wireframe = false;
+    mat->user_data = NULL;
+    return mat;
+}
+
+// mat_destroy
+void CGL_phong_mat_destroy(CGL_phong_mat* mat)
+{
+    if(mat->use_diffuse_texture)
+        CGL_texture_destroy(mat->diffuse_texture);
+    if(mat->use_specular_texture)
+        CGL_texture_destroy(mat->specular_texture);
+    if(mat->use_normal_map)
+        CGL_texture_destroy(mat->normal_map_texture);
+    CGL_free(mat);
+}
+
+// mat_set_diffuse_color
+void CGL_phong_mat_set_diffuse_color(CGL_phong_mat* mat, CGL_vec3 color)
+{
+    if(mat->use_diffuse_texture)
+        CGL_texture_destroy(mat->diffuse_texture);
+    mat->diffuse_image = NULL;
+    mat->diffuse_texture = NULL;
+    mat->use_diffuse_texture = false;
+    mat->diffuse_color = color;
+}
+
+// mat_set_diffuse_texture
+void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image)
+{
+    if(mat->use_diffuse_texture)
+        CGL_texture_destroy(mat->diffuse_texture);
+    mat->use_diffuse_texture = true;
+    mat->diffuse_image = image;
+    mat->diffuse_texture = CGL_texture_create(image);
+}
+
+// mat_set_specular_color
+void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color)
+{
+    if(mat->use_specular_texture)
+        CGL_texture_destroy(mat->specular_texture);
+    mat->specular_image = NULL;
+    mat->specular_texture = NULL;
+    mat->use_specular_texture = false;
+    mat->specular_color = color;
+}
+
+// mat_set_specular_texture
+void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image)
+{
+    if(mat->use_specular_texture)
+        CGL_texture_destroy(mat->specular_texture);
+    mat->use_specular_texture = true;
+    mat->specular_image = image;
+    mat->specular_texture = CGL_texture_create(image);
+}
+
+// mat_set_normal_texture
+void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image)
+{
+    if(mat->use_normal_map)
+        CGL_texture_destroy(mat->normal_map_texture);
+    mat->use_normal_map = true;
+    mat->normal_map_image = image;
+    mat->normal_map_texture = CGL_texture_create(image);
+}
+
+// mat_set_shininess
+void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, float shininess)
+{
+    mat->shininess = shininess;
+}
+
+// mat_set_user_data
+void CGL_phong_mat_set_user_data(CGL_phong_mat* mat, void* data)
+{
+    mat->user_data = data;
+}
+
+// mat_get_user_data
+void* CGL_phong_mat_get_user_data(CGL_phong_mat* mat)
+{
+    return mat->user_data;
+}
+
+// mat_disable_normal_map
+void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat)
+{
+    if(mat->use_normal_map)
+        CGL_texture_destroy(mat->normal_map_texture);
+    mat->normal_map_image = NULL;
+    mat->normal_map_texture = NULL;
+    mat->use_normal_map = false;
+}
+
+// mat_enable_wireframe
+void CGL_phong_mat_enable_wireframe(CGL_phong_mat* mat)
+{
+    mat->wireframe = true;
+}
+
+// mat_disable_wireframe
+void CGL_phong_mat_disable_wireframe(CGL_phong_mat* mat)
+{
+    mat->wireframe = false;
+}
+
+// mat_get_shininess
+float CGL_phong_mat_get_shininess(CGL_phong_mat* mat)
+{
+    return mat->shininess;
+}
+
+// light_directional
+CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color, float intensity)
+{
+    CGL_phong_light* light = (CGL_phong_light*)malloc(sizeof(CGL_phong_light));
+    light->light_type = CGL_PHONG_LIGHT_DIRECTIONAL;
+    light->color = color;
+    light->intensity = intensity;
+    light->vector = direction;
+    return light;
+}
+
+// light_point
+CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, float intensity, float constant, float linear, float quadratic)
+{
+    CGL_phong_light* light = (CGL_phong_light*)malloc(sizeof(CGL_phong_light));
+    light->light_type = CGL_PHONG_LIGHT_POINT;
+    light->color = color;
+    light->intensity = intensity;
+    light->vector = position;
+    light->constant = constant;
+    light->linear = linear;
+    light->quadratic = quadratic;
+    return light;
+}
+
+// light_destroy
+void CGL_phong_light_destroy(CGL_phong_light* light)
+{
+    CGL_free(light);
+}
+
+// light_set_intensity
+void CGL_phong_light_set_intensity(CGL_phong_light* light, float intensity)
+{
+    light->intensity = intensity;
+}
+
+// light_set_color
+void CGL_phong_light_set_color(CGL_phong_light* light, CGL_vec3 color)
+{
+    light->color = color;
+}
+
+// light_get_intensity
+float CGL_phong_light_get_intensity(CGL_phong_light* light)
+{
+    return light->intensity;
+}
+
+// light_get_color
+CGL_vec3 CGL_phong_light_get_color(CGL_phong_light* light)
+{
+    return light->color;
+}
+
+// light_get_type
+uint32_t CGL_phong_light_get_type(CGL_phong_light* light)
+{
+    return light->light_type;
+}
+
+
+void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera)
+{
+
+}
+
+void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_pipeline* pipeline, CGL_camera* camera)
+{
+
+}
+
+void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
+{
+    
+}
+
+
+#endif
+
+#endif
+
 
 
 #endif // CGL_IMPLEMENTATION
