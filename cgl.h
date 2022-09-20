@@ -596,6 +596,8 @@ void CGL_camera_recalculate_mat(CGL_camera* camera);
 
 #ifndef CGL_EXCLUDE_PHONG_RENDERER
 
+#define CGL_PHONG_MAX_LIGHTS            16
+
 #define CGL_PHONG_LIGHT_DIRECTIONAL     0
 #define CGL_PHONG_LIGHT_POINT           1
 #define CGL_PHONG_LIGHT_SPOT            2
@@ -616,6 +618,12 @@ void* CGL_phong_pipeline_get_user_data(CGL_phong_pipeline* pipeline);
 bool CGL_phong_pipeline_is_using_blinn(CGL_phong_pipeline* pipeline);
 void CGL_phong_pipeline_enable_blinn(CGL_phong_pipeline* pipeline);
 void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline);
+void CGL_phong_pipeline_enable_gamma_correction(CGL_phong_pipeline* pipeline);
+void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline);
+void CGL_phong_pipeline_set_ambient_light_color(CGL_phong_pipeline* pipeline, CGL_vec3 color);
+CGL_vec3 CGL_phong_pipeline_get_ambient_light_color(CGL_phong_pipeline* pipeline);
+void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, float strength);
+float CGL_phong_pipeline_get_ambient_light_strength(CGL_phong_pipeline* pipeline);
 uint32_t CGL_phong_pipeline_add_light(CGL_phong_pipeline* pipeline, CGL_phong_light* light);
 CGL_phong_light* CGL_phong_pipeline_remove_light(CGL_phong_pipeline* pipeline, uint32_t light_id);
 
@@ -644,7 +652,7 @@ CGL_vec3 CGL_phong_light_get_color(CGL_phong_light* light);
 uint32_t CGL_phong_light_get_type(CGL_phong_light* light);
 
 void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera);
-void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_pipeline* pipeline, CGL_camera* camera);
+void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat* material, CGL_phong_pipeline* pipeline, CGL_camera* camera);
 void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
 
 #endif
@@ -1300,7 +1308,7 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle);
     
     // create the textures
-    framebuffer->color_texture = CGL_texture_create(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);    
+    framebuffer->color_texture = CGL_texture_create_blank(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);    
     if(!framebuffer->color_texture)
     {
         free(framebuffer);
@@ -1308,7 +1316,7 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
     }
 
     
-    framebuffer->depth_texture = CGL_texture_create(width, height, GL_DEPTH_COMPONENT, GL_DEPTH24_STENCIL8, GL_FLOAT);
+    framebuffer->depth_texture = CGL_texture_create_blank(width, height, GL_DEPTH_COMPONENT, GL_DEPTH24_STENCIL8, GL_FLOAT);
     if(!framebuffer->depth_texture)
     {
         CGL_texture_destroy(framebuffer->color_texture);
@@ -1318,7 +1326,7 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
         
     for(int i = 0; i < 3; i++)
     {
-        framebuffer->mousepick_texture[i] = CGL_texture_create(width, height, GL_RED_INTEGER, GL_R32I, GL_INT);
+        framebuffer->mousepick_texture[i] = CGL_texture_create_blank(width, height, GL_RED_INTEGER, GL_R32I, GL_INT);
         if(!framebuffer->mousepick_texture[i])
         {
             CGL_texture_destroy(framebuffer->color_texture);
@@ -2408,11 +2416,33 @@ struct CGL_phong_pipeline
 {
     bool use_blinn;
     CGL_shader* shader;
-    CGL_phong_light* lights[16];
+    CGL_phong_light* lights[CGL_PHONG_MAX_LIGHTS];
+    CGL_vec3 ambient_light_color;
+    float ambient_light_strength;
     uint32_t light_count;
+    bool use_gamma_correction;
     void* user_data;
-    // uniforms
-
+    // uniform locations
+    int u_lights_v4[4][CGL_PHONG_MAX_LIGHTS];
+    int u_projection;
+    int u_view;
+    int u_pv;
+    int u_model_matrix;
+    int u_light_count;
+    int u_use_diffuse_texture;
+    int u_diffuse_color;
+    int u_diffuse_texture;
+    int u_use_specular_texture;
+    int u_specular_color;
+    int u_specular_texture;
+    int u_use_normal_map;
+    int u_normal_map_texture;
+    int u_shininess;
+    int u_camera_position;
+    int u_use_blinn;
+    int u_ambient_light_color;
+    int u_ambient_light_strength;
+    int u_use_gamma_correction;
 };
 
 struct CGL_phong_light
@@ -2427,25 +2457,178 @@ struct CGL_phong_light
     void* user_data;
 };
 
-/*
-#version 460 core
+static const char* __CGL_PHONG_VERTEX_SHADER = "#version 430 core\n"
+"\n"
+"layout (location = 0) in vec4 position;\n"
+"layout (location = 1) in vec4 normal;\n"
+"layout (location = 2) in vec4 texcoord;\n"
+"\n"
+"out vec3 Position;\n"
+"out vec3 Normal;\n"
+"out vec2 TexCoord; \n"
+"\n"
+"uniform mat4 u_projection;\n"
+"uniform mat4 u_view;\n"
+"uniform mat4 u_pv;\n"
+"uniform mat4 u_model_matrix;\n"
+"\n"
+"void main()\n"
+"{\n"
+"	gl_Position = u_projection * transpose(u_view * u_model_matrix) * vec4(position.xyz, 1.0f);\n"
+"	Position = (transpose(u_model_matrix) * position).xyz;\n"
+"	Normal = normal.xyz;\n"
+"	TexCoord = texcoord.xy;		\n"
+"}";
 
-void main()
-{
 
-}
-*/
-static const char* __CGL_PHONG_VERTEX_SHADER = "";
-
-/*
-#version 460 core
-
-void main()
-{
-    
-}
-*/
-static const char* __CGL_PHONG_FRAGMENT_SHADER = "";
+static const char* __CGL_PHONG_FRAGMENT_SHADER = "#version 430 core\n"
+"\n"
+"#define MAX_LIGHTS             16\n"
+"\n"
+"#define LIGHT_TYPE_DIRECTIONAL      0.5f\n"
+"#define LIGHT_TYPE_POINT            1.5f\n"
+"#define LIGHT_TYPE_SPOT             2.5f\n"
+"#define LIGHT_TYPE(index)      u_lights_data_1[index].x\n"
+"#define LIGHT_CONSTANT(index ) u_lights_data_1[index].y\n"
+"#define LIGHT_LINEAR(index)    u_lights_data_1[index].z\n"
+"#define LIGHT_QUADRATIC(index) u_lights_data_1[index].w\n"
+"#define LIGHT_COLOR(index)     vec4(u_lights_data_0[index].xyz, 1.0f)\n"
+"#define LIGHT_INTENSITY(index) u_lights_data_0[index].w\n"
+"#define LIGHT_VECTOR(index)    u_lights_data_2[index].xyz\n"
+"\n"
+"out vec4 FragColor;\n"
+"//out int MousePick0;\n"
+"//out int MousePick1;\n"
+"//out int MousePick2;\n"
+"in vec3 Position;\n"
+"in vec3 Normal;\n"
+"in vec2 TexCoord;\n"
+"\n"
+"\n"
+"// unifroms\n"
+"uniform vec4 u_lights_data_0[MAX_LIGHTS];\n"
+"uniform vec4 u_lights_data_1[MAX_LIGHTS];\n"
+"uniform vec4 u_lights_data_2[MAX_LIGHTS];\n"
+"uniform vec4 u_lights_data_3[MAX_LIGHTS];\n"
+"\n"
+"uniform mat4 u_projection;\n"
+"uniform mat4 u_view;\n"
+"uniform mat4 u_pv;\n"
+"uniform mat4 u_model_matrix;\n"
+"uniform int u_light_count;\n"
+"uniform bool u_use_diffuse_texture;\n"
+"uniform vec3 u_diffuse_color;\n"
+"uniform sampler2D u_diffuse_texture;\n"
+"uniform bool u_use_specular_texture;\n"
+"uniform vec3 u_specular_color;\n"
+"uniform sampler2D u_specular_texture;\n"
+"uniform bool u_use_normal_map;\n"
+"uniform sampler2D u_normal_map_texture;\n"
+"uniform float u_shininess;\n"
+"uniform vec3 u_camera_position;\n"
+"uniform bool u_use_blinn;\n"
+"uniform vec3 u_ambient_light_color;\n"
+"uniform float u_ambient_light_strength;\n"
+"uniform bool u_use_gamma_correction;\n"
+"\n"
+"vec4 get_material_diffuse_color()\n"
+"{\n"
+"    if(u_use_diffuse_texture)\n"
+"        return texture(u_diffuse_texture, TexCoord);\n"
+"    return vec4(u_diffuse_color, 1.0f);\n"
+"}\n"
+"\n"
+"vec4 get_material_specular_color()\n"
+"{\n"
+"    if(u_use_specular_texture)\n"
+"        return texture(u_specular_texture, TexCoord);\n"
+"    return vec4(u_specular_color, 1.0f);\n"
+"}\n"
+"\n"
+"vec4 calculate_directional_light(int index)\n"
+"{\n"
+"    vec3 light_direcion = normalize(-LIGHT_VECTOR(index));\n"
+"    // diffuse shading\n"
+"    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
+"    // specular shading\n"
+"    float spec = 0.0f;\n"
+"    if(u_use_blinn)\n"
+"    {\n"
+"        vec3 halfway_direction = normalize(light_direcion + u_camera_position);\n"
+"        spec = pow(max(dot(u_camera_position, halfway_direction), 0.0f), u_shininess);\n"
+"    }\n"
+"    else\n"
+"    {\n"
+"        vec3 reflect_direction = reflect(-light_direcion, Normal);\n"
+"        spec = pow(max(dot(u_camera_position, reflect_direction), 0.0f), u_shininess);\n"
+"    }\n"
+"    vec4 material_diffuse = get_material_diffuse_color();\n"
+"    vec4 material_specular = get_material_specular_color();\n"
+"    vec4 ambient_lighting = vec4(u_ambient_light_color * u_ambient_light_strength, 1.0f);\n"
+"    vec4 diffuse_lighting = LIGHT_COLOR(index) * diff * material_diffuse;\n"
+"    vec4 specular_lighting = LIGHT_COLOR(index) * spec * material_specular;\n"
+"    return (ambient_lighting + diffuse_lighting + specular_lighting) * LIGHT_INTENSITY(index);\n"
+"}\n"
+"\n"
+"vec4 calculate_point_light(int index)\n"
+"{\n"
+"    vec3 light_direcion = normalize(LIGHT_VECTOR(index) - Position);\n"
+"    // diffuse shading\n"
+"    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
+"    // specular shading\n"
+"    float spec = 0.0f;\n"
+"    if(u_use_blinn)\n"
+"    {\n"
+"        vec3 halfway_direction = normalize(light_direcion + u_camera_position);\n"
+"        spec = pow(max(dot(u_camera_position, halfway_direction), 0.0f), u_shininess);\n"
+"    }\n"
+"    else\n"
+"    {\n"
+"        vec3 reflect_direction = reflect(-light_direcion, Normal);\n"
+"        spec = pow(max(dot(u_camera_position, reflect_direction), 0.0f), u_shininess);\n"
+"    }\n"
+"\n"
+"    vec4 material_diffuse = get_material_diffuse_color();\n"
+"    vec4 material_specular = get_material_specular_color();\n"
+"    // attrnuation\n"
+"    float distance = length(LIGHT_VECTOR(index) - Position);\n"
+"    float attenuation = 1.0f / ( LIGHT_CONSTANT(index) + LIGHT_LINEAR(index) * distance + LIGHT_QUADRATIC(index) * (distance * distance));\n"
+"    vec4 ambient_lighting = vec4(u_ambient_light_color * u_ambient_light_strength, 1.0f);\n"
+"    vec4 diffuse_lighting = LIGHT_COLOR(index) * diff * material_diffuse;\n"
+"    vec4 specular_lighting = LIGHT_COLOR(index) * spec * material_specular;\n"
+"    return (ambient_lighting + diffuse_lighting + specular_lighting) * attenuation * LIGHT_INTENSITY(index);\n"
+"}\n"
+"\n"
+"vec4 calculate_spot_light(int index)\n"
+"{\n"
+"    return vec4(0.0f);\n"
+"}\n"
+"\n"
+"\n"
+"void main()\n"
+"{\n"
+"    vec4 color = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
+"    vec4 light_output = vec4(0.0f);\n"
+"    for ( int i = 0 ; i < u_light_count ; i++)\n"
+"    {\n"
+"        if(LIGHT_TYPE(i) < LIGHT_TYPE_DIRECTIONAL)\n"
+"            light_output += calculate_directional_light(i);\n"
+"        else if(LIGHT_TYPE(i) < LIGHT_TYPE_POINT)\n"
+"            light_output += calculate_point_light(i);\n"
+"        else if(LIGHT_TYPE(i) < LIGHT_TYPE_SPOT)        \n"
+"            light_output += calculate_spot_light(i);\n"
+"    }\n"
+"\n"
+"    if(u_use_gamma_correction)\n"
+"        color = vec4(pow(light_output.xyz, vec3(0.4545f)), light_output.w);\n"
+"    else\n"
+"        color = light_output;\n"
+"\n"
+"    FragColor = color;\n"
+"    //MousePick0 = InstanceID;\n"
+"    //MousePick1 = 0;\n"
+"    //MousePick2 = 1;\n"
+"}";
 
 // pipeline_create
 CGL_phong_pipeline* CGL_phong_pipeline_create()
@@ -2454,9 +2637,40 @@ CGL_phong_pipeline* CGL_phong_pipeline_create()
     pipeline->use_blinn = false;
     memset(pipeline->lights, 0, sizeof(pipeline->lights));
     pipeline->light_count = 0;
+    pipeline->ambient_light_color = CGL_vec3_init(0.18f, 0.18f, 0.18f);
+    pipeline->ambient_light_strength = 1.0f;
+    pipeline->use_gamma_correction = true;
     pipeline->user_data = NULL;
     pipeline->shader = CGL_shader_create(__CGL_PHONG_VERTEX_SHADER, __CGL_PHONG_FRAGMENT_SHADER, NULL);
     // Load uniforms
+    pipeline->u_projection = CGL_shader_get_uniform_location(pipeline->shader, "u_projection");
+    pipeline->u_view = CGL_shader_get_uniform_location(pipeline->shader, "u_view");
+    pipeline->u_pv = CGL_shader_get_uniform_location(pipeline->shader, "u_pv");
+    pipeline->u_light_count = CGL_shader_get_uniform_location(pipeline->shader, "u_light_count");
+    pipeline->u_use_diffuse_texture = CGL_shader_get_uniform_location(pipeline->shader, "u_use_diffuse_texture");
+    pipeline->u_diffuse_color = CGL_shader_get_uniform_location(pipeline->shader, "u_diffuse_color");
+    pipeline->u_diffuse_texture = CGL_shader_get_uniform_location(pipeline->shader, "u_diffuse_texture");
+    pipeline->u_use_specular_texture = CGL_shader_get_uniform_location(pipeline->shader, "u_use_specular_texture");
+    pipeline->u_specular_color = CGL_shader_get_uniform_location(pipeline->shader, "u_specular_color");
+    pipeline->u_specular_texture = CGL_shader_get_uniform_location(pipeline->shader, "u_specular_texture");
+    pipeline->u_use_normal_map = CGL_shader_get_uniform_location(pipeline->shader, "u_use_normal_map");
+    pipeline->u_normal_map_texture = CGL_shader_get_uniform_location(pipeline->shader, "u_normal_map_texture");
+    pipeline->u_shininess = CGL_shader_get_uniform_location(pipeline->shader, "u_shininess");
+    pipeline->u_camera_position = CGL_shader_get_uniform_location(pipeline->shader, "u_camera_position");
+    pipeline->u_use_blinn = CGL_shader_get_uniform_location(pipeline->shader, "u_use_blinn");
+    pipeline->u_model_matrix = CGL_shader_get_uniform_location(pipeline->shader, "u_model_matrix");
+    pipeline->u_ambient_light_color = CGL_shader_get_uniform_location(pipeline->shader, "u_ambient_light_color");
+    pipeline->u_ambient_light_strength = CGL_shader_get_uniform_location(pipeline->shader, "u_ambient_light_strength");
+    pipeline->u_use_gamma_correction = CGL_shader_get_uniform_location(pipeline->shader, "u_use_gamma_correction");
+    static char temp_buffer[256];
+    for(int i = 0 ; i < 4 ; i ++)
+    {
+        for(int j = 0 ; j < CGL_PHONG_MAX_LIGHTS ; j ++)
+        {
+            sprintf(temp_buffer, "u_lights_data_%d[%d]", i, j);
+            pipeline->u_lights_v4[i][j] = CGL_shader_get_uniform_location(pipeline->shader, temp_buffer);
+        }
+    }
     return pipeline;
 }
 
@@ -2468,6 +2682,36 @@ void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline)
         if(pipeline->lights[i])
             CGL_phong_light_destroy(pipeline->lights[i]);
     CGL_free(pipeline);
+}
+
+void CGL_phong_pipeline_set_ambient_light_color(CGL_phong_pipeline* pipeline, CGL_vec3 color)
+{
+    pipeline->ambient_light_color = color;
+}
+
+CGL_vec3 CGL_phong_pipeline_get_ambient_light_color(CGL_phong_pipeline* pipeline)
+{
+    return pipeline->ambient_light_color;
+}
+
+void CGL_phong_pipeline_enable_gamma_correction(CGL_phong_pipeline* pipeline)
+{
+    pipeline->use_gamma_correction = true;
+}
+
+void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline)
+{
+    pipeline->use_gamma_correction = false;
+}
+
+void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, float strength)
+{
+    pipeline->ambient_light_strength = CGL_utils_clamp(strength, 0.0f, 1000.0f);
+}
+
+float CGL_phong_pipeline_get_ambient_light_strength(CGL_phong_pipeline* pipeline)
+{
+    return pipeline->ambient_light_strength;
 }
 
 // pipeline_set_user_data
@@ -2519,7 +2763,7 @@ uint32_t CGL_phong_pipeline_add_light(CGL_phong_pipeline* pipeline, CGL_phong_li
 CGL_phong_light* CGL_phong_pipeline_remove_light(CGL_phong_pipeline* pipeline, uint32_t light_id)
 {
     if(light_id < 0 || light_id >= CGL_utils_array_size(pipeline->lights))
-        return;
+        return NULL;
     pipeline->light_count -= 1;
     CGL_phong_light* light = pipeline->lights[light_id];
     pipeline->lights[light_id] = NULL;
@@ -2541,7 +2785,7 @@ CGL_phong_mat* CGL_phong_mat_create()
     mat->use_normal_map = false;
     mat->normal_map_image = NULL;
     mat->normal_map_texture = NULL;
-    mat->shininess = 0.5f;
+    mat->shininess = 64.0f;
     mat->wireframe = false;
     mat->user_data = NULL;
     return mat;
@@ -2721,12 +2965,63 @@ uint32_t CGL_phong_light_get_type(CGL_phong_light* light)
 
 void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
-
+    CGL_shader_bind(pipeline->shader);
+    // set uniforms
+    CGL_shader_set_uniform_mat4(pipeline->shader, pipeline->u_projection, CGL_camera_get_projection_mat_ptr(camera));// camera
+    CGL_shader_set_uniform_mat4(pipeline->shader, pipeline->u_view, CGL_camera_get_view_mat_ptr(camera));// camera
+    CGL_shader_set_uniform_mat4(pipeline->shader, pipeline->u_pv, CGL_camera_get_pv_mat_ptr(camera));// camera
+    CGL_vec3 camera_position = CGL_camera_get_position(camera);
+    CGL_shader_set_uniform_vec3v(pipeline->shader, pipeline->u_camera_position, camera_position.x, camera_position.y, camera_position.z);
+    CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_blinn, pipeline->use_blinn);
+    CGL_shader_set_uniform_float(pipeline->shader, pipeline->u_ambient_light_strength, pipeline->ambient_light_strength);
+    CGL_shader_set_uniform_vec3v(pipeline->shader, pipeline->u_ambient_light_color, pipeline->ambient_light_color.x, pipeline->ambient_light_color.y, pipeline->ambient_light_color.z);
+    CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_gamma_correction, pipeline->use_gamma_correction);
+    // set lights
+    CGL_shader_set_uniform_int(pipeline->shader, pipeline->u_light_count, pipeline->light_count);
+    for(uint32_t i = 0, j = 0 ; i < pipeline->light_count ; i++)
+    {
+        CGL_phong_light* light = pipeline->lights[i];
+        if(light == NULL) continue;
+        // data_0 is color and strength
+        CGL_shader_set_uniform_vec4v(pipeline->shader, pipeline->u_lights_v4[0][j], light->color.x, light->color.y, light->color.z, light->intensity);
+        // data_1 is type, constant, linear, quadratic
+        CGL_shader_set_uniform_vec4v(pipeline->shader, pipeline->u_lights_v4[1][j], (float)light->light_type, light->constant, light->linear, light->quadratic);
+        // data_2 is vector
+        CGL_shader_set_uniform_vec4v(pipeline->shader, pipeline->u_lights_v4[2][j], light->vector.x, light->vector.y, light->vector.z, 0.0f);
+        // data_3 is reserved for future use
+        j++;
+    }
 }
 
-void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_pipeline* pipeline, CGL_camera* camera)
+void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat* material, CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
-
+    CGL_shader_set_uniform_mat4(pipeline->shader, pipeline->u_model_matrix, model_matrix);
+    CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_diffuse_texture, material->use_diffuse_texture);
+    CGL_shader_set_uniform_vec3v(pipeline->shader, pipeline->u_diffuse_color, material->diffuse_color.x, material->diffuse_color.y, material->diffuse_color.z);
+    if(material->use_diffuse_texture)
+    {
+        CGL_texture_bind(material->diffuse_texture, 0);
+        CGL_shader_set_uniform_int(pipeline->shader, pipeline->u_diffuse_texture, 0);
+    }
+    CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_specular_texture, material->use_specular_texture);
+    CGL_shader_set_uniform_vec3v(pipeline->shader, pipeline->u_specular_color, material->specular_color.x, material->specular_color.y, material->specular_color.z);
+    if(material->use_specular_texture)
+    {
+        CGL_texture_bind(material->specular_texture, 1);
+        CGL_shader_set_uniform_int(pipeline->shader, pipeline->u_specular_texture, 1);
+    }
+    CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_normal_map, material->use_normal_map);
+    if(material->use_normal_map)
+    {
+        CGL_texture_bind(material->normal_map_texture, 3);
+        CGL_shader_set_uniform_int(pipeline->shader, pipeline->u_use_normal_map, 3);
+    }    
+    CGL_shader_set_uniform_float(pipeline->shader, pipeline->u_shininess, material->shininess);
+    if(material->wireframe)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
+    CGL_mesh_gpu_render(mesh);
+    if(material->wireframe)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
