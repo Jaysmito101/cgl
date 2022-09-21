@@ -168,6 +168,9 @@ typedef struct CGL_mat4 CGL_mat4;
 #define CGL_vec3_min(a, b) (CGL_vec3){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z}
 #define CGL_vec3_max(a, b) (CGL_vec3){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z}
 #define CGL_vec3_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z)
+#define CGL_vec3_rotate_x(v, theta) (CGL_vec3){v.x * cosf(theta) - v.y * sinf(theta), v.x * sinf(theta) + v.y * cosf(theta), v.z}
+#define CGL_vec3_rotate_y(v, theta) (CGL_vec3){v.x * cosf(theta) + v.z * sinf(theta), v.y, -1.0f * v.x * sinf(theta) + v.z * cosf(theta)}
+#define CGL_vec3_rotate_z(v, theta) (CGL_vec3){v.x, v.y * cosf(theta) - v.z * sinf(theta), v.y * sinf(theta) + v.z * cosf(theta)}
 
 #define CGL_vec4_init(x, y, z, w) ((CGL_vec4){x, y, z, w})
 #define CGL_vec4_add(a, b) (CGL_vec4){a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w}
@@ -376,6 +379,9 @@ typedef struct GLFWwindow GLFWwindow;
 struct CGL_window;
 typedef struct CGL_window CGL_window;
 
+struct GLFWwindow;
+typedef struct GLFWwindow GLFWwindow;
+
 typedef void(*CGL_window_key_callback)(CGL_window* window, int key, int scancode, int action, int mods);
 typedef void(*CGL_window_mouse_button_callback)(CGL_window* window, int button, int action, int mods);
 typedef void(*CGL_window_mouse_position_callback)(CGL_window* window, double xpos, double ypos);
@@ -404,6 +410,7 @@ void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_s
 void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback); // set framebuffer size callback
 void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback); // set close callback
 void CGL_window_make_context_current(CGL_window* window); // make opengl context current
+GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window);
 
 // inputs
 int CGL_window_get_key(CGL_window* window, int key); // get key state
@@ -587,6 +594,9 @@ CGL_vec3 CGL_camera_get_position(CGL_camera* camera);
 CGL_vec3 CGL_camera_get_rotation(CGL_camera* camera);
 CGL_vec3* CGL_camera_get_position_ptr(CGL_camera* camera);
 CGL_vec3* CGL_camera_get_rotation_ptr(CGL_camera* camera);
+CGL_vec3 CGL_camera_get_front(CGL_camera* camera);
+CGL_vec3 CGL_camera_get_right(CGL_camera* camera);
+CGL_vec3 CGL_camera_get_up(CGL_camera* camera);
 void CGL_camera_recalculate_mat(CGL_camera* camera);
 
 #endif
@@ -665,7 +675,9 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
 
 // include windows headers for windows builds
 #if defined(_WIN32) || defined(_WIN64)
+#pragma warning(push, 0)
 #include <Windows.h>
+#pragma warning(pop)
 #ifdef near
 #undef near
 #endif
@@ -1163,6 +1175,11 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 void CGL_window_make_context_current(CGL_window* window)
 {
     glfwMakeContextCurrent(window->handle);
+}
+
+GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window)
+{
+    return window->handle;
 }
 
 #endif
@@ -2209,13 +2226,16 @@ struct CGL_camera
     CGL_vec4 ortho_limits;
     CGL_vec3 position;
     CGL_vec3 rotation;
+    CGL_vec3 front;
+    CGL_vec3 right;
+    CGL_vec3 up;
     float fov;
     float aspect;
     float z_near;
     float z_far;
     CGL_mat4 projection;
     CGL_mat4 view;
-    CGL_mat4 pv;    
+    CGL_mat4 pv;
 };
 
 CGL_camera* CGL_camera_create()
@@ -2369,19 +2389,60 @@ CGL_vec3* CGL_camera_get_rotation_ptr(CGL_camera* camera)
     return &camera->rotation;
 }
 
+CGL_vec3 CGL_camera_get_front(CGL_camera* camera)
+{
+    return camera->front;    
+}
+
+CGL_vec3 CGL_camera_get_right(CGL_camera* camera)
+{
+    return camera->right;    
+}
+
+CGL_vec3 CGL_camera_get_up(CGL_camera* camera)
+{
+    return camera->up;    
+}
+
 void CGL_camera_recalculate_mat(CGL_camera* camera)
 {
     if(camera->is_perspective)
         camera->projection = CGL_mat4_perspective(camera->aspect, camera->fov, camera->z_near, camera->z_far);
     else
     {printf("Ortho graphic projections not yet supported!\n");CGL_exit(EXIT_FAILURE);}
-    camera->view = CGL_mat4_look_at(camera->position, CGL_vec3_init(camera->position.x, camera->position.y, camera->position.z - 1.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));    
-    CGL_mat4 rotx = CGL_mat4_rotate_x(camera->rotation.y);
-    CGL_mat4 roty = CGL_mat4_rotate_y(camera->rotation.x);
-    CGL_mat4 rotz = CGL_mat4_rotate_z(camera->rotation.z);
-    camera->view = CGL_mat4_mul(rotx, camera->view);
-    camera->view = CGL_mat4_mul(roty, camera->view);
-    camera->view = CGL_mat4_mul(rotz, camera->view);
+    
+    CGL_vec3 z_axis = CGL_vec3_init(0.0f, 0.0f, 1.0f);
+    z_axis = CGL_vec3_rotate_x(z_axis, camera->rotation.x);
+    z_axis = CGL_vec3_rotate_y(z_axis, camera->rotation.y);
+    z_axis = CGL_vec3_rotate_z(z_axis, camera->rotation.z);
+    camera->front = z_axis;
+
+    CGL_vec3 x_axis = CGL_vec3_init(1.0f, 0.0f, 0.0f);
+    x_axis = CGL_vec3_rotate_x(x_axis, camera->rotation.x);
+    x_axis = CGL_vec3_rotate_y(x_axis, camera->rotation.y);
+    x_axis = CGL_vec3_rotate_z(x_axis, camera->rotation.z);
+    camera->right = x_axis;
+
+    CGL_vec3 y_axis = CGL_vec3_cross(z_axis, x_axis);
+    camera->up = y_axis;
+
+    camera->view.m[0] = x_axis.x;
+    camera->view.m[1] = x_axis.y;
+    camera->view.m[2] = x_axis.z;
+    camera->view.m[3] = -1.0f * CGL_vec3_dot(camera->position, x_axis);
+    camera->view.m[4] = y_axis.x;
+    camera->view.m[5] = y_axis.y;
+    camera->view.m[6] = y_axis.z;
+    camera->view.m[7] = -1.0f * CGL_vec3_dot(camera->position, y_axis);
+    camera->view.m[8] = z_axis.x;
+    camera->view.m[9] = z_axis.y;
+    camera->view.m[10] = z_axis.z;
+    camera->view.m[11] = -1.0f * CGL_vec3_dot(camera->position, z_axis);
+    camera->view.m[12] = 0.0f;
+    camera->view.m[13] = 0.0f;
+    camera->view.m[14] = 0.0f;
+    camera->view.m[15] = 1.0f;
+
     camera->pv = CGL_mat4_mul(camera->projection, camera->view);
 }
 
@@ -2421,6 +2482,7 @@ struct CGL_phong_pipeline
     float ambient_light_strength;
     uint32_t light_count;
     bool use_gamma_correction;
+    bool depth_testing;
     void* user_data;
     // uniform locations
     int u_lights_v4[4][CGL_PHONG_MAX_LIGHTS];
@@ -2640,6 +2702,7 @@ CGL_phong_pipeline* CGL_phong_pipeline_create()
     pipeline->ambient_light_color = CGL_vec3_init(0.18f, 0.18f, 0.18f);
     pipeline->ambient_light_strength = 1.0f;
     pipeline->use_gamma_correction = true;
+    pipeline->depth_testing = true;
     pipeline->user_data = NULL;
     pipeline->shader = CGL_shader_create(__CGL_PHONG_VERTEX_SHADER, __CGL_PHONG_FRAGMENT_SHADER, NULL);
     // Load uniforms
@@ -2965,6 +3028,9 @@ uint32_t CGL_phong_light_get_type(CGL_phong_light* light)
 
 void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
+    if(pipeline->depth_testing) glEnable(GL_DEPTH_TEST);
+    else glDisable(GL_DEPTH_TEST);
+
     CGL_shader_bind(pipeline->shader);
     // set uniforms
     CGL_shader_set_uniform_mat4(pipeline->shader, pipeline->u_projection, CGL_camera_get_projection_mat_ptr(camera));// camera
