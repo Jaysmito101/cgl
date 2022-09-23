@@ -89,6 +89,30 @@ size_t CGL_list_find(CGL_list* list, void* data);
 void CGL_list_reserve(CGL_list* list, size_t size);
 void CGL_list_fill(CGL_list* list, size_t size);
 
+// threads
+
+struct CGL_thread;
+typedef struct CGL_thread CGL_thread;
+
+typedef void (*CGL_thread_function)(void*);
+
+struct CGL_mutex;
+typedef struct CGL_mutex CGL_mutex;
+
+CGL_thread* CGL_thread_create();
+bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* argument);
+void CGL_thread_destroy(CGL_thread* thread);
+bool CGL_thread_join(CGL_thread* thread);
+bool CGL_thread_joinable(CGL_thread* thread);
+bool CGL_thread_is_running(CGL_thread* thread);
+
+uintptr_t CGL_thread_get_id(CGL_thread* thread);
+
+CGL_mutex* CGL_mutex_create(bool set);
+void CGL_mutex_destroy(CGL_mutex* mutex);
+int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout);
+void CGL_mutex_release(CGL_mutex* mutex);
+
 
 // math
 
@@ -805,6 +829,205 @@ void CGL_list_fill(CGL_list* list, size_t size)
     list->size = max(size, list->size);
 }
 
+
+#ifdef _WIN32
+
+#include <process.h>
+
+struct CGL_thread
+{
+    uintptr_t id;
+    HANDLE handle;
+    CGL_thread_function function;
+    bool running;
+};
+
+struct CGL_mutex
+{
+    HANDLE handle;
+};
+
+CGL_thread* CGL_thread_create()
+{
+    CGL_thread* thread = (CGL_thread*)malloc(sizeof(CGL_thread));
+    thread->function = NULL;
+    thread->handle = NULL;
+    thread->id = 0;
+    thread->running = false;
+    return thread;
+}
+
+bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* argument)
+{
+    if(thread->running) CGL_thread_join(thread);
+    if(thread->handle) CloseHandle(thread->handle);
+    thread->function = function;
+    thread->handle = (HANDLE)_beginthread(function, 0, argument);
+    thread->id = (uintptr_t)GetThreadId(thread->handle);
+    thread->running = true;
+    return thread->handle != NULL;
+}
+
+void CGL_thread_destroy(CGL_thread* thread)
+{
+    if(thread->running) CGL_thread_join(thread);
+    if(thread->handle) CloseHandle(thread->handle);
+    CGL_free(thread);
+}
+
+uintptr_t CGL_thread_get_id(CGL_thread* thread)
+{
+    return thread->id;
+}
+
+bool CGL_thread_is_running(CGL_thread* thread)
+{
+    if(!thread->handle) return false;
+    DWORD exit_code;
+    if(!GetExitCodeThread(thread->handle, &exit_code)) return false;
+    if (exit_code == STILL_ACTIVE)
+        thread->running = true;
+    else
+    {
+        thread->running = false;
+        CloseHandle(thread->handle);
+    }
+    return thread->running;
+}
+
+bool CGL_thread_join(CGL_thread* thread)
+{
+    if(!thread->handle) return true;
+    bool result = (WaitForSingleObject(thread->handle, INFINITE) != WAIT_FAILED);
+    thread->running = false;
+    return result;
+}
+
+bool CGL_thread_joinable(CGL_thread* thread)
+{
+    return true; // Temporary
+}
+
+
+CGL_mutex* CGL_mutex_create(bool set)
+{
+    CGL_mutex* mutex = (CGL_mutex*)malloc(sizeof(CGL_mutex));
+    mutex->handle = CreateMutex(NULL, (BOOL)set, NULL);
+    return mutex;
+}
+
+void CGL_mutex_destroy(CGL_mutex* mutex)
+{
+    if(mutex->handle) CloseHandle(mutex->handle);
+    CGL_free(mutex);
+}
+
+int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout)
+{
+    return (int)WaitForSingleObject(mutex->handle, (DWORD)timeout);
+}
+
+void CGL_mutex_release(CGL_mutex* mutex)
+{
+    ReleaseMutex(mutex->handle);
+}
+
+#else // for posix (using pthread)
+
+#include <pthread.h>
+
+struct CGL_thread
+{
+    uintptr_t id;
+    pthread_t handle;
+    CGL_thread_function function;
+    bool running;
+};
+
+struct CGL_mutex
+{
+    pthread_mutex_t handle;
+};
+
+CGL_thread* CGL_thread_create()
+{
+    CGL_thread* thread = (CGL_thread*)malloc(sizeof(CGL_thread));
+    thread->function = NULL;
+    thread->handle = NULL;
+    thread->id = 0;
+    thread->running = false;
+    return thread;
+}
+
+bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* argument)
+{
+    if(thread->running) CGL_thread_join(thread);
+    thread->function = function;
+    pthread_create(&thread->handle, 0, (void*)function, argument);
+    thread->id = (uintptr_t)thread->handle; // Temporary
+    thread->running = true;
+    return thread->handle != NULL;
+}
+
+void CGL_thread_destroy(CGL_thread* thread)
+{
+    if(thread->running) CGL_thread_join(thread);
+    CGL_free(thread);
+}
+
+uintptr_t CGL_thread_get_id(CGL_thread* thread)
+{
+    return thread->id;
+}
+
+bool CGL_thread_is_running(CGL_thread* thread)
+{
+    if(!thread->handle) return false;
+
+    //  thread->running = (pthread_kill(thread->handle, 0) == 0);
+    if(pthread_kill(thread->handle, 0) == 0)
+        thread->running = true;        
+    else
+        thread->running = false;
+    return thread->running;
+}
+
+bool CGL_thread_join(CGL_thread* thread)
+{
+    if(!thread->handle) return true;
+    return pthread_join(thread->handle, NULL);
+}
+
+bool CGL_thread_joinable(CGL_thread* thread)
+{
+    return true; // Temporary
+}
+
+
+CGL_mutex* CGL_mutex_create(bool set)
+{
+    CGL_mutex* mutex = (CGL_mutex*)malloc(sizeof(CGL_mutex));
+    pthread_mutex_init(&mutex->handle, NULL);
+    return mutex;
+}
+
+void CGL_mutex_destroy(CGL_mutex* mutex)
+{
+    if(mutex->handle)  pthread_mutex_destroy(&mutex->handle);
+    CGL_free(mutex);
+}
+
+int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout)
+{
+    return pthread_mutex_lock(&mutex->handle);
+}
+
+void CGL_mutex_release(CGL_mutex* mutex)
+{
+    pthread_mutex_unlock(&mutex->handle);
+}
+
+#endif
 
 #endif
 
