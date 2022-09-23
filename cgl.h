@@ -375,6 +375,8 @@ typedef struct GLFWwindow GLFWwindow;
 #define CGL_PRESS                  1
 #define CGL_REPEAT                 2
 
+#define CGL_WINDOW_TABLE_SIZE      10000
+
 // structs
 struct CGL_window;
 typedef struct CGL_window CGL_window;
@@ -409,6 +411,7 @@ void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse
 void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback); // set mouse scroll callback
 void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback); // set framebuffer size callback
 void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback); // set close callback
+void CGL_window_resecure_callbacks(CGL_window* window);
 void CGL_window_make_context_current(CGL_window* window); // make opengl context current
 GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window);
 
@@ -840,6 +843,8 @@ struct CGL_context
 {
     bool is_initialized;
     int window_count;
+    
+    CGL_window* window_table[CGL_WINDOW_TABLE_SIZE];
 };
 
 CGL_context* __CGL_context = NULL;
@@ -925,49 +930,74 @@ struct CGL_window
     CGL_window_mouse_scroll_callback mouse_scroll_callback;
     CGL_window_framebuffer_size_callback framebuffer_size_callback;
     CGL_window_close_callback close_callback;
+
+    GLFWkeyfun previous_key_callback;
+    GLFWmousebuttonfun previous_mouse_button_callback;
+    GLFWcursorposfun previous_mouse_position_callback;
+    GLFWscrollfun previous_mouse_scroll_callback;
+    GLFWframebuffersizefun previous_framebuffer_size_callback;
+    GLFWwindowclosefun previous_close_callback;
 };
 
 // callbacks
 void __CGL_window_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
     if(cgl_window->key_callback != NULL)
         cgl_window->key_callback(cgl_window, key, scancode, action, mods);
+    if(cgl_window->previous_key_callback)
+        cgl_window->previous_key_callback(window, key, scancode, action, mods);
 }
 
 void __CGL_window_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
     if(cgl_window->mouse_button_callback != NULL)
         cgl_window->mouse_button_callback(cgl_window, button, action, mods);
+    if(cgl_window->previous_mouse_button_callback)
+        cgl_window->previous_mouse_button_callback(window, button, action, mods);
 }
 
 void __CGL_window_mouse_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
     if(cgl_window->mouse_position_callback != NULL)
         cgl_window->mouse_position_callback(cgl_window, xpos, ypos);
+    if(cgl_window->previous_mouse_position_callback)
+        cgl_window->previous_mouse_position_callback(window, xpos, ypos);
 }
 
 void __CGL_window_mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
     if(cgl_window->mouse_scroll_callback != NULL)
         cgl_window->mouse_scroll_callback(cgl_window, xoffset, yoffset);
+    if(cgl_window->previous_mouse_scroll_callback)
+        cgl_window->previous_mouse_scroll_callback(window, xoffset, yoffset);
 }
 
 void __CGL_window_framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
     if(cgl_window->framebuffer_size_callback != NULL)
         cgl_window->framebuffer_size_callback(cgl_window, width, height);
+    if(cgl_window->previous_framebuffer_size_callback)
+        cgl_window->previous_framebuffer_size_callback(window, width, height);
 }
 
 void __CGL_window_close_callback(GLFWwindow* window)
 {
-    CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
+    CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
     if(cgl_window->close_callback != NULL)
         cgl_window->close_callback(cgl_window);
+    if(cgl_window->previous_close_callback)
+        cgl_window->previous_close_callback(window);
 }
 
 // create window
@@ -1003,7 +1033,6 @@ CGL_window* CGL_window_create(int width, int height, const char* title)
         CGL_LOG("Failed to create GLFW window\n");
         return false;
     }
-    glfwSetWindowUserPointer(window->handle, window);
     glfwSwapInterval(1); // vsync
     window->is_hidden = true;
     window->key_callback = NULL;
@@ -1013,9 +1042,17 @@ CGL_window* CGL_window_create(int width, int height, const char* title)
     window->framebuffer_size_callback = NULL;
     window->close_callback = NULL;
     window->user_data = NULL;
+    window->previous_close_callback = NULL;
+    window->previous_framebuffer_size_callback = NULL;
+    window->previous_key_callback = NULL;
+    window->previous_mouse_button_callback = NULL;
+    window->previous_mouse_position_callback = NULL;
+    window->previous_mouse_scroll_callback = NULL;
+    __CGL_context->window_table[(uintptr_t)window->handle % CGL_WINDOW_TABLE_SIZE] = window; // Temporary
     __CGL_context->window_count++;
     return window;
 }
+
 
 // destroy window
 void CGL_window_destroy(CGL_window* window)
@@ -1109,7 +1146,7 @@ void CGL_window_get_framebuffer_size(CGL_window* window, int* width, int* height
 void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback callback)
 {
     if(window->key_callback == NULL)
-        glfwSetKeyCallback(window->handle, __CGL_window_key_callback);
+        window->previous_key_callback = glfwSetKeyCallback(window->handle, __CGL_window_key_callback);
     window->key_callback = callback;
 }
 
@@ -1117,7 +1154,7 @@ void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback cal
 void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_button_callback callback)
 {
     if(window->mouse_button_callback == NULL)
-        glfwSetMouseButtonCallback(window->handle, __CGL_window_mouse_button_callback);
+        window->previous_mouse_button_callback = glfwSetMouseButtonCallback(window->handle, __CGL_window_mouse_button_callback);
     window->mouse_button_callback = callback;
 }
 
@@ -1125,7 +1162,7 @@ void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_b
 void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse_position_callback callback)
 {
     if(window->mouse_position_callback == NULL)
-        glfwSetCursorPosCallback(window->handle, __CGL_window_mouse_position_callback);
+        window->previous_mouse_position_callback = glfwSetCursorPosCallback(window->handle, __CGL_window_mouse_position_callback);
     window->mouse_position_callback = callback;
 }
 
@@ -1133,7 +1170,7 @@ void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse
 void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback)
 {
     if(window->mouse_scroll_callback == NULL)
-        glfwSetScrollCallback(window->handle, __CGL_window_mouse_scroll_callback);
+        window->previous_mouse_scroll_callback = glfwSetScrollCallback(window->handle, __CGL_window_mouse_scroll_callback);
     window->mouse_scroll_callback = callback;
 }
 
@@ -1141,7 +1178,7 @@ void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_s
 void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback)
 {
     if(window->framebuffer_size_callback == NULL)
-        glfwSetFramebufferSizeCallback(window->handle, __CGL_window_framebuffer_size_callback);
+        window->previous_framebuffer_size_callback = glfwSetFramebufferSizeCallback(window->handle, __CGL_window_framebuffer_size_callback);
     window->framebuffer_size_callback = callback;
 }
 
@@ -1149,8 +1186,47 @@ void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_fra
 void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback)
 {
     if(window->close_callback == NULL)
-        glfwSetWindowCloseCallback(window->handle, __CGL_window_close_callback);
+        window->previous_close_callback = glfwSetWindowCloseCallback(window->handle, __CGL_window_close_callback);
     window->close_callback = callback;
+}
+
+void CGL_window_resecure_callbacks(CGL_window* window)
+{
+    if(window->key_callback != NULL)
+    {
+        window->previous_key_callback = glfwSetKeyCallback(window->handle, __CGL_window_key_callback);
+        if(window->previous_key_callback == __CGL_window_key_callback) window->previous_key_callback = NULL;
+    }
+
+    if(window->mouse_button_callback != NULL)
+    {
+        window->previous_mouse_button_callback = glfwSetMouseButtonCallback(window->handle, __CGL_window_mouse_button_callback);
+        if(window->previous_mouse_button_callback == __CGL_window_mouse_button_callback) window->previous_mouse_button_callback = NULL;
+    }
+
+    if(window->mouse_position_callback != NULL)
+    {
+        window->previous_mouse_position_callback = glfwSetCursorPosCallback(window->handle, __CGL_window_mouse_position_callback);
+        if(window->previous_mouse_position_callback == __CGL_window_mouse_position_callback) window->previous_mouse_position_callback = NULL;
+    }
+
+    if(window->mouse_scroll_callback != NULL)
+    {
+        window->previous_mouse_scroll_callback = glfwSetScrollCallback(window->handle, __CGL_window_mouse_scroll_callback);
+        if(window->previous_mouse_scroll_callback == __CGL_window_mouse_scroll_callback) window->previous_mouse_scroll_callback = NULL;
+    }
+
+    if(window->framebuffer_size_callback != NULL)
+    {
+        window->previous_framebuffer_size_callback = glfwSetFramebufferSizeCallback(window->handle, __CGL_window_framebuffer_size_callback);
+        if(window->previous_framebuffer_size_callback == __CGL_window_framebuffer_size_callback) window->previous_framebuffer_size_callback = NULL;
+    }
+
+    if(window->close_callback != NULL)
+    {
+        window->previous_close_callback = glfwSetWindowCloseCallback(window->handle, __CGL_window_close_callback);
+        if(window->previous_close_callback == __CGL_window_close_callback) window->previous_close_callback = NULL;
+    }
 }
 
 // get key state
