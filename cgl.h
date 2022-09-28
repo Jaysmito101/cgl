@@ -1598,7 +1598,7 @@ CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLen
     return texture;
 }
 
-CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type
+CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type)
 {
     CGL_texture* texture = malloc(sizeof(CGL_texture));
     texture->width = width;
