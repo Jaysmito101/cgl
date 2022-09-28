@@ -9,8 +9,7 @@
 #undef far
 #endif
 
-// CGL common
-
+// common
 #if 1 // Just to use code folding
 
 // std includes
@@ -45,6 +44,7 @@ void CGL_shutdown(); // shutdown CGL
 
 #endif
 
+// utils
 #if 1
 // CGL utils
 
@@ -66,6 +66,7 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 
 #endif
 
+// math and data structures
 #if 1 // Just to use code folding
 
 // data structures
@@ -243,6 +244,7 @@ CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 
 #endif
 
+// window
 #if 1 // Just to use code folding
 
 // CGL window management library (usinfg GLFW)
@@ -446,6 +448,7 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 
 #endif
 
+// opengl
 #if 1 // Just to use code folding
 
 #include <glad/glad.h>
@@ -509,6 +512,8 @@ void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
 void CGL_texture_set_user_data(CGL_texture* texture, void* user_data); // set texture user data
 void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
 void CGL_texture_get_size(CGL_texture* texture, int* width, int* height); // get texture size
+void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method);
+void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
 
 
 // framebuffer
@@ -567,6 +572,9 @@ void CGL_shader_set_uniform_float(CGL_shader* shader, int location, float value)
 void CGL_shader_set_uniform_vec2v(CGL_shader* shader, int location, float x, float y); // set uniform vector
 void CGL_shader_set_uniform_vec3v(CGL_shader* shader, int location, float x, float y, float z); // set uniform vector
 void CGL_shader_set_uniform_vec4v(CGL_shader* shader, int location, float x, float y, float z, float w); // set uniform vector
+void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, int location, int x, int y); // set uniform vector
+void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, int location, int x, int y, int z); // set uniform vector
+void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, int location, int x, int y, int z, int w); // set uniform vector
 void CGL_shader_set_user_data(CGL_shader* shader, void* user_data); // set shader user data
 void* CGL_shader_get_user_data(CGL_shader* shader); // get shader user data
 void CGL_shader_compute_dispatch(CGL_shader* shader, int x, int y, int z); // dispatch compute shader
@@ -587,8 +595,8 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 
 #endif
 
+// camera
 #if 1
-
 
 struct CGL_camera;
 typedef struct CGL_camera CGL_camera;
@@ -696,8 +704,31 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
 
 #endif
 
-// Implementation of CGL
+// tilemap renderer
+#if 1
 
+#ifndef CGL_EXCLUDE_TILEMAP_RENDERER
+
+struct CGL_tilemap;
+typedef struct CGL_tilemap CGL_tilemap;
+
+struct CGL_tile;
+typedef struct CGL_tile CGL_tile;
+
+CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, uint32_t tile_size_x, uint32_t tile_size_y, uint32_t ssbo_binding);
+void CGL_tilemap_destroy(CGL_tilemap* tilemap);
+void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float r, float g, float b);
+void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index);
+void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float texture_x_min, float texture_y_min, float texture_x_max, float texture_y_max);
+void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y);
+void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, float offset_x, float offset_y, CGL_texture* texture);
+void CGL_tilemap_reset(CGL_tilemap* tilemap);
+
+#endif
+
+#endif
+
+// Implementation of CGL
 #ifdef CGL_IMPLEMENTATION
 
 // include windows headers for windows builds
@@ -713,6 +744,7 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
 #endif
 #endif
 
+// list
 #if 1
 
 // data structures
@@ -1024,14 +1056,14 @@ int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout)
 
 void CGL_mutex_release(CGL_mutex* mutex)
 {
-    pthread_mutex_unlock(&mutex->handle);
+    pthread_mutex_unlock(&mutex->handle);  
 }
 
 #endif
 
 #endif
 
-// common lib
+// common lib and math
 
 #if 1 // Just to use code folding
 
@@ -1483,9 +1515,10 @@ GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window)
 
 #endif
 
+
+// opengl 
 #if 1 // Just to use code folding
 
-// CGL opengl 
 
 // texture
 
@@ -1497,6 +1530,7 @@ struct CGL_texture
     GLenum format;
     GLenum internal_format;
     GLenum type;
+    GLenum target;
     void* user_data;
 };
 
@@ -1524,15 +1558,16 @@ CGL_texture* CGL_texture_create(CGL_image* image)
     texture->format = format;
     texture->internal_format = internal_format;
     texture->type = type;
+    texture->target = GL_TEXTURE_2D;
     texture->user_data = NULL;
     glGenTextures(1, &texture->handle);
-    glBindTexture(GL_TEXTURE_2D, texture->handle);
-    glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image->width, image->height, 0, format, type, image->data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(texture->target, texture->handle);
+    glTexImage2D(texture->target, 0, internal_format, image->width, image->height, 0, format, type, image->data);
+    glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(texture->target, 0);
     return texture;
 }
 
@@ -1545,16 +1580,31 @@ CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLen
     texture->format = format;
     texture->internal_format = internal_format;
     texture->type = type;
+    texture->target = GL_TEXTURE_2D;
     texture->user_data = NULL;
     glGenTextures(1, &texture->handle);
-    glBindTexture(GL_TEXTURE_2D, texture->handle);
-    glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(texture->target, texture->handle);
+    glTexImage2D(texture->target, 0, internal_format, width, height, 0, format, type, NULL);
+    glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glBindTexture(texture->target, 0);
     return texture;
+}
+
+void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method)
+{
+    glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, method);
+    glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, method);
+}
+
+void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
+{
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 // destroy texture
@@ -1568,15 +1618,15 @@ void CGL_texture_destroy(CGL_texture* texture)
 void CGL_texture_bind(CGL_texture* texture, int unit)
 {
     glActiveTexture(GL_TEXTURE0 + unit);
-    glBindTexture(GL_TEXTURE_2D, texture->handle);
+    glBindTexture(texture->target, texture->handle);
 }
 
 // set texture data
 void CGL_texture_set_data(CGL_texture* texture, void* data)
 {
-    glBindTexture(GL_TEXTURE_2D, texture->handle);
-    glTexImage2D(GL_TEXTURE_2D, 0, texture->internal_format, texture->width, texture->height, 0, texture->format, texture->type, data);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(texture->target, texture->handle);
+    glTexImage2D(texture->target, 0, texture->internal_format, texture->width, texture->height, 0, texture->format, texture->type, data);
+    glBindTexture(texture->target, 0);
 }
 
 // set texture user data
@@ -2503,6 +2553,23 @@ void CGL_shader_set_uniform_vec4v(CGL_shader* shader, int location, float x, flo
     glUniform4f(location, x, y, z, w);
 }
 
+void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, int location, int x, int y)
+{
+    glUniform2i(location, x, y);
+}
+
+// set uniform vector
+void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, int location, int x, int y, int z)
+{
+    glUniform3i(location, x, y, z);
+}
+
+// set uniform vector
+void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, int location, int x, int y, int z, int w)
+{
+    glUniform4i(location, x, y, z, w);
+}
+
 // set shader user data
 void CGL_shader_set_user_data(CGL_shader* shader, void* user_data)
 {
@@ -2517,6 +2584,7 @@ void* CGL_shader_get_user_data(CGL_shader* shader)
 
 #endif
 
+// camera
 #if 1
 
 struct CGL_camera
@@ -2750,7 +2818,6 @@ void CGL_camera_recalculate_mat(CGL_camera* camera)
 
 // The phong renderer
 #if 1
-
 #ifndef CGL_EXCLUDE_PHONG_RENDERER
 
 
@@ -3400,6 +3467,247 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 #endif
 
 
+// tilemap renderer
+#if 1
+
+#ifndef CGL_EXCLUDE_TILEMAP_RENDERER
+
+static const char* __CGL_TILEMAP_VERTEX_SHADER = "#version 430 core\n"
+"\n"
+"layout (location = 0) in vec4 position;\n"
+"layout (location = 1) in vec4 normal;\n"
+"layout (location = 2) in vec4 texcoord;\n"
+"\n"
+"void main()\n"
+"{\n"
+"	gl_Position = vec4(position.xyz, 1.0f);\n"
+"}";
+
+static const char* __CGL_TILEMAP_FRAGENT_SHADER = "#version 430 core\n"
+"\n"
+"out vec4 FragColor;\n"
+"//out int MousePick0;\n"
+"//out int MousePick1;\n"
+"//out int MousePick2;\n"
+"in vec3 Position;\n"
+"in vec3 Normal;\n"
+"in vec2 TexCoord;\n"
+"\n"
+"\n"
+"// unifroms\n"
+"uniform vec2 u_offset;\n"
+"uniform vec2 u_scale;\n"
+"uniform vec2 u_tile_count;\n"
+"uniform vec2 u_tile_size;\n"
+"\n"
+"uniform sampler2D u_texture_tileset;\n"
+"uniform sampler2DArray u_texture_array;\n"
+"\n"
+"struct cglTile\n"
+"{\n"
+"    vec4 color;\n"
+"};\n"
+"\n"
+"layout (std430, binding = %d)  buffer tiles_buffer\n"
+"{\n"
+"    cglTile tiles[];\n"
+"};\n"
+"\n"
+"void main()\n"
+"{\n"
+"    vec4 color = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
+"    vec2 frag_coord = gl_FragCoord.xy;\n"
+"    vec2 coord = vec2(\n"
+"        (frag_coord.x + u_offset.x) * u_scale.x,\n"
+"        (frag_coord.y + u_offset.y) * u_scale.y\n"
+"    );\n"
+"    \n"
+"    vec2 tile_index_f = vec2(\n"
+"        coord.x / u_tile_size.x,\n"
+"        coord.y / u_tile_size.y\n"
+"    );\n"
+"    ivec2 tile_index = ivec2(tile_index_f);\n"
+"\n"
+"    vec2 tile_tex_coord = vec2(\n"
+"        mod(coord.x, u_tile_size.x) / u_tile_size.x,\n"
+"        mod(coord.y, u_tile_size.y) / u_tile_size.y\n"
+"    );\n"
+"\n"
+"\n"
+"    if(tile_index_f.x < 0 || tile_index_f.x >= u_tile_count.x\n"
+"    || tile_index_f.y < 0 || tile_index_f.y >= u_tile_count.y)\n"
+"    {\n"
+"        // discard; // Using discard might not be the best idea\n"
+"        FragColor = vec4(0.0f);\n"
+"        return;\n"
+"    }\n"
+"\n"
+"    cglTile current_tile = tiles[tile_index.y * int(u_tile_count.x) + tile_index.x];\n"
+"\n"
+"    if (current_tile.color.w > 3.0f)  // case where tile is empty\n"
+"    {\n"
+"        // discard; // Using discard might not be the best idea\n"
+"        FragColor = vec4(0.0f);\n"
+"        return;\n"
+"    }\n"
+"    else if(current_tile.color.w > 2.0f ) // case where tile is a solid color\n"
+"    {\n"
+"        FragColor = vec4(current_tile.color.xyz, 1.0f);\n"
+"        return;\n"
+"    }\n"
+"    else if(current_tile.color.w > 1.0f ) // case where tile is a texture from texture array\n"
+"    {\n"
+"        FragColor = texture(u_texture_array, vec3(tile_tex_coord, current_tile.color.x));\n"
+"        return;\n"
+"    }\n"
+"    else // case where tile is a texture from tileset \n"
+"    {\n"
+"        vec2 final_tex_scale = current_tile.color.zw - current_tile.color.xy;\n"
+"        vec2 final_tex_coord = vec2(\n"
+"            tile_tex_coord.x / final_tex_scale.x + current_tile.color.x,\n"
+"            tile_tex_coord.y / final_tex_scale.y + current_tile.color.y\n"
+"        );\n"
+"        FragColor = texture(u_texture_tileset, final_tex_coord);\n"
+"        return;\n"
+"    }\n"
+"\n"
+"    FragColor = vec4(tile_tex_coord, 0.0f, 1.0f);\n"
+"    //MousePick0 = InstanceID;\n"
+"    //MousePick1 = 0;\n"
+"    //MousePick2 = 1;\n"
+"}";
+
+struct CGL_tile
+{
+    CGL_vec4 color;
+};
+
+struct CGL_tilemap
+{
+    // tiles data
+    CGL_tile* tile_data;
+    uint32_t tile_count_x;
+    uint32_t tile_count_y;
+    uint32_t tile_size_x;
+    uint32_t tile_size_y;
+    // renderer data
+    CGL_mesh_gpu* mesh;
+    CGL_shader* shader;
+    CGL_ssbo* ssbo;
+    // unifrom locations
+    int u_tile_count;
+    int u_tile_size;
+    int u_offset;
+    int u_scale;
+    int u_texture_tileset;
+    int u_texture_array;
+};
+
+
+CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, uint32_t tile_size_x, uint32_t tile_size_y, uint32_t ssbo_binding)
+{
+    /*
+    assert(tile_count_x > 0);
+    assert(tile_count_y > 0);
+    assert(tile_size_x > 0);
+    assert(tile_size_y > 0);
+    */
+    CGL_tilemap* tilemap = (CGL_tilemap*)malloc(sizeof(CGL_tilemap));
+    tilemap->tile_data = (CGL_tile*)malloc(sizeof(CGL_tile) * tile_count_x * tile_count_y);
+    memset(tilemap->tile_data, 0, (sizeof(CGL_tile) * tile_count_x * tile_count_y));
+    tilemap->tile_count_x = tile_count_x;
+    tilemap->tile_count_y = tile_count_y;
+    tilemap->tile_size_x = tile_size_x;
+    tilemap->tile_size_y = tile_size_y;
+    tilemap->ssbo = CGL_ssbo_create(ssbo_binding);
+    CGL_mesh_cpu* screen_quad_mesh_cpu = CGL_mesh_cpu_quad((CGL_vec3){ 1.0,  1.0, 0.0},
+                                                           (CGL_vec3){ 1.0, -1.0, 0.0},
+                                                           (CGL_vec3){-1.0, -1.0, 0.0},
+                                                           (CGL_vec3){-1.0,  1.0, 0.0});
+    CGL_mesh_gpu* screen_quad_mesh_gpu = CGL_mesh_gpu_create();
+    CGL_mesh_gpu_upload(screen_quad_mesh_gpu, screen_quad_mesh_cpu, true);
+    CGL_mesh_cpu_destroy(screen_quad_mesh_cpu);
+    tilemap->mesh = screen_quad_mesh_gpu;
+    static char shader_source_buffer[1024 * 64];
+    sprintf(shader_source_buffer, __CGL_TILEMAP_FRAGENT_SHADER, ssbo_binding);
+    tilemap->shader = CGL_shader_create(__CGL_TILEMAP_VERTEX_SHADER, shader_source_buffer, NULL);
+    tilemap->u_offset = CGL_shader_get_uniform_location(tilemap->shader, "u_offset");
+    tilemap->u_scale = CGL_shader_get_uniform_location(tilemap->shader, "u_scale");
+    tilemap->u_tile_count = CGL_shader_get_uniform_location(tilemap->shader, "u_tile_count");
+    tilemap->u_tile_size = CGL_shader_get_uniform_location(tilemap->shader, "u_tile_size");
+    tilemap->u_texture_tileset = CGL_shader_get_uniform_location(tilemap->shader, "u_texture_tileset");
+    tilemap->u_texture_array = CGL_shader_get_uniform_location(tilemap->shader, "u_texture_array");
+    CGL_tilemap_reset(tilemap);
+    return tilemap;
+}
+
+void CGL_tilemap_destroy(CGL_tilemap* tilemap)
+{
+    CGL_ssbo_destroy(tilemap->ssbo);
+    CGL_shader_destroy(tilemap->shader);
+    CGL_mesh_gpu_destroy(tilemap->mesh);
+    free(tilemap->tile_data);
+    free(tilemap);
+}
+
+void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float r, float g, float b)
+{
+    CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
+    tile->color = CGL_vec4_init(r, g, b, 2.5f);
+    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+}
+
+void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index)
+{
+    CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
+    tile->color = CGL_vec4_init((float)texture_index, 0.0f, 0.0f, 1.5f);
+    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+}
+
+void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float texture_x_min, float texture_y_min, float texture_x_max, float texture_y_max)
+{
+    CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
+    tile->color = CGL_vec4_init(texture_x_min, texture_y_min, texture_x_max, texture_y_max);
+    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+}
+
+void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y)
+{
+    CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
+    tile->color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 3.5f);
+    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+}
+
+void CGL_tilemap_reset(CGL_tilemap* tilemap)
+{
+    for(uint32_t tile_x = 0 ; tile_x < tilemap->tile_count_x ; tile_x++)
+    {
+        for(uint32_t tile_y = 0 ; tile_y < tilemap->tile_count_y ; tile_y++)
+        {
+            CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
+            tile->color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 3.5f);
+        }
+    }
+    CGL_ssbo_set_data(tilemap->ssbo, (sizeof(CGL_tile) * tilemap->tile_count_x * tilemap->tile_count_y), tilemap->tile_data, false);
+}
+
+void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, float offset_x, float offset_y, CGL_texture* texture)
+{
+    CGL_shader_bind(tilemap->shader);
+    if(texture)
+        CGL_texture_bind(texture, 0);
+    CGL_shader_set_uniform_vec2v(tilemap->shader, tilemap->u_offset, -offset_x, -offset_y);
+    CGL_shader_set_uniform_vec2v(tilemap->shader, tilemap->u_scale, 1.0f / scale_x, 1.0f / scale_y);
+    CGL_shader_set_uniform_vec2v(tilemap->shader, tilemap->u_tile_count, (float)tilemap->tile_count_x, (float)tilemap->tile_count_y);
+    CGL_shader_set_uniform_vec2v(tilemap->shader, tilemap->u_tile_size, (float)tilemap->tile_size_x, (float)tilemap->tile_size_y);
+    CGL_shader_set_uniform_int(tilemap->shader, tilemap->u_texture_tileset, 0);
+    CGL_shader_set_uniform_int(tilemap->shader, tilemap->u_texture_array, 0);
+    CGL_mesh_gpu_render(tilemap->mesh);
+}
+
+#endif
+
+#endif
 
 #endif // CGL_IMPLEMENTATION
 
