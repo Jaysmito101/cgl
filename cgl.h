@@ -506,6 +506,8 @@ typedef struct CGL_ssbo CGL_ssbo;
 // texture
 CGL_texture* CGL_texture_create(CGL_image* image);
 CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLenum internal_format, GLenum type); // create texture
+CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type);
+void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* data);
 void CGL_texture_destroy(CGL_texture* texture); // destroy texture
 void CGL_texture_bind(CGL_texture* texture, int unit); // bind texture to unit
 void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
@@ -514,7 +516,6 @@ void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
 void CGL_texture_get_size(CGL_texture* texture, int* width, int* height); // get texture size
 void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method);
 void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
-
 
 // framebuffer
 CGL_framebuffer* CGL_framebuffer_create(int width, int height); // create framebuffer (32 bit)
@@ -1527,6 +1528,7 @@ struct CGL_texture
     GLuint handle;
     int width;
     int height;
+    int depth;
     GLenum format;
     GLenum internal_format;
     GLenum type;
@@ -1555,6 +1557,7 @@ CGL_texture* CGL_texture_create(CGL_image* image)
     CGL_texture* texture = malloc(sizeof(CGL_texture));
     texture->width = image->width;
     texture->height = image->height;
+    texture->depth = 0;
     texture->format = format;
     texture->internal_format = internal_format;
     texture->type = type;
@@ -1577,6 +1580,7 @@ CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLen
     CGL_texture* texture = malloc(sizeof(CGL_texture));
     texture->width = width;
     texture->height = height;
+    texture->depth = 0;
     texture->format = format;
     texture->internal_format = internal_format;
     texture->type = type;
@@ -1592,6 +1596,37 @@ CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLen
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glBindTexture(texture->target, 0);
     return texture;
+}
+
+CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type
+{
+    CGL_texture* texture = malloc(sizeof(CGL_texture));
+    texture->width = width;
+    texture->height = height;
+    texture->depth = layers;
+    texture->format = format;
+    texture->internal_format = internal_format;
+    texture->type = type;
+    texture->target = GL_TEXTURE_2D_ARRAY;
+    texture->user_data = NULL;
+    glGenTextures(1, &texture->handle);
+    glBindTexture(texture->target, texture->handle);
+    glTexImage2D(texture->target, 0, internal_format, width, height, 0, format, type, NULL);
+    glTexImage3D(texture->target, 0, texture->internal_format, width, height, layers, 0, texture->format, texture->type, NULL);
+    glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glBindTexture(texture->target, 0);
+    return texture;
+}
+
+void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* data)
+{
+    glBindTexture(texture->target, texture->handle);
+	glTexSubImage3D(texture->target, 0, 0, 0, layer, texture->width, texture->height, 1, texture->format, texture->type, data);
+	glBindTexture(texture->target, 0);
 }
 
 void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method)
