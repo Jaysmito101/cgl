@@ -34,7 +34,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
 
 * Data structures
   - List(dynamic array) + Stack (implemented together)
-  - Hashtable (TODO)
+  - Hashtable -> This hastabpe is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
   
 * Cross platform threading
   - Threads
