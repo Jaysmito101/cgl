@@ -87,6 +87,7 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 #define CGL_utils_clamp(x, minl, maxl) (x < minl ? minl : (x > maxl ? maxl : x))
 #define CGL_utils_array_size(array) (sizeof(array) / sizeof(array[0]))
 
+#define CGL_malloc(size) malloc(size)
 #define CGL_free(ptr) free(ptr)
 #define CGL_exit(code) exit(code)
 
@@ -115,6 +116,72 @@ bool CGL_list_is_empty(CGL_list* list);
 size_t CGL_list_find(CGL_list* list, void* data);
 void CGL_list_reserve(CGL_list* list, size_t size);
 void CGL_list_fill(CGL_list* list, size_t size);
+
+#ifndef CGL_HASHTABLE_MAX_KEY_SIZE
+#define CGL_HASHTABLE_MAX_KEY_SIZE 256
+#endif
+
+struct CGL_hashtable_entry;
+typedef struct CGL_hashtable_entry CGL_hashtable_entry;
+
+struct CGL_hashtable;
+typedef struct CGL_hashtable CGL_hashtable;
+
+struct CGL_hashtable_iterator;
+typedef struct CGL_hashtable_iterator CGL_hashtable_iterator;
+
+typedef uint32_t(*CGL_hash_function)(const void*, size_t);
+
+// set key size to 0 if it is a string (it will be auto calculated using strlen)
+CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size);
+void CGL_hashtable_destroy(CGL_hashtable* table);
+void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size);
+size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value);
+bool CGL_hashtable_exists(CGL_hashtable* table, const void* key);
+bool CGL_hashtable_remove(CGL_hashtable* table, const void* key);
+void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function);
+CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table);
+void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator);
+void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator);
+size_t CGL_hashtable_iterator_next(void* key, void* data);
+size_t CGL_hashtable_iterator_prev(void* key, void* data);
+
+
+// getter setters for data types
+#define CGL_DECLARE_HASHTABLE_GETTER_SETTER(type) \
+    static type CGL_hashtable_get_##type (CGL_hashtable* table, const void* key)\
+    { \
+        type value; \
+        CGL_hashtable_get(table, key, &value); \
+        return value; \
+    } \
+    \
+    static void CGL_hashtable_set_##type (CGL_hashtable* table, const void* key, type value) \
+    { \
+        CGL_hashtable_set(table, key, &value, sizeof(value)); \
+    }
+
+#ifndef CDL_DONT_DECLARE_HASHTABLE_STD_GETTER_SETTERS
+
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(int8_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(int16_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(int32_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(int64_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(uint8_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(uint16_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(uint32_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(uint64_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(float);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(double);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(bool);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(int);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(long);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(short);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(char);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(intptr_t);
+CGL_DECLARE_HASHTABLE_GETTER_SETTER(uintptr_t);
+
+#endif
 
 
 // algorithms
@@ -896,6 +963,7 @@ void CGL_list_fill(CGL_list* list, size_t size)
 }
 
 
+
 #ifndef CGL_EXCLUDES_THREADS
 
 #ifdef _WIN32
@@ -1100,6 +1168,222 @@ void CGL_mutex_release(CGL_mutex* mutex)
 
 #endif
 
+#endif
+
+// hashtable
+#if 1
+
+
+struct CGL_hashtable_entry
+{
+    bool set;
+    uint8_t key[CGL_HASHTABLE_MAX_KEY_SIZE];
+    void* value;
+    size_t value_size;
+    CGL_hashtable_entry* prev_entry; // prev entry in the linked list with same hash
+    CGL_hashtable_entry* next_entry; // next entry in the linked list with same hash
+};
+
+struct CGL_hashtable
+{
+    CGL_hashtable_entry* entries;
+    size_t table_size;
+    size_t key_size;
+    CGL_hash_function hash_function;
+    size_t count;
+};
+
+struct CGL_hashtable_iterator
+{
+    CGL_hashtable* hashtable;
+    CGL_hashtable_entry* current_entry;
+    uint32_t current_index;
+};
+
+static void __CGL_hashtable_entry_destroy(CGL_hashtable_entry* entry, bool destory_current)
+{
+    if(entry == NULL) return;
+    if(entry->next_entry != NULL) __CGL_hashtable_entry_destroy(entry->next_entry, true);
+    if(entry->value) CGL_free(entry->value);
+    if(destory_current) CGL_free(entry);
+}
+
+static void __CGL_hashtable_get_key_size_and_table_index(CGL_hashtable* table, size_t* key_size, size_t* hash_table_index, const void* key)
+{
+    *key_size = table->key_size;
+    if(*key_size == 0) *key_size = strlen((const char*)key);
+    *key_size = CGL_utils_clamp(*key_size, 1, CGL_HASHTABLE_MAX_KEY_SIZE);
+    uint32_t hash = table->hash_function(key, *key_size);
+    *hash_table_index = hash % table->table_size;
+}
+
+static CGL_hashtable_entry* __CGL_hashtable_get_entry_ptr(CGL_hashtable* table, const void* key)
+{
+    size_t key_size, hash_table_index;
+    __CGL_hashtable_get_key_size_and_table_index(table, &key_size, &hash_table_index, key);
+    CGL_hashtable_entry* current_entry = &table->entries[hash_table_index];
+    while(current_entry != NULL)
+    {
+        if(memcmp(current_entry->key, key, key_size) == 0) return current_entry;
+        current_entry = current_entry->next_entry;
+    }
+    return NULL;
+}
+
+
+CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size)
+{
+    CGL_hashtable* table = (CGL_hashtable*)CGL_malloc(sizeof(CGL_hashtable));
+    table->count = 0;
+    table->entries = (CGL_hashtable_entry*)CGL_malloc(sizeof(CGL_hashtable_entry) * table_size);
+    memset(table->entries, 0, (sizeof(CGL_hashtable_entry) * table_size));
+    table->key_size = key_size;
+    table->table_size = table_size;
+    table->hash_function = CGL_utils_super_fast_hash;
+    return table;
+}
+
+void CGL_hashtable_destroy(CGL_hashtable* table)
+{
+    // destroy entries linked lists (if any) and data values
+    CGL_hashtable_entry* entries = table->entries;
+    for(size_t i = 0 ; i < table->table_size ; i++)
+        __CGL_hashtable_entry_destroy(&entries[i], false);
+    CGL_free(table->entries);
+    CGL_free(table);
+}
+
+void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size)
+{
+    size_t key_size, hash_table_index;
+    __CGL_hashtable_get_key_size_and_table_index(table, &key_size, &hash_table_index, key);
+    CGL_hashtable_entry* entry_ptr = __CGL_hashtable_get_entry_ptr(table, key);
+    if(entry_ptr)
+    {
+        entry_ptr->value_size = value_size;
+        entry_ptr->value = NULL;    
+        if(value_size > 0)
+        {
+            entry_ptr->value = CGL_malloc(value_size);
+            memcpy(entry_ptr->value, value, value_size);
+        }
+    }
+    else
+    {
+        CGL_hashtable_entry entry;
+        entry.set = true;
+        entry.next_entry = NULL;
+        entry.prev_entry = NULL;
+        memcpy(entry.key, key, key_size);
+        entry.value_size = value_size;
+        entry.value = NULL;    
+        if(value_size > 0)
+        {
+            entry.value = CGL_malloc(value_size);
+            memcpy(entry.value, value, value_size);
+        }
+        if(table->entries[hash_table_index].set)
+        {
+            CGL_hashtable_entry* entry_to_place = &table->entries[hash_table_index];
+            while(entry_to_place->next_entry != NULL) entry_to_place = entry_to_place->next_entry;
+            entry.prev_entry = entry_to_place;
+            entry_to_place->next_entry = (CGL_hashtable_entry*)CGL_malloc(sizeof(CGL_hashtable_entry));
+            memcpy(entry_to_place->next_entry, &entry, sizeof(CGL_hashtable_entry));
+        }
+        else
+        {
+            CGL_hashtable_entry* next_entry = table->entries[hash_table_index].next_entry;
+            memcpy(&table->entries[hash_table_index], &entry, sizeof(CGL_hashtable_entry));
+            table->entries[hash_table_index].next_entry = next_entry;
+        }
+    }
+}
+
+size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value)
+{
+    CGL_hashtable_entry* entry = __CGL_hashtable_get_entry_ptr(table, key);
+    if(entry && value) memcpy(value, entry->value, entry->value_size);
+    if(entry) return entry->value_size;
+    return 0;
+}
+
+bool CGL_hashtable_exists(CGL_hashtable* table, const void* key)
+{
+    return __CGL_hashtable_get_entry_ptr(table, key) != NULL;
+    // OR
+    //return CGL_hashtable_get(table, key, NULL) != 0;
+}
+
+bool CGL_hashtable_remove(CGL_hashtable* table, const void* key)
+{
+    CGL_hashtable_entry* entry = __CGL_hashtable_get_entry_ptr(table, key);
+    if(entry)
+    {
+        if(entry->value) CGL_free(entry->value);
+        memset(entry->key, 0, CGL_HASHTABLE_MAX_KEY_SIZE);
+        entry->set = false;
+        if(entry->prev_entry)
+        {
+            entry->prev_entry->next_entry = entry->next_entry;
+            CGL_free(entry);
+        }
+    }
+    return entry != NULL;
+    /*
+    size_t key_size, hash_table_index;
+    __CGL_hashtable_get_key_size_and_table_index(table, &key_size, &hash_table_index, key);
+    CGL_hashtable_entry* current_entry = &table->entries[hash_table_index];
+    bool first = true;
+    while(current_entry != NULL)
+    {
+        if(memcmp(current_entry->key, key, key_size) == 0)
+        {
+            if(current_entry->value) CGL_free(current_entry->value);
+            memset(current_entry->key, 0, CGL_HASHTABLE_MAX_KEY_SIZE);
+            current_entry->set = false;
+            if(!first) // not first means not the one allocated directly inside the hastable itself
+            {
+                // remove current entry from the (doubly) linked list
+                current_entry->prev_entry->next_entry = current_entry->next_entry;
+                CGL_free(current_entry);
+            }
+        }
+        current_entry = current_entry->next_entry;
+        first = false;
+    }
+    return false;
+    */
+}
+
+void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function)
+{
+    if(hash_function) table->hash_function = hash_function;
+}
+
+CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table)
+{
+    return NULL;
+}
+
+void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator)
+{
+
+}
+
+void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator)
+{
+
+}
+
+size_t CGL_hashtable_iterator_next(void* key, void* data)
+{
+    return 0;
+}
+
+size_t CGL_hashtable_iterator_prev(void* key, void* data)
+{
+    return 0;
+}
 #endif
 
 // utils
