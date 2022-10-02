@@ -35,6 +35,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
 * Data structures
   - List(dynamic array) + Stack (implemented together)
   - Hashtable -> This hastabpe is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
+     - Hashtable Iterator -> Iteratate through the hashtable usign a [simple](https://github.com/Jaysmito101/cgl/blob/main/examples/using_hashtable_iterator.c) API
   
 * Cross platform threading
   - Threads
