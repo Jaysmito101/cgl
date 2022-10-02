@@ -69,6 +69,8 @@ int main()
 
     cam_pos = CGL_camera_get_position(camera);
     cam_rot = CGL_camera_get_rotation(camera);
+    cam_pos.z += 3.0f;
+    CGL_camera_set_position(camera, cam_pos);
 
     while(!CGL_window_should_close(main_window))
     { 
@@ -97,15 +99,9 @@ int main()
             cam_pos = CGL_vec3_add(cam_pos, up);
             cam_pos = CGL_vec3_add(cam_pos, right);
         }
-        else if(CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_RIGHT) == CGL_PRESS)
-        {
-
-        }
         mouse_input.delta_x = mouse_input.delta_y = 0.0f;
         if(CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
     }
-
-    CGL_thread_destroy(thread);
 
     CGL_phong_pipeline_destroy(pipeline);
     CGL_phong_mat_destroy(material);
