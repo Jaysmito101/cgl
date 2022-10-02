@@ -98,6 +98,7 @@ int main()
             up = CGL_vec3_scale(up, (-0.05f * mouse_input.delta_y));
             cam_pos = CGL_vec3_add(cam_pos, up);
             cam_pos = CGL_vec3_add(cam_pos, right);
+            CGL_camera_set_position(camera, cam_pos);
         }
         mouse_input.delta_x = mouse_input.delta_y = 0.0f;
         if(CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
