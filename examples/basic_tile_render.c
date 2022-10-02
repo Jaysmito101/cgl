@@ -63,12 +63,9 @@ int main()
     tilemap_data.scale_y = 1.0f;
     CGL_window_set_mouse_scroll_callback(main_window, input_scroll_callback);
     CGL_window_set_mouse_position_callback(main_window, input_mouse_pos_callback);
-
     CGL_window_resecure_callbacks(main_window);
-
     tilemap_data.tilemap = CGL_tilemap_create(TILE_COUNT_X, TILE_COUNT_Y, 32, 32, 0);
-
-
+    randomize_tilemap();            
     while(!CGL_window_should_close(main_window))
     { 
         {
@@ -82,13 +79,8 @@ int main()
         CGL_window_poll_events(main_window);
 
         CGL_window_swap_buffers(main_window);
-        if(CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_MIDDLE) == CGL_PRESS)
-        {            
-        }
-        else if(CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_RIGHT) == CGL_PRESS)
-        {
-
-        }
+        if(CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_LEFT) == CGL_PRESS || CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_RIGHT) == CGL_PRESS || CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_MIDDLE) == CGL_PRESS)
+            randomize_tilemap();            
         mouse_input.delta_x = mouse_input.delta_y = 0.0f;
         if(CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
     }
