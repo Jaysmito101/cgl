@@ -3,27 +3,45 @@
 #include "cgl.h"
 
 
+
 int main()
 {
     char buffer[1024];
+    CGL_hashtable* table = CGL_hashtable_create(100, 0, 10);
 
-    CGL_hashtable* table = CGL_hashtable_create(10000, 0);
-    int idata = 0;
-    float fdata = 0.0f;
-    CGL_hashtable_set_string(table, "Name", "Jaysmito");
-    CGL_hashtable_set_int(table, "Age", 18);
-    CGL_hashtable_set_float(table, "Float Data", 54584.4584f);
+    CGL_hashtable_set_int(table, "age", 16);
+    CGL_hashtable_set_int(table, "marks", 99);
+    CGL_hashtable_set_int(table, "id", 4484);
+    CGL_hashtable_set_float(table, "weight", 68.4877f);
+    int t = CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE;
+    CGL_hashtable_set_string(table, "name", "Andrew");
 
-    // print 
-    printf("Age : %d\n", CGL_hashtable_get_int(table, "Age"));
-    printf("Float Data : %f\n", CGL_hashtable_get_float(table, "Float Data"));
-    CGL_hashtable_get(table, "Name", buffer);
+    printf("ID : %d\n", CGL_hashtable_get_int(table, "id"));
+    printf("Weight : %f\n", CGL_hashtable_get_float(table, "weight"));
+    CGL_hashtable_get(table, "name", buffer);
     printf("Name : %s\n", buffer);
-    CGL_hashtable_set_string(table, "Name", "Jack");
-    CGL_hashtable_get(table, "Name", buffer);
-    printf("Name 2 : %s\n", buffer);
+    printf("Marks : %d\n", CGL_hashtable_get_int(table, "marks"));
+    printf("Age : %d\n", CGL_hashtable_get_int(table, "age"));
+
+
+    printf("name %s.\n", (CGL_hashtable_exists(table, "name") ? "exists" : "does not exist"));
+    printf("year %s.\n", (CGL_hashtable_exists(table, "year") ? "exists" : "does not exist"));
+    CGL_hashtable_remove(table, "name");
+    printf("name %s.\n", (CGL_hashtable_exists(table, "name") ? "exists" : "does not exist"));
+    printf("age %s.\n", (CGL_hashtable_exists(table, "age") ? "exists" : "does not exist"));
+    CGL_hashtable_remove(table, "name");
+
+    CGL_hashtable_iterator* iterator = CGL_hashtable_iterator_create(table);
+
+    printf("Entries :- \n");
+    while(CGL_hashtable_iterator_next(iterator, buffer, NULL, NULL))
+        printf("Key : %s\n", buffer);
+
+    CGL_hashtable_iterator_destroy(iterator);
+
     CGL_hashtable_destroy(table);
 
- 
+    printf("End\n");
+
     return 0;
 }
