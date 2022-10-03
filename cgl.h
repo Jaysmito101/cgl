@@ -113,6 +113,8 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 #define CGL_utils_random_color() ((CGL_color){CGL_utils_random_float(), CGL_utils_random_float(), CGL_utils_random_float(), 1.0f})
 #define CGL_utils_clamp(x, minl, maxl) (x < minl ? minl : (x > maxl ? maxl : x))
 #define CGL_utils_array_size(array) (sizeof(array) / sizeof(array[0]))
+#define CGL_utils_max(a, b) ( ((a) > (b)) ? (a) : (b) )
+#define CGL_utils_min(a, b) ( ((a) < (b)) ? (a) : (b) )
 
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
@@ -386,6 +388,8 @@ CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 // window
 #if 1 // Just to use code folding
 
+#ifndef CGL_EXCLUDE_WINDOW_API
+
 // CGL window management library (usinfg GLFW)
 
 #ifdef CGL_EXPOSE_GLFW_API
@@ -587,8 +591,12 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 
 #endif
 
+#endif
+
 // opengl
 #if 1 // Just to use code folding
+
+#ifndef CGL_EXCLUDE_GRAPHICS_API
 
 #include <glad/glad.h>
 
@@ -734,6 +742,7 @@ void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo); // get ssbo user data
 size_t CGL_ssbo_get_size(CGL_ssbo* ssbo); // get ssbo size
 void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size); // copy ssbo
 
+#endif
 
 #endif
 
@@ -778,6 +787,7 @@ void CGL_camera_recalculate_mat(CGL_camera* camera);
 
 #endif
 
+#ifndef CGL_EXCLUDE_GRAPHICS_API
 // The phong renderer
 #if 1
 
@@ -846,6 +856,10 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
 
 #endif
 
+#endif
+
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+
 // tilemap renderer
 #if 1
 
@@ -865,6 +879,8 @@ void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t ti
 void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y);
 void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, float offset_x, float offset_y, CGL_texture* texture);
 void CGL_tilemap_reset(CGL_tilemap* tilemap);
+
+#endif
 
 #endif
 
@@ -995,7 +1011,7 @@ void CGL_list_reserve(CGL_list* list, size_t size)
 void CGL_list_fill(CGL_list* list, size_t size)
 {
     CGL_list_reserve(list, size);
-    list->size = max(size, list->size);
+    list->size = CGL_utils_max(size, list->size);
 }
 
 
@@ -1107,6 +1123,7 @@ void CGL_mutex_release(CGL_mutex* mutex)
 #else // for posix (using pthread)
 
 #include <pthread.h>
+#include <signal.h> 
 
 struct CGL_thread
 {
@@ -1125,7 +1142,7 @@ CGL_thread* CGL_thread_create()
 {
     CGL_thread* thread = (CGL_thread*)malloc(sizeof(CGL_thread));
     thread->function = NULL;
-    thread->handle = NULL;
+    // thread->handle = NULL;
     thread->id = 0;
     thread->running = false;
     return thread;
@@ -1135,10 +1152,10 @@ bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* ar
 {
     if(thread->running) CGL_thread_join(thread);
     thread->function = function;
-    pthread_create(&thread->handle, 0, (void*)function, argument);
+    bool success = pthread_create(&thread->handle, 0, (void*)function, argument);
     thread->id = (uintptr_t)thread->handle; // Temporary
     thread->running = true;
-    return thread->handle != NULL;
+    return success;
 }
 
 void CGL_thread_destroy(CGL_thread* thread)
@@ -1185,7 +1202,7 @@ CGL_mutex* CGL_mutex_create(bool set)
 
 void CGL_mutex_destroy(CGL_mutex* mutex)
 {
-    if(mutex->handle)  pthread_mutex_destroy(&mutex->handle);
+    pthread_mutex_destroy(&mutex->handle);
     CGL_free(mutex);
 }
 
@@ -1483,7 +1500,7 @@ void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
 
 #ifndef CGL_EXCLUDE_NETWORKING
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 
 #include <windows.h>
 #include <winsock2.h>
@@ -1639,6 +1656,136 @@ bool CGL_net_socket_shutdown_recv(CGL_net_socket* soc)
 }
 
 #else // for unix based operating systems
+
+
+#include <netdb.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+struct CGL_net_addrinfo
+{
+    struct sockaddr_in ai_addr;
+};
+
+struct CGL_net_socket
+{
+    int sockfd;
+};
+
+bool CGL_net_init()
+{
+    return true;
+}
+
+void CGL_net_shutdown()
+{
+    return;
+}
+
+CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, size_t* count)
+{
+    struct hostent* server = NULL;
+    server = gethostbyname(name);
+    if(server == NULL) return NULL;
+    CGL_net_addrinfo* addr_info = (CGL_net_addrinfo*)CGL_malloc(sizeof(CGL_net_addrinfo));
+    if(!addr_info) return NULL;
+    memset(&addr_info->ai_addr, 0, sizeof(addr_info->ai_addr));
+    addr_info->ai_addr.sin_family = AF_UNSPEC;
+    int iport = atoi(port);
+    addr_info->ai_addr.sin_port = htons(iport);
+    memcpy(&addr_info->ai_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+    if(count) *count = 1;
+    return addr_info;
+}
+
+void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos)
+{
+    CGL_free(infos);
+}
+
+CGL_net_socket* CGL_net_socket_create()
+{
+    CGL_net_socket* soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
+    if(!soc) return NULL;
+    soc->sockfd = socket(AF_UNSPEC, SOCK_STREAM, 0);
+    if(soc->sockfd < 0)
+    {
+        CGL_free(soc);
+        return NULL;
+    }
+    return soc;
+}
+
+bool CGL_net_socket_connect(CGL_net_socket* soc, CGL_net_addrinfo* target)
+{
+    printf("1\n");
+    int result = connect(soc->sockfd, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
+    printf("2\n");
+    return result >= 0;
+}
+
+bool CGL_net_socket_bind(CGL_net_socket* soc, CGL_net_addrinfo* target)
+{
+    int result = bind(soc->sockfd, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
+    return result > 0;
+}
+
+bool CGL_net_socket_listen(CGL_net_socket* soc, size_t max_connections)
+{
+    listen(soc->sockfd, (int)max_connections);
+    return true;
+}
+
+CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* addrinfo)
+{
+    CGL_net_socket* cli_soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
+    if(!cli_soc) return NULL;
+    int length = 0;
+    if(addrinfo) cli_soc->sockfd = accept(soc->sockfd, (struct sockaddr*)&addrinfo->ai_addr, &length);
+    else cli_soc->sockfd = accept(soc->sockfd, NULL, NULL);
+    if(cli_soc->sockfd < 0)
+    {
+        CGL_free(cli_soc);
+        return NULL;
+    }
+    return cli_soc;
+}
+
+void CGL_net_socket_close(CGL_net_socket* soc)
+{
+    close(soc->sockfd);
+}
+
+bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent)
+{
+    int result = send(soc->sockfd, buffer, size, 0);
+    if(result < 0) return false;
+    return result;
+}
+
+bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_recieved)
+{
+    int result = recv(soc->sockfd, buffer, size, 0);
+    if(result < 0) return false;
+    return result;
+}
+
+bool CGL_net_socket_shutdown_send(CGL_net_socket* soc)
+{
+    shutdown(soc->sockfd, SHUT_WR);
+}
+
+bool CGL_net_socket_shutdown_recv(CGL_net_socket* soc)
+{
+    shutdown(soc->sockfd, SHUT_RD);
+}
+
+
 
 #endif // _WIN32
 
@@ -2010,8 +2157,9 @@ struct CGL_context
 {
     bool is_initialized;
     int window_count;
-    
+    #ifndef CGL_EXCLUDE_WINDOW_API 
     CGL_window* window_table[CGL_WINDOW_TABLE_SIZE];
+    #endif
 };
 
 CGL_context* __CGL_context = NULL;
@@ -2081,6 +2229,7 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size)
 }
 
 
+#ifndef CGL_EXCLUDE_WINDOW_API
 
 #ifndef CGL_EXPOSE_GLFW_API
 #include <GLFW/glfw3.h> // GLFW
@@ -2428,9 +2577,12 @@ GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window)
 
 #endif
 
+#endif
+
 // opengl 
 #if 1 // Just to use code folding
 
+#ifndef CGL_EXCLUDE_GRAPHICS_API
 
 // texture
 
@@ -3683,6 +3835,8 @@ void* CGL_shader_get_user_data(CGL_shader* shader)
 
 #endif
 
+#endif
+
 // camera
 #if 1
 
@@ -3914,6 +4068,8 @@ void CGL_camera_recalculate_mat(CGL_camera* camera)
 
 #endif
 
+
+#ifndef CGL_EXCLUDE_GRAPHICS_API // cannot have PHONG RENDERER without Graphics API
 
 // The phong renderer
 #if 1
@@ -4565,6 +4721,9 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 
 #endif
 
+#endif
+
+#ifndef CGL_EXCLUDE_GRAPHICS_API // cannot have TILE RENDERER without Graphics API
 
 // tilemap renderer
 #if 1
@@ -4805,6 +4964,9 @@ void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, floa
 }
 
 #endif
+
+#endif
+
 
 #endif
 
