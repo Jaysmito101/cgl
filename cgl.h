@@ -27,14 +27,6 @@ SOFTWARE.
 #ifndef CGL_H
 #define CGL_H
 
-#ifdef near
-#undef near
-#endif
-
-#ifdef far
-#undef far
-#endif
-
 // common
 #if 1 // Just to use code folding
 
@@ -67,6 +59,41 @@ typedef struct CGL_context CGL_context;
 
 bool CGL_init(); // initialize CGL
 void CGL_shutdown(); // shutdown CGL
+
+#endif
+
+#ifndef CGL_EXCLUDE_NETWORKING
+
+#define CGL_NET_NO_ERROR                    0xAB000
+#define CGL_NET_NAME_RESOLUTION_ERROR       0xAB001
+#define CGL_NET_INVALID_PARAMATER_ERROR     0xAB002
+#define CGL_NET_UNSUPPORTED_ERROR           0xAB003
+#define CGL_NET_MEMORY_ERROR                0xAB004
+#define CGL_NET_NOT_FOUND_ERROR             0xAB005
+
+struct CGL_net_addrinfo;
+typedef struct CGL_net_addrinfo CGL_net_addrinfo;
+
+struct CGL_net_socket;
+typedef struct CGL_net_socket CGL_net_socket;
+
+bool CGL_net_init();
+void CGL_net_shutdown();
+
+CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, size_t* count);
+void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
+
+CGL_net_socket* CGL_net_socket_create();
+bool CGL_net_socket_connect(CGL_net_socket* socket, CGL_net_addrinfo* target);
+bool CGL_net_socket_bind(CGL_net_socket* socket, CGL_net_addrinfo* target);
+bool CGL_net_socket_listen(CGL_net_socket* socket, size_t max_connections); 
+CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* socket, CGL_net_addrinfo* addrinfo);
+void CGL_net_socket_close(CGL_net_socket* socket);
+bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent);
+bool CGL_net_socket_recv(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_recieved);
+bool CGL_net_socket_shutdown_send(CGL_net_socket* socket);
+bool CGL_net_socket_shutdown_recv(CGL_net_socket* socket);
+
 
 #endif
 
@@ -849,14 +876,9 @@ void CGL_tilemap_reset(CGL_tilemap* tilemap);
 // include windows headers for windows builds
 #if defined(_WIN32) || defined(_WIN64)
 #pragma warning(push, 0)
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #pragma warning(pop)
-#ifdef near
-#undef near
-#endif
-#ifdef far
-#undef far
-#endif
 #endif
 
 // list
@@ -1428,10 +1450,8 @@ bool CGL_hashtable_iterator_next(CGL_hashtable_iterator* iterator, void* key, vo
         if(iterator->hashtable->storage[iterator->index].set) break;
         else iterator->index++;
     }
-    if(iterator->index >= iterator->hashtable->capacity)
-        iterator->current_entry = NULL;
-    else
-        iterator->current_entry = &iterator->hashtable->storage[iterator->index];
+    if(iterator->index >= iterator->hashtable->capacity) iterator->current_entry = NULL;
+    else iterator->current_entry = &iterator->hashtable->storage[iterator->index];
     iterator->index++;
     return CGL_hashtable_iterator_curr(iterator, key, data, size);
 }
@@ -1455,6 +1475,175 @@ void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
     if(!iterator->current_entry) return NULL;
     return iterator->current_entry->key;
 }
+
+#endif
+
+// networking
+#if 1
+
+#ifndef CGL_EXCLUDE_NETWORKING
+
+#ifdef _WIN32
+
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment (lib, "Mswsock.lib")
+#pragma comment (lib, "AdvApi32.lib")
+
+
+
+struct CGL_net_addrinfo
+{
+    int ai_flags;
+    int ai_family;
+    int ai_socktype;
+    int ai_protocol;
+    size_t ai_addrlen;
+    struct sockaddr ai_addr;
+};
+
+struct CGL_net_socket
+{
+    SOCKET socket;
+};
+
+bool CGL_net_init()
+{
+    WSADATA wsa_data;
+    return WSAStartup(MAKEWORD(2, 2), &wsa_data) == 0;
+}
+
+void CGL_net_shutdown()
+{
+    WSACleanup();
+}
+
+CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, size_t* count)
+{
+    struct addrinfo *result = NULL; 
+    struct addrinfo *ptr = NULL; 
+    struct addrinfo hints; 
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_UNSPEC; // supports both ipv4 & ipv6
+    hints.ai_socktype = SOCK_STREAM; // supports only streaming socketss
+    hints.ai_protocol = IPPROTO_TCP; // supports only TCP
+    int iresult = getaddrinfo(name, port, &hints, &result);
+    if(iresult != 0) return NULL;
+    size_t addr_count = 0;
+    for(ptr = result; ptr != NULL; ptr = ptr->ai_next) addr_count++;
+    if(count) *count = addr_count;
+    CGL_net_addrinfo* infos = (CGL_net_addrinfo*)CGL_malloc(sizeof(CGL_net_addrinfo) * addr_count);
+    if(!infos) {freeaddrinfo(result); return NULL;}
+    size_t index = 0;
+    for(ptr = result; ptr != NULL; ptr = ptr->ai_next, index++)
+    {
+        infos[index].ai_flags = ptr->ai_flags;
+        infos[index].ai_family = ptr->ai_family;
+        infos[index].ai_socktype = ptr->ai_socktype;
+        infos[index].ai_protocol = ptr->ai_protocol;
+        infos[index].ai_addrlen = ptr->ai_addrlen;
+        infos[index].ai_addr = *ptr->ai_addr;
+    }
+    freeaddrinfo(result);
+    return infos;
+}
+
+void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos)
+{
+    CGL_free(infos);
+}
+
+CGL_net_socket* CGL_net_socket_create()
+{
+    CGL_net_socket* soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
+    if(!soc) return NULL;
+    soc->socket = socket(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP);
+    if(soc->socket == INVALID_SOCKET)
+    {
+        CGL_free(soc);
+        return NULL;
+    }
+    return soc;
+}
+
+bool CGL_net_socket_connect(CGL_net_socket* soc, CGL_net_addrinfo* target)
+{
+    int result = connect(soc->socket, &target->ai_addr, (int)target->ai_addrlen);
+    return result != SOCKET_ERROR;
+}
+
+bool CGL_net_socket_bind(CGL_net_socket* soc, CGL_net_addrinfo* target)
+{
+    int result = bind(soc->socket, &target->ai_addr, (int)target->ai_addrlen);
+    return result != SOCKET_ERROR;
+}
+
+bool CGL_net_socket_listen(CGL_net_socket* soc, size_t max_connections)
+{
+    int result = listen(soc->socket, (int_fast16_t)max_connections);
+    return result != SOCKET_ERROR;
+}
+
+CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* addrinfo)
+{
+    CGL_net_socket* cli_soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
+    if(!cli_soc) return NULL;
+    int addr_len = 0;
+    if(addrinfo)
+    {
+        cli_soc->socket = accept(soc->socket, &addrinfo->ai_addr, &addr_len);
+        addrinfo->ai_addrlen = addr_len;
+    }
+    else cli_soc->socket = accept(soc->socket, NULL, NULL);
+    if(cli_soc->socket == INVALID_SOCKET)
+    {
+        CGL_free(cli_soc);
+        cli_soc = NULL;
+    }
+    return cli_soc;
+}
+
+void CGL_net_socket_close(CGL_net_socket* soc)
+{
+    closesocket(soc->socket);
+    CGL_free(soc);
+}
+
+bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent)
+{
+    int result = send(soc->socket, buffer, (int)size, 0);
+    if(size_sent) *size_sent = result;
+    return result != SOCKET_ERROR;
+}
+
+bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_recieved)
+{
+    int result = recv(soc->socket, buffer, (int)size, 0);
+    if(result > 0 && size_recieved) *size_recieved = (size_t)result;
+    return result > 0;
+}
+
+bool CGL_net_socket_shutdown_send(CGL_net_socket* soc)
+{
+    return shutdown(soc->socket, SD_SEND) == SOCKET_ERROR;
+}
+
+bool CGL_net_socket_shutdown_recv(CGL_net_socket* soc)
+{
+    return shutdown(soc->socket, SD_RECEIVE) == SOCKET_ERROR;
+}
+
+#else // for unix based operating systems
+
+#endif // _WIN32
+
+#endif //  CGL_EXCLUDE_NETWORKING
+
 
 #endif
 
@@ -2238,7 +2427,6 @@ GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window)
 }
 
 #endif
-
 
 // opengl 
 #if 1 // Just to use code folding
