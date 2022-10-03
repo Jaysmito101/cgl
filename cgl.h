@@ -88,6 +88,7 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 #define CGL_utils_array_size(array) (sizeof(array) / sizeof(array[0]))
 
 #define CGL_malloc(size) malloc(size)
+#define CGL_realloc(ptr, size) realloc(ptr, size)
 #define CGL_free(ptr) free(ptr)
 #define CGL_exit(code) exit(code)
 
@@ -121,6 +122,10 @@ void CGL_list_fill(CGL_list* list, size_t size);
 #define CGL_HASHTABLE_MAX_KEY_SIZE 256
 #endif
 
+#ifndef CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE
+#define CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE sizeof(uint64_t)
+#endif
+
 struct CGL_hashtable_entry;
 typedef struct CGL_hashtable_entry CGL_hashtable_entry;
 
@@ -133,7 +138,9 @@ typedef struct CGL_hashtable_iterator CGL_hashtable_iterator;
 typedef uint32_t(*CGL_hash_function)(const void*, size_t);
 
 // set key size to 0 if it is a string (it will be auto calculated using strlen)
-CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size);
+CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t initial_capacity);
+void CGL_hashtable_set_growth_rate(CGL_hashtable* table, float rate);
+size_t CGL_hashtable_get_size(CGL_hashtable* table);
 void CGL_hashtable_destroy(CGL_hashtable* table);
 void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size);
 size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value);
@@ -658,6 +665,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords);
+void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name);
 void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
 
 // shader
@@ -1182,172 +1190,224 @@ void CGL_mutex_release(CGL_mutex* mutex)
 
 struct CGL_hashtable_entry
 {
-    bool set;
     uint8_t key[CGL_HASHTABLE_MAX_KEY_SIZE];
-    void* value;
+    uint8_t value_static[CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE]; // if value size is less than CGL_HASHTABLE_ENTRY_VALUE_SIZE then place here in static memory rather than allocating
     size_t value_size;
-    CGL_hashtable_entry* prev_entry; // prev entry in the linked list with same hash
     CGL_hashtable_entry* next_entry; // next entry in the linked list with same hash
+    void* value;
+    bool set;
 };
 
 struct CGL_hashtable
 {
-    CGL_hashtable_entry* entries;
+    CGL_hashtable_entry* storage;
+    CGL_hashtable_entry** table;
+    CGL_hash_function hash_function;
+    size_t capacity;
     size_t table_size;
     size_t key_size;
-    CGL_hash_function hash_function;
     size_t count;
+    float growth_rate;
 };
 
 struct CGL_hashtable_iterator
 {
     CGL_hashtable* hashtable;
     CGL_hashtable_entry* current_entry;
-    uint32_t current_index;
+    size_t index;
 };
 
-static void __CGL_hashtable_entry_destroy(CGL_hashtable_entry* entry, bool destory_current)
+static void __CGL_hashtable_calculate_hashtable_index_key_size(CGL_hashtable* table, size_t* key_size, size_t* hashtable_index, const void* key)
 {
-    if(entry == NULL) return;
-    if(entry->next_entry != NULL) __CGL_hashtable_entry_destroy(entry->next_entry, true);
-    if(entry->value) CGL_free(entry->value);
-    if(destory_current) CGL_free(entry);
+    size_t key_size_l = CGL_utils_clamp(((table->key_size == 0) ? strlen((const char*)key) + 1 : table->key_size), 0, CGL_HASHTABLE_MAX_KEY_SIZE);
+    *key_size = key_size_l;
+    size_t hashtable_index_l = table->hash_function(key, key_size_l) % table->table_size;
+    *hashtable_index = hashtable_index_l;
 }
 
-static void __CGL_hashtable_get_key_size_and_table_index(CGL_hashtable* table, size_t* key_size, size_t* hash_table_index, const void* key)
+static CGL_hashtable_entry* __CGL_hashtable_get_entry_ptr(CGL_hashtable* table, const void* key, size_t* table_index)
 {
-    *key_size = table->key_size;
-    if(*key_size == 0) *key_size = strlen((const char*)key) + 1;
-    *key_size = CGL_utils_clamp(*key_size, 1, CGL_HASHTABLE_MAX_KEY_SIZE);
-    uint32_t hash = table->hash_function(key, *key_size);
-    *hash_table_index = hash % table->table_size;
-}
-
-static CGL_hashtable_entry* __CGL_hashtable_get_entry_ptr(CGL_hashtable* table, const void* key)
-{
-    size_t key_size, hash_table_index;
-    __CGL_hashtable_get_key_size_and_table_index(table, &key_size, &hash_table_index, key);
-    CGL_hashtable_entry* current_entry = &table->entries[hash_table_index];
-    while(current_entry != NULL)
+    size_t key_size, hashtable_index;
+    __CGL_hashtable_calculate_hashtable_index_key_size(table, &key_size, &hashtable_index, key);
+    CGL_hashtable_entry* entry = table->table[hashtable_index];
+    if(!entry) return NULL;
+    if(table_index) 
     {
-        if(memcmp(current_entry->key, key, key_size) == 0) return current_entry;
-        current_entry = current_entry->next_entry;
+        if(memcmp(entry->key, key, key_size) == 0) *table_index = hashtable_index;
+        else *table_index = UINT64_MAX;
+    }
+    while(entry)
+    {
+        if(memcmp(entry->key, key, key_size) == 0) return entry;
+        entry = entry->next_entry;
     }
     return NULL;
 }
 
+static bool __CGL_hashtable_expand_storage(CGL_hashtable* table)
+{
+    table->capacity = (size_t)(table->capacity * table->growth_rate);
+    table->storage = (CGL_hashtable_entry*)CGL_realloc(table->storage, table->capacity);
+    return table->storage != NULL;
+}
 
-CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size)
+static void __CGL_hashtable_reset_hashtable_entry(CGL_hashtable_entry* entry)
+{
+    memset(entry->key, 0, CGL_HASHTABLE_MAX_KEY_SIZE);
+    memset(entry->value_static, 0, CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE);
+    entry->value_size = 0;
+    entry->next_entry = NULL;
+    if(entry->value) CGL_free(entry->value);
+    entry->value = NULL;
+    entry->set = false;
+}
+
+static CGL_hashtable_entry* __CGL_hashtable_get_new_entry(CGL_hashtable* table, bool* expanded)
+{
+    CGL_hashtable_entry* entry = NULL;
+    for(size_t i = 0 ; i < table->capacity ; i ++)
+    {
+        if(!table->storage[i].set)
+        {
+            entry = &table->storage[i];
+            break;
+        }
+    }
+    if(!entry)
+    {
+        size_t last_index = table->capacity;
+        if(!__CGL_hashtable_expand_storage(table)) return NULL;
+        entry = &table->storage[last_index];
+        if(expanded) *expanded = true;
+    }
+    return entry;
+}
+
+CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t initial_capacity)
 {
     CGL_hashtable* table = (CGL_hashtable*)CGL_malloc(sizeof(CGL_hashtable));
-    table->count = 0;
-    table->entries = (CGL_hashtable_entry*)CGL_malloc(sizeof(CGL_hashtable_entry) * table_size);
-    memset(table->entries, 0, (sizeof(CGL_hashtable_entry) * table_size));
-    table->key_size = key_size;
+    if(!table) return NULL;
     table->table_size = table_size;
+    table->key_size = key_size;
+    table->capacity = initial_capacity;
+    table->count = 0;
+    table->growth_rate = 1.5f;
     table->hash_function = CGL_utils_super_fast_hash;
+    table->storage = (CGL_hashtable_entry*)CGL_malloc(sizeof(CGL_hashtable_entry) * initial_capacity);
+    if(!table->storage) {CGL_free(table); return NULL;}
+    memset(table->storage, 0, (sizeof(CGL_hashtable_entry) * initial_capacity));
+    table->table = (CGL_hashtable_entry**)CGL_malloc(sizeof(CGL_hashtable_entry*) * table_size);
+    if(!table->table) {CGL_free(table->storage); CGL_free(table); return NULL;}
+    memset(table->table, 0, (sizeof(CGL_hashtable_entry*) * table_size));
     return table;
 }
 
 void CGL_hashtable_destroy(CGL_hashtable* table)
 {
-    // destroy entries linked lists (if any) and data values
-    CGL_hashtable_entry* entries = table->entries;
-    for(size_t i = 0 ; i < table->table_size ; i++)
-        __CGL_hashtable_entry_destroy(&entries[i], false);
-    CGL_free(table->entries);
+    for(size_t i = 0 ; i < table->capacity ; i ++)
+        if(table->storage[i].set && table->storage[i].value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE)
+            CGL_free(table->storage[i].value);
+    CGL_free(table->storage);
+    CGL_free(table->table);
     CGL_free(table);
 }
 
 void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size)
 {
-    size_t key_size, hash_table_index;
-    __CGL_hashtable_get_key_size_and_table_index(table, &key_size, &hash_table_index, key);
-    CGL_hashtable_entry* entry_ptr = __CGL_hashtable_get_entry_ptr(table, key);
-    if(entry_ptr)
+    size_t key_size, hashtable_index;
+    __CGL_hashtable_calculate_hashtable_index_key_size(table, &key_size, &hashtable_index, key);
+    
+    CGL_hashtable_entry new_entry;
+    new_entry.set = true;
+    memcpy(new_entry.key, key, key_size);
+    new_entry.value_size = value_size;
+    new_entry.next_entry = NULL;
+    new_entry.value = NULL;
+    void* target_value_ptr = NULL;
+    if(value_size <= CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) target_value_ptr = new_entry.value_static;
+    else target_value_ptr = new_entry.value = CGL_malloc(value_size);
+    memcpy(target_value_ptr, value, value_size);
+    CGL_hashtable_entry* new_entry_ptr = NULL;
+    CGL_hashtable_entry* existing_entry = __CGL_hashtable_get_entry_ptr(table, key, NULL);
+    if(existing_entry)
     {
-        entry_ptr->value_size = value_size;
-        entry_ptr->value = NULL;    
-        if(value_size > 0)
-        {
-            entry_ptr->value = CGL_malloc(value_size);
-            memcpy(entry_ptr->value, value, value_size);
-        }
+        if(existing_entry->value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) CGL_free(existing_entry->value);
+        new_entry_ptr = existing_entry;
     }
     else
     {
-        CGL_hashtable_entry entry;
-        entry.set = true;
-        entry.next_entry = NULL;
-        entry.prev_entry = NULL;
-        memcpy(entry.key, key, key_size);
-        entry.value_size = value_size;
-        entry.value = NULL;    
-        if(value_size > 0)
-        {
-            entry.value = CGL_malloc(value_size);
-            memcpy(entry.value, value, value_size);
-        }
-        if(table->entries[hash_table_index].set)
-        {
-            CGL_hashtable_entry* entry_to_place = &table->entries[hash_table_index];
-            while(entry_to_place->next_entry != NULL) entry_to_place = entry_to_place->next_entry;
-            entry.prev_entry = entry_to_place;
-            entry_to_place->next_entry = (CGL_hashtable_entry*)CGL_malloc(sizeof(CGL_hashtable_entry));
-            memcpy(entry_to_place->next_entry, &entry, sizeof(CGL_hashtable_entry));
-        }
+        new_entry_ptr = __CGL_hashtable_get_new_entry(table, NULL);        
+        if(!table->table[hashtable_index])
+            table->table[hashtable_index] = new_entry_ptr;
         else
         {
-            CGL_hashtable_entry* next_entry = table->entries[hash_table_index].next_entry;
-            memcpy(&table->entries[hash_table_index], &entry, sizeof(CGL_hashtable_entry));
-            table->entries[hash_table_index].next_entry = next_entry;
+            CGL_hashtable_entry* target_entry_ptr = table->table[hashtable_index];
+            while(target_entry_ptr->next_entry != NULL) target_entry_ptr = target_entry_ptr->next_entry;
+            target_entry_ptr->next_entry = new_entry_ptr;
         }
     }
+    memcpy(new_entry_ptr, &new_entry, sizeof(CGL_hashtable_entry));
 }
 
 size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value)
 {
-    CGL_hashtable_entry* entry = __CGL_hashtable_get_entry_ptr(table, key);
-    if(entry && value) memcpy(value, entry->value, entry->value_size);
-    if(entry) return entry->value_size;
-    return 0;
+    CGL_hashtable_entry* entry = __CGL_hashtable_get_entry_ptr(table, key, NULL);
+    if(!entry) return 0;
+    if(value && entry->value_size > 0) memcpy(value, ( (entry->value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) ? entry->value : entry->value_static ), entry->value_size);
+    return entry->value_size;
 }
 
 bool CGL_hashtable_exists(CGL_hashtable* table, const void* key)
 {
-    return __CGL_hashtable_get_entry_ptr(table, key) != NULL;
-    // OR
-    //return CGL_hashtable_get(table, key, NULL) != 0;
+    return __CGL_hashtable_get_entry_ptr(table, key, NULL) != NULL;
 }
 
 bool CGL_hashtable_remove(CGL_hashtable* table, const void* key)
 {
-    CGL_hashtable_entry* entry = __CGL_hashtable_get_entry_ptr(table, key);
-    if(entry)
+    if(!CGL_hashtable_exists(table, key)) return false;
+
+    size_t key_size, hashtable_index;
+    __CGL_hashtable_calculate_hashtable_index_key_size(table, &key_size, &hashtable_index, key);
+    
+    CGL_hashtable_entry* entry_to_clear = table->table[hashtable_index];
+    if(memcmp(table->table[hashtable_index]->key, key, key_size) == 0)
+        table->table[hashtable_index] = table->table[hashtable_index]->next_entry;
+    else
     {
-        if(entry->value) CGL_free(entry->value);
-        memset(entry->key, 0, CGL_HASHTABLE_MAX_KEY_SIZE);
-        entry->set = false;
-        if(entry->prev_entry)
+        while(table->table[hashtable_index]->next_entry)
         {
-            entry->prev_entry->next_entry = entry->next_entry;
-            CGL_free(entry);
+            if(memcmp(table->table[hashtable_index]->next_entry->key, key, key_size) == 0)
+            {
+                entry_to_clear = table->table[hashtable_index]->next_entry;
+                table->table[hashtable_index]->next_entry = table->table[hashtable_index]->next_entry->next_entry;
+            }
         }
     }
-    return entry != NULL;
+    __CGL_hashtable_reset_hashtable_entry(entry_to_clear);
+    return true;
+}
+
+void CGL_hashtable_set_growth_rate(CGL_hashtable* table, float rate)
+{
+    table->growth_rate = rate;
+}
+
+size_t CGL_hashtable_get_size(CGL_hashtable* table)
+{
+    return table->count;
 }
 
 void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function)
 {
-    if(hash_function) table->hash_function = hash_function;
+    table->hash_function = hash_function;
 }
 
 CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table)
 {
     CGL_hashtable_iterator* iterator = (CGL_hashtable_iterator*)CGL_malloc(sizeof(CGL_hashtable_iterator));
-    iterator->current_entry = NULL;
-    iterator->current_index = 0;
+    if(!iterator) return NULL;
     iterator->hashtable = table;
+    iterator->index = 0;
     return iterator;
 }
 
@@ -1358,43 +1418,42 @@ void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator)
 
 void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator)
 {
-    iterator->current_entry = NULL;
-    iterator->current_index = 0;
+    iterator->index = 0;
 }
 
 bool CGL_hashtable_iterator_next(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size)
 {
-    CGL_hashtable_entry* current_entry = iterator->current_entry;
-    if(current_entry) iterator->current_entry = iterator->current_entry->next_entry;
-    iterator->current_index++;
-    if(current_entry && !iterator->current_entry) return CGL_hashtable_iterator_next(iterator, key, data, size);
-    iterator->current_index--;
-    while(iterator->current_entry == NULL && iterator->current_index < iterator->hashtable->table_size)
+    while(iterator->index < iterator->hashtable->capacity)
     {
-        if(iterator->hashtable->entries[iterator->current_index].set)
-            iterator->current_entry = &iterator->hashtable->entries[iterator->current_index];
-        else if(iterator->hashtable->entries[iterator->current_index].next_entry)
-            iterator->current_entry = iterator->hashtable->entries[iterator->current_index].next_entry;
-        iterator->current_index += 1;
+        if(iterator->hashtable->storage[iterator->index].set) break;
+        else iterator->index++;
     }
+    if(iterator->index >= iterator->hashtable->capacity)
+        iterator->current_entry = NULL;
+    else
+        iterator->current_entry = &iterator->hashtable->storage[iterator->index];
+    iterator->index++;
     return CGL_hashtable_iterator_curr(iterator, key, data, size);
 }
 
 bool CGL_hashtable_iterator_curr(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size)
 {
-    if(!iterator->current_entry) return false;
-    size_t key_size, tmp;
-    __CGL_hashtable_get_key_size_and_table_index(iterator->hashtable, &key_size, &tmp, iterator->current_entry->key);
-    if(key) memcpy(key, iterator->current_entry->key, key_size);
-    if(data) memcpy(data, iterator->current_entry->value, iterator->current_entry->value_size);
-    if(size) *size = iterator->current_entry->value_size;
-    return true;
+    if(iterator->current_entry)
+    {
+        size_t key_size, hashtable_index;
+        __CGL_hashtable_calculate_hashtable_index_key_size(iterator->hashtable, &key_size, &hashtable_index, iterator->current_entry->key);
+        if(key) memcpy(key, iterator->current_entry->key, key_size);
+        if(data && iterator->current_entry->value_size <= CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) memcpy(data, iterator->current_entry->value_static, iterator->current_entry->value_size);
+        else if(data && iterator->current_entry->value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) memcpy(data, iterator->current_entry->value, iterator->current_entry->value_size);
+        if(size) *size = iterator->current_entry->value_size;
+    }
+    return iterator->current_entry != NULL;;
 }
 
 void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
 {
-    if(iterator->current_entry) return iterator->current_entry->key;
-    return NULL;
+    if(!iterator->current_entry) return NULL;
+    return iterator->current_entry->key;
 }
 
 #endif
@@ -3109,6 +3168,39 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords)
         mesh->indices[i] = i;
 
     return mesh;       
+}
+
+void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name)
+{
+    static char temp_buffer[1024];
+    buffer[0] = '\0';
+    if(!function_name) function_name = "generate_mesh";
+    sprintf(temp_buffer,
+    "CGL_mesh_cpu* %s()\n{\n"
+    "\tCGL_mesh_cpu* mesh = CGL_mesh_cpu_create(%zu, %zu);\n"
+    "\tif(mesh == NULL)\n"
+    "\t\treturn NULL;\n\n",
+    function_name,
+    mesh->vertex_count, mesh->index_count);
+    strcat(buffer, temp_buffer);
+    for(int i = 0 ; i < mesh->vertex_count ; i++)
+    {
+        sprintf(temp_buffer,
+        "\tmesh->vertices[%d].position = CGL_vec4_init(%f, %f, %f, %f);\n"
+        "\tmesh->vertices[%d].normal =  CGL_vec4_init(%f, %f, %f, %f);\n"
+        "\tmesh->vertices[%d].texture_coordinates = CGL_vec4_init(%f, %f, %f, %f);\n",
+        i, mesh->vertices[i].position.x, mesh->vertices[i].position.y, mesh->vertices[i].position.z, mesh->vertices[i].position.w,
+        i, mesh->vertices[i].normal.x, mesh->vertices[i].normal.y, mesh->vertices[i].normal.z, mesh->vertices[i].normal.w,
+        i, mesh->vertices[i].texture_coordinates.x, mesh->vertices[i].texture_coordinates.y, mesh->vertices[i].texture_coordinates.z, mesh->vertices[i].texture_coordinates.w);
+        strcat(buffer, temp_buffer);
+    }
+    strcat(buffer, "\n\tmesh->indices = (int []){ ");
+    for(int i = 0 ; i < mesh->index_count ; i++)
+    {
+        sprintf(temp_buffer,  ((i == mesh->index_count - 1) ? "%d " : "%d, "), mesh->indices[i]);
+        strcat(buffer, temp_buffer);
+    }
+    strcat(buffer, "};\n\n\treturn mesh;");    
 }
 
 // shader
