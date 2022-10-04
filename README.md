@@ -37,7 +37,12 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Hashtable -> This hastabpe is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
      - Hashtable Iterator -> Iteratate through the hashtable usign a [simple](https://github.com/Jaysmito101/cgl/blob/main/examples/using_hashtable_iterator.c) API
   
-* Cross platform threading
+* Cross Platform Networking
+  - Low-level sockets 
+  - SSL sockets (optional) (requires  OpenSSL)
+  - HTTP/HTTPS request (beta)
+  
+* Cross Platform Threading
   - Threads
   - Mutex
   - Condition Variables (TODO)
