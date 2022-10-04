@@ -95,7 +95,15 @@ bool CGL_net_socket_recv(CGL_net_socket* socket, void* buffer, size_t size, size
 bool CGL_net_socket_shutdown_send(CGL_net_socket* socket);
 bool CGL_net_socket_shutdown_recv(CGL_net_socket* socket);
 
+int CGL_net_http_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
+int CGL_net_http_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+
 #ifndef CGL_EXCLUDE_SSL_SOCKET
+
+int CGL_net_https_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+int CGL_net_https_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
+int CGL_net_https_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
 
 struct CGL_net_ssl_socket;
 typedef struct CGL_net_ssl_socket CGL_net_ssl_socket;
@@ -1830,8 +1838,98 @@ bool CGL_net_socket_shutdown_recv(CGL_net_socket* soc)
 
 #endif // _WIN32
 
+void __CGL_net_http_prepare_request(char* buffer, const char* method, const char* host, const char* path, const char* accept, const char* user_agent, const char* body)
+{
+    const char* path_ = path == NULL ? "/" : path;
+    const char* accept_ = accept == NULL ? "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" : accept;
+    const char* user_agent_ = user_agent == NULL ? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36" : user_agent;
+    const char* body_ = body == NULL ? "" : body;
+    const char* method_ = method == NULL ? "GET" : method;
+    sprintf(buffer,
+    "%s %s HTTP/1.1\r\n"
+    "Accept: %s\r\n"
+    "Accept-Language: en-US,en;q=0.9,hi;q=0.8,zh-CN;q=0.7,zh;q=0.6\r\n"
+    "Host: %s\r\n"
+    "User-Agent: %s\r\n"
+    "\r\n"
+    "%s",
+    method_, path_, accept_, host, user_agent_, body_);
+}
+
+int __CGL_net_http_parse_response(const char* response, const size_t recieved_length, size_t* body_size, char* body)
+{
+    int response_code = atoi(response + 9);
+    char* start_pt = response + 2;
+    while(*start_pt != '\0')
+    {
+        start_pt ++;
+        if(*start_pt == '\n' && *(start_pt - 1) == '\r' && *(start_pt - 2) == '\n' && *(start_pt - 3) == '\r') break;        
+    }
+    start_pt ++;
+    size_t body_size_l = (recieved_length - (size_t)(start_pt - response));
+    if(body_size) *body_size = body_size_l;;
+    if(body)  memcpy(body, start_pt, body_size_l);
+    return response_code;
+}
+
+int CGL_net_http_request(const char* method, const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body)
+{
+    CGL_net_addrinfo* infos = CGL_net_addrinfo_query(host, "80", NULL);
+    CGL_net_socket* sock = CGL_net_socket_create();
+    if(!CGL_net_socket_connect(sock, infos))
+    {
+        CGL_net_socket_close(sock);
+        CGL_net_addrinfo_destroy(infos);
+        return 0;
+    }
+    static char temp_buffer[1024 * 1024 * 4]; // 4 MB static buffer
+    __CGL_net_http_prepare_request(temp_buffer, method, host, path, accept, user_agent, body);
+    if(!CGL_net_socket_send(sock, temp_buffer, strlen(temp_buffer), NULL))
+    {
+        CGL_net_socket_close(sock);
+        CGL_net_addrinfo_destroy(infos);
+        return 0;
+    }
+    memset(temp_buffer, 0, sizeof(temp_buffer));
+    size_t recieved_length = 0;
+    if(!CGL_net_socket_recv(sock, temp_buffer, sizeof(temp_buffer), &recieved_length))
+    {
+        CGL_net_socket_close(sock);
+        CGL_net_addrinfo_destroy(infos);
+        return 0;
+    }
+    CGL_net_socket_close(sock);
+    CGL_net_addrinfo_destroy(infos);
+    return __CGL_net_http_parse_response(temp_buffer, recieved_length, size, buffer);
+}
+
+int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent)
+{
+    return CGL_net_http_request("GET", host, path, buffer, size, accept, user_agent, NULL);
+}
+
+int CGL_net_http_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body)
+{
+    return CGL_net_http_request("POST", host, path, buffer, size, accept, user_agent, body);
+}
 
 #ifndef CGL_EXCLUDE_SSL_SOCKET
+
+int CGL_net_https_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body)
+{
+    CGL_LOG("TO BE IMPLEMENTED!\n");
+    return 0;
+}
+
+int CGL_net_https_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent)
+{
+    return CGL_net_https_request("GET", host, path, buffer, size, accept, user_agent, NULL);
+}
+
+int CGL_net_https_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body)
+{
+    return CGL_net_https_request("POST", host, path, buffer, size, accept, user_agent, body);
+}
 
 struct CGL_net_ssl_socket
 {
