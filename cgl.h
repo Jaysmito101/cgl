@@ -77,6 +77,7 @@ typedef struct CGL_net_addrinfo CGL_net_addrinfo;
 struct CGL_net_socket;
 typedef struct CGL_net_socket CGL_net_socket;
 
+
 bool CGL_net_init();
 void CGL_net_shutdown();
 
@@ -89,11 +90,23 @@ bool CGL_net_socket_bind(CGL_net_socket* socket, CGL_net_addrinfo* target);
 bool CGL_net_socket_listen(CGL_net_socket* socket, size_t max_connections); 
 CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* socket, CGL_net_addrinfo* addrinfo);
 void CGL_net_socket_close(CGL_net_socket* socket);
-bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent);
+bool CGL_net_socket_send(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_sent);
 bool CGL_net_socket_recv(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_recieved);
 bool CGL_net_socket_shutdown_send(CGL_net_socket* socket);
 bool CGL_net_socket_shutdown_recv(CGL_net_socket* socket);
 
+#ifndef CGL_EXCLUDE_SSL_SOCKET
+
+struct CGL_net_ssl_socket;
+typedef struct CGL_net_ssl_socket CGL_net_ssl_socket;
+
+CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* socket);
+bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_sent);
+bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_recieved);
+void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc);
+void CGL_net_ssl_log_errors();
+
+#endif
 
 #endif
 
@@ -1500,6 +1513,15 @@ void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
 
 #ifndef CGL_EXCLUDE_NETWORKING
 
+
+#ifndef CGL_EXCLUDE_SSL_SOCKET
+
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/crypto.h>
+
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 
 #include <windows.h>
@@ -1532,11 +1554,21 @@ struct CGL_net_socket
 bool CGL_net_init()
 {
     WSADATA wsa_data;
-    return WSAStartup(MAKEWORD(2, 2), &wsa_data) == 0;
+    bool result = WSAStartup(MAKEWORD(2, 2), &wsa_data) == 0;
+#ifndef CGL_EXCLUDE_SSL_SOCKET
+    SSL_library_init();
+    SSLeay_add_ssl_algorithms();
+    SSL_load_error_strings();
+#endif
+    return result;
 }
 
 void CGL_net_shutdown()
 {
+#ifndef CGL_EXCLUDE_SSL_SOCKET
+    ERR_free_strings();
+    EVP_cleanup();
+#endif
     WSACleanup();
 }
 
@@ -1675,17 +1707,25 @@ struct CGL_net_addrinfo
 
 struct CGL_net_socket
 {
-    int sockfd;
+    int socket;
 };
 
 bool CGL_net_init()
 {
+#ifndef CGL_EXCLUDE_SSL_SOCKET
+    SSL_library_init();
+    SSLeay_add_ssl_algorithms();
+    SSL_load_error_strings();
+#endif
     return true;
 }
 
 void CGL_net_shutdown()
 {
-    return;
+#ifndef CGL_EXCLUDE_SSL_SOCKET
+    ERR_free_strings();
+    EVP_cleanup();
+#endif
 }
 
 CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, size_t* count)
@@ -1713,8 +1753,8 @@ CGL_net_socket* CGL_net_socket_create()
 {
     CGL_net_socket* soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
     if(!soc) return NULL;
-    soc->sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if(soc->sockfd < 0)
+    soc->socket = socket(AF_INET, SOCK_STREAM, 0);
+    if(soc->socket < 0)
     {
         CGL_free(soc);
         return NULL;
@@ -1724,19 +1764,19 @@ CGL_net_socket* CGL_net_socket_create()
 
 bool CGL_net_socket_connect(CGL_net_socket* soc, CGL_net_addrinfo* target)
 {
-    int result = connect(soc->sockfd, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
+    int result = connect(soc->socket, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
     return result >= 0;
 }
 
 bool CGL_net_socket_bind(CGL_net_socket* soc, CGL_net_addrinfo* target)
 {
-    int result = bind(soc->sockfd, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
+    int result = bind(soc->socket, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
     return result > 0;
 }
 
 bool CGL_net_socket_listen(CGL_net_socket* soc, size_t max_connections)
 {
-    listen(soc->sockfd, (int)max_connections);
+    listen(soc->socket, (int)max_connections);
     return true;
 }
 
@@ -1745,9 +1785,9 @@ CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* add
     CGL_net_socket* cli_soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
     if(!cli_soc) return NULL;
     int length = 0;
-    if(addrinfo) cli_soc->sockfd = accept(soc->sockfd, (struct sockaddr*)&addrinfo->ai_addr, &length);
-    else cli_soc->sockfd = accept(soc->sockfd, NULL, NULL);
-    if(cli_soc->sockfd < 0)
+    if(addrinfo) cli_soc->socket = accept(soc->socket, (struct sockaddr*)&addrinfo->ai_addr, &length);
+    else cli_soc->socket = accept(soc->socket, NULL, NULL);
+    if(cli_soc->socket < 0)
     {
         CGL_free(cli_soc);
         return NULL;
@@ -1757,12 +1797,12 @@ CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* add
 
 void CGL_net_socket_close(CGL_net_socket* soc)
 {
-    close(soc->sockfd);
+    close(soc->socket);
 }
 
 bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent)
 {
-    int result = send(soc->sockfd, buffer, size, 0);
+    int result = send(soc->socket, buffer, size, 0);
     if(result < 0) return false;
     if(size_sent) *size_sent = result;
     return result;
@@ -1770,7 +1810,7 @@ bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t*
 
 bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_recieved)
 {
-    int result = recv(soc->sockfd, buffer, size, 0);
+    int result = recv(soc->socket, buffer, size, 0);
     if(result < 0) return false;
     if(size_recieved) *size_recieved = result;
     return result;
@@ -1778,20 +1818,98 @@ bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t*
 
 bool CGL_net_socket_shutdown_send(CGL_net_socket* soc)
 {
-    shutdown(soc->sockfd, SHUT_WR);
+    shutdown(soc->socket, SHUT_WR);
 }
 
 bool CGL_net_socket_shutdown_recv(CGL_net_socket* soc)
 {
-    shutdown(soc->sockfd, SHUT_RD);
+    shutdown(soc->socket, SHUT_RD);
 }
 
 
 
 #endif // _WIN32
 
-#endif //  CGL_EXCLUDE_NETWORKING
 
+#ifndef CGL_EXCLUDE_SSL_SOCKET
+
+struct CGL_net_ssl_socket
+{
+    CGL_net_socket* raw_socket;
+    SSL* ssl;
+    SSL_CTX* ctx;
+    const SSL_METHOD* meth;
+    int sock;
+};
+
+CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* soc)
+{
+    if(!soc) return NULL;
+    CGL_net_ssl_socket* sock = (CGL_net_ssl_socket*)CGL_malloc(sizeof(CGL_net_ssl_socket));
+    if(!sock) return NULL;
+    sock->raw_socket = soc;
+    sock->meth = TLSv1_2_client_method();
+    sock->ctx = SSL_CTX_new(sock->meth);
+    sock->ssl = SSL_new(sock->ctx);
+    if(!sock->ssl)
+    {
+        CGL_LOG("Error in creating SSL\n");
+        CGL_free(sock);
+        return NULL;
+    }
+    sock->sock = SSL_get_fd(sock->ssl);
+    SSL_set_fd(sock->ssl, soc->socket);
+    int err = SSL_connect(sock->ssl);
+    if(err <= 0)
+    {
+        CGL_LOG("Error in creating SSL connection (%d)\n", err);
+        CGL_free(sock);
+        return NULL;
+    }
+    CGL_LOG("SSL connection established using %s\n", SSL_get_cipher(sock->ssl));    
+    return sock;
+}
+
+bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* soc, void* buffer, size_t size, size_t* size_sent)
+{
+    int result = SSL_write(soc->ssl, buffer, (int)size);
+    if(result < 0) return false;
+    if(size_sent) *size_sent = result;
+    return true;
+}
+
+bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* soc, void* buffer, size_t size, size_t* size_recieved)
+{
+    int result = SSL_read(soc->ssl, buffer, (int)size);
+    if(result < 0) return false;
+    if(size_recieved) *size_recieved = result;
+    return true;
+}
+
+void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc)
+{
+    SSL_free(soc->ssl);
+    SSL_CTX_free(soc->ctx);
+    CGL_net_socket_close(soc->raw_socket);
+    CGL_free(soc);
+}
+
+void CGL_net_ssl_log_errors()
+{
+    int err = 0;
+    while(err = ERR_get_error())
+    {
+        char* str = ERR_error_string(err, 0);
+        if(!str) return;
+        printf("%s\n", str);
+        fflush(stdout);
+    }
+}
+
+#endif // CGL_EXCLUDE_SSL_SOCKET
+
+
+#endif //  CGL_EXCLUDE_NETWORKING
 
 #endif
 
