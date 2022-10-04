@@ -1546,7 +1546,7 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
     struct addrinfo *ptr = NULL; 
     struct addrinfo hints; 
     ZeroMemory(&hints, sizeof(hints));
-    hints.ai_family = AF_UNSPEC; // supports both ipv4 & ipv6
+    hints.ai_family = AF_INET; // supports both ipv4
     hints.ai_socktype = SOCK_STREAM; // supports only streaming socketss
     hints.ai_protocol = IPPROTO_TCP; // supports only TCP
     int iresult = getaddrinfo(name, port, &hints, &result);
@@ -1579,7 +1579,7 @@ CGL_net_socket* CGL_net_socket_create()
 {
     CGL_net_socket* soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
     if(!soc) return NULL;
-    soc->socket = socket(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP);
+    soc->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(soc->socket == INVALID_SOCKET)
     {
         CGL_free(soc);
@@ -1662,6 +1662,7 @@ bool CGL_net_socket_shutdown_recv(CGL_net_socket* soc)
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <error.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1698,7 +1699,7 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
     addr_info->ai_addr.sin_family = AF_UNSPEC;
     int iport = atoi(port);
     addr_info->ai_addr.sin_port = htons(iport);
-    memcpy(&addr_info->ai_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+    addr_info->ai_addr.sin_addr = *((struct in_addr *)server->h_addr_list[0]);
     if(count) *count = 1;
     return addr_info;
 }
@@ -1712,7 +1713,7 @@ CGL_net_socket* CGL_net_socket_create()
 {
     CGL_net_socket* soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
     if(!soc) return NULL;
-    soc->sockfd = socket(AF_UNSPEC, SOCK_STREAM, 0);
+    soc->sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(soc->sockfd < 0)
     {
         CGL_free(soc);
@@ -1723,9 +1724,7 @@ CGL_net_socket* CGL_net_socket_create()
 
 bool CGL_net_socket_connect(CGL_net_socket* soc, CGL_net_addrinfo* target)
 {
-    printf("1\n");
     int result = connect(soc->sockfd, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
-    printf("2\n");
     return result >= 0;
 }
 
@@ -1765,6 +1764,7 @@ bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t*
 {
     int result = send(soc->sockfd, buffer, size, 0);
     if(result < 0) return false;
+    if(size_sent) *size_sent = result;
     return result;
 }
 
@@ -1772,6 +1772,7 @@ bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t*
 {
     int result = recv(soc->sockfd, buffer, size, 0);
     if(result < 0) return false;
+    if(size_recieved) *size_recieved = result;
     return result;
 }
 
