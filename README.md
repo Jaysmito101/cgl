@@ -24,20 +24,25 @@ NOTE: Do not think that header only means its going to increase compile time as 
 
 ## What does CGL provide?
 
-* Windowing library
+* Windowing library (Optional)
+  - You can completely disable it by `#define CGL_EXCLUDE_WINDOW_API`
   - This windowing library is primarily a wrapper GLFW along with a few extra functionalities. For example in case you are using some library like `nuklear` for gui it will mess up all `glfw` callbacks so with CGL you can restore the CGL callbacks with a call to `CGL_window_resecure_callbacks`
 
 * Utility functionalities
   - Reading/Writing files
   - Random float/int/bool/vec2/vec3/color generation
-  - TODO: add more
+  - CRC32/CRC64
+  - ROT13 encryption
+  - General Purpose Hashing Functions [refer here]( http://www.azillionmonkeys.com/qed/hash.html)
+  - TODO: [ MD5 / SHA 256 / SHA 128 / AES ]
 
 * Data structures
   - List(dynamic array) + Stack (implemented together)
   - Hashtable -> This hastabpe is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
      - Hashtable Iterator -> Iteratate through the hashtable usign a [simple](https://github.com/Jaysmito101/cgl/blob/main/examples/using_hashtable_iterator.c) API
   
-* Cross Platform Networking
+* Cross Platform Networking (Optional)
+  - You can disable all networking by `#define CGL_EXCLUDE_NETWORKING`
   - Low-level sockets 
   - SSL sockets (optional) (requires  OpenSSL)
   - HTTP/HTTPS request (beta)
@@ -55,15 +60,18 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - rotate_x/rotate_y/rotate_z for vec3
   - scale/translate/rotate_x/rotate_y/rotate_z/add/sub/mul for mat4
   - perspective for mat4
-  - transpose for mat4/ (mat3 TODO)
+  - transpose for mat4/(mat3 TODO)
   - look_at matrix 
   - NOTE: Most of math functions are implemented via macros so wil be totally inlined and quite fast without any unnecessary function calls
 
-* High Level OpenGL API for
-  - Texture (2D / 2D Array) (3D & Cubemap TODO)
+* High Level OpenGL API for (Optional)
+  - You can completely disable it by `#define CGL_EXCLUDE_GRAPHICS_API`
+  - Texture (2D / 2D Array / Cubemap) 
   - Framebuffers
   - SSBO (Shader Storge Buffer Object)
-  - Shaders (Geometry shader TODO)
+  - Shaders 
+    - Vertex & Fragment (Geometry Shader not included as its not very widely used)
+    - Compute Shader API 
 
 * CGL Mesh API
   - CGL has a higl level api for handling meshes
@@ -73,6 +81,8 @@ NOTE: Do not think that header only means its going to increase compile time as 
       - generate quad
       - load obj (beta)
       - generate cube
+      - generate sphere
+      - generate mesh out of any parametric surface function [refer here](https://stackoverflow.com/a/31326534/14911094)
       - calculate normals (TODO)
     - GPU mesh -> the pointer to the data stored on GPU side (internally handles the Vertex buffer, Index buffer, Vertex Array) and can used for
       - render
@@ -85,6 +95,13 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Perspective & Orthographic
   - It internally handles all matrix calculations (just input the position and rotation)
   - Auto calculates the Up, Right, Front vectors
+  
+* Sky Renderer (Optional)
+  - You can completely diable it with `#define CGL_EXCLUDE_SKY_RENDERER`
+  - Supports both a Sky Box (cube mesh) and Sky Sphere/Dome (sphere mesh)
+  - Supports Cubemap Textured Sky 
+  - Supports Realtime Procedurally Generated Sky ( + procedural clouds)
+  - Render a beautiful sky with just 3 - 5 lines of code
 
 * Phong Renderer (Optional) 
   - You can disable it via `#define CGL_EXCLUDE_PHONG_RENDERER`
@@ -118,9 +135,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
     
  ## Things that are being worked on:
  
- * cubemaps and skybox + skysphere
- * procedural sky (refer [here](https://github.com/Jaysmito101/TerraForge3D/blob/master/Binaries/Data/shaders/skybox/procedural_clouds.glsl) )
- * text rendering (static and dynamic) (optional) (requires stb_truetype)
+  * text rendering (static and dynamic) (optional) (requires stb_truetype)
  * PBR renderer (optional)
  * IBL (optional)
  
