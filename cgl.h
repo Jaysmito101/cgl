@@ -47,6 +47,7 @@ SOFTWARE.
 #include <wctype.h>
 #include <locale.h>
 #include <errno.h>
+#include <time.h>
 
 #ifdef CGL_LOGGING_ENABLED
 #define CGL_LOG(...) printf(__VA_ARGS__)
@@ -124,6 +125,7 @@ void CGL_net_ssl_log_errors();
 
 char* CGL_utils_read_file(const char* path, size_t* size); // read file into memory
 bool CGL_utils_write_file(const char* path, const char* data, size_t size); // write data to file
+float CGL_utils_get_time();
 
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
 #define CGL_utils_random_int(min, max) (rand() % (max - min + 1) + min)
@@ -404,6 +406,8 @@ typedef struct CGL_mat4 CGL_mat4;
 #define CGL_mat4_transpose(a) (CGL_mat4){a.m[0], a.m[4], a.m[12], a.m[1], a.m[5], a.m[9], a.m[13], a.m[2], a.m[6], a.m[10], a.m[14], a.m[3], a.m[7], a.m[11], a.m[15]}
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 
+typedef CGL_vec3(*CGL_parametric_function)(float, float);
+
 #endif
 
 // window
@@ -671,10 +675,20 @@ typedef struct CGL_mesh_cpu CGL_mesh_cpu;
 struct CGL_ssbo;
 typedef struct CGL_ssbo CGL_ssbo;
 
+// Taken directly from OpenGL
+#define CGL_CUBEMAP_POSITIVE_X 0x8515 
+#define CGL_CUBEMAP_NEGATIVE_X 0x8516 
+#define CGL_CUBEMAP_POSITIVE_Y 0x8517 
+#define CGL_CUBEMAP_NEGATIVE_Y 0x8518 
+#define CGL_CUBEMAP_POSITIVE_Z 0x8519 
+#define CGL_CUBEMAP_NEGATIVE_Z 0x851A 
+
 // texture
 CGL_texture* CGL_texture_create(CGL_image* image);
 CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLenum internal_format, GLenum type); // create texture
 CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type);
+CGL_texture* CGL_texture_create_cubemap();
+void CGL_texture_cubemap_set_face(CGL_texture* texture, int face, CGL_image* image);
 void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* data);
 void CGL_texture_destroy(CGL_texture* texture); // destroy texture
 void CGL_texture_bind(CGL_texture* texture, int unit); // bind texture to unit
@@ -716,11 +730,14 @@ void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static
 
 // mesh generation
 
+
 CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count);
 CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords);
+CGL_mesh_cpu* CGL_mesh_cpu_sphere(int res_u, int res_v);
+CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(int res_u, int res_v, float start_u, float start_v, float end_u, float end_v, CGL_parametric_function function);
 void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name);
 void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
 
@@ -808,6 +825,7 @@ void CGL_camera_recalculate_mat(CGL_camera* camera);
 
 #endif
 
+// phong renderer
 #ifndef CGL_EXCLUDE_GRAPHICS_API
 // The phong renderer
 #if 1
@@ -879,6 +897,7 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
 
 #endif
 
+// tilemap renderer
 #ifndef CGL_EXCLUDE_GRAPHICS_API
 
 // tilemap renderer
@@ -906,6 +925,28 @@ void CGL_tilemap_reset(CGL_tilemap* tilemap);
 #endif
 
 #endif
+
+// sky renderer
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+#ifndef CGL_EXCLUDE_SKY_RENDERER
+
+struct CGL_sky;
+typedef struct CGL_sky CGL_sky;
+
+CGL_sky* CGL_sky_create();
+void CGL_sky_destroy(CGL_sky* sky);
+void CGL_sky_use_skybox(CGL_sky* sky);
+void CGL_sky_use_skysphere(CGL_sky* sky);
+void CGL_sky_use_cubemap(CGL_sky* sky);
+void CGL_sky_use_procedural(CGL_sky* sky);
+void CGL_sky_cubemap_set_face(CGL_sky* sky, int face, CGL_image* image);
+void CGL_sky_procedural_set_options(CGL_sky* sky, float cirrus, float cumulus, float upf);
+void CGL_sky_procedural_set_time(CGL_sky* sky, float time);
+void CGL_sky_procedural_set_sun_position(CGL_sky* sky, CGL_vec3 position);
+void CGL_sky_render(CGL_sky* sky, CGL_camera* camera);
+
+#endif // CGL_EXCLUDE_SKY_RENDERER
+#endif // CGL_EXCLUDE_GRAPHICS_API
 
 // Implementation of CGL
 #ifdef CGL_IMPLEMENTATION
@@ -1521,6 +1562,7 @@ void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
 
 #ifndef CGL_EXCLUDE_NETWORKING
 
+#pragma warning(push, 0)
 
 #ifndef CGL_EXCLUDE_SSL_SOCKET
 
@@ -2006,6 +2048,8 @@ void CGL_net_ssl_log_errors()
 
 #endif // CGL_EXCLUDE_SSL_SOCKET
 
+#pragma warning(pop)
+
 
 #endif //  CGL_EXCLUDE_NETWORKING
 
@@ -2013,6 +2057,26 @@ void CGL_net_ssl_log_errors()
 
 // utils
 #if 1
+
+float CGL_utils_get_time()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    LARGE_INTEGER frequency, starting_time;
+    QueryPerformanceFrequency(&frequency); 
+    QueryPerformanceCounter(&starting_time);
+    float time = starting_time.QuadPart / (float)frequency.QuadPart;
+    return time;
+#else // for POSIX
+    struct timespec spec;
+    if (clock_gettime(1, &spec) == -1)
+    {
+        /* 1 is CLOCK_MONOTONIC */
+        return 0.0f;
+    } 
+    return (float)(spec.tv_sec * 1000 + spec.tv_nsec / 1e6) / 1000.0f;
+#endif
+}
+
 /*
 uint32_t CGL_utils_crc32(const void* dat, size_t size)
 {
@@ -2845,6 +2909,7 @@ CGL_texture* CGL_texture_create(CGL_image* image)
     texture->user_data = NULL;
     glGenTextures(1, &texture->handle);
     glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(texture->target, 0, internal_format, image->width, image->height, 0, format, type, image->data);
     glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -2878,6 +2943,26 @@ CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLen
     return texture;
 }
 
+CGL_texture* CGL_texture_create_cubemap()
+{
+    CGL_texture* texture = malloc(sizeof(CGL_texture));
+    texture->width = 0;
+    texture->height = 0;
+    texture->depth = 0;
+    texture->target = GL_TEXTURE_CUBE_MAP;
+    texture->user_data = NULL;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glGenTextures(1, &texture->handle);
+	glBindTexture(texture->target, texture->handle);
+	glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glBindTexture(texture->target, 0);
+    return texture;
+}
+
 CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type)
 {
     CGL_texture* texture = malloc(sizeof(CGL_texture));
@@ -2891,7 +2976,6 @@ CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum 
     texture->user_data = NULL;
     glGenTextures(1, &texture->handle);
     glBindTexture(texture->target, texture->handle);
-    glTexImage2D(texture->target, 0, internal_format, width, height, 0, format, type, NULL);
     glTexImage3D(texture->target, 0, texture->internal_format, width, height, layers, 0, texture->format, texture->type, NULL);
     glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -2902,9 +2986,33 @@ CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum 
     return texture;
 }
 
+void CGL_texture_cubemap_set_face(CGL_texture* texture, int face, CGL_image* image)
+{
+    GLenum format, internal_format, type;
+    if(image->channels == 3)
+        format = internal_format = GL_RGB;
+    else if(image->channels == 4)
+        format = internal_format = GL_RGBA;
+    else
+    {printf("Invalid channel count for image\n");return;}
+    if(image->bytes_per_channel == 8)
+        type = GL_UNSIGNED_BYTE;
+    else if(image->bytes_per_channel == 16)
+        type = GL_UNSIGNED_SHORT;
+    else if(image->bytes_per_channel == 32)
+        type = GL_FLOAT;
+    else
+    {printf("Invalid bit depth for image\n");return;}
+	glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(face, 0, internal_format, image->width, image->height, 0, format, type, image->data);
+	glBindTexture(texture->target, 0);
+}
+
 void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* data)
 {
     glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexSubImage3D(texture->target, 0, 0, 0, layer, texture->width, texture->height, 1, texture->format, texture->type, data);
 	glBindTexture(texture->target, 0);
 }
@@ -2926,7 +3034,7 @@ void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
 void CGL_texture_destroy(CGL_texture* texture)
 {
     glDeleteTextures(1, &texture->handle);
-    free(texture);
+    CGL_free(texture);
 }
 
 // bind texture to unit
@@ -2940,6 +3048,7 @@ void CGL_texture_bind(CGL_texture* texture, int unit)
 void CGL_texture_set_data(CGL_texture* texture, void* data)
 {
     glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(texture->target, 0, texture->internal_format, texture->width, texture->height, 0, texture->format, texture->type, data);
     glBindTexture(texture->target, 0);
 }
@@ -2956,7 +3065,6 @@ void* CGL_texture_get_user_data(CGL_texture* texture)
     return texture->user_data;
 }
 
-
 // get texture size
 void CGL_texture_get_size(CGL_texture* texture, int* width, int* height)
 {
@@ -2965,7 +3073,6 @@ void CGL_texture_get_size(CGL_texture* texture, int* width, int* height)
 }
 
 // framebuffer
-
 struct CGL_framebuffer
 {
     GLuint handle;
@@ -3174,7 +3281,6 @@ CGL_texture* CGL_framebuffer_get_depth_texture(CGL_framebuffer* framebuffer)
 }
 
 // ssbo
-
 struct CGL_ssbo
 {
     GLuint handle;
@@ -3294,7 +3400,6 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 }
 
 // gl
-
 // clear 
 void CGL_gl_clear(float r, float g, float b, float a)
 {    
@@ -3320,7 +3425,6 @@ void CGL_gl_shutdown()
 }
 
 // mesh
-
 struct CGL_mesh_gpu
 {
     GLuint vertex_array;
@@ -3605,6 +3709,68 @@ CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
     mesh->indices[4] = 2;
     mesh->indices[5] = 3;
     return mesh;
+}
+
+// Algorithm from https://stackoverflow.com/a/31326534/14911094
+CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(int res_u, int res_v, float start_u, float start_v, float end_u, float end_v, CGL_parametric_function function)
+{
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(res_u * res_v * 4, res_u * res_v * 6);
+    if(mesh == NULL)
+        return  NULL;
+    float step_u = (end_u - start_u) / res_u;
+    float step_v = (end_v - start_v) / res_v;
+    size_t vertex_index = 0;
+    size_t index_index = 0;
+    for(int i = 0 ; i < res_u ; i++)
+    {
+        for(int j = 0 ; j < res_v ; j++)
+        {
+            float u = i * step_u + start_u;
+            float v = j * step_v + start_v;
+            float un = ((i + 1) == res_u) ? end_u : ((i + 1)  * step_u + start_u);
+            float vn = ((j + 1) == res_v) ? end_v : ((j + 1)  * step_v + start_v);
+            // find the four points of the grid square
+            // by evaluating the paramatric surface function
+            CGL_vec3 p0 = function(u, v);
+            CGL_vec3 p1 = function(u, vn);
+            CGL_vec3 p2 = function(un, v);
+            CGL_vec3 p3 = function(un, vn);
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 0.0f);
+            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(u, v, 0.0f, 0.0f);
+            vertex_index += 1;
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p1.x, p1.y, p1.z, 0.0f);
+            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(u, vn, 0.0f, 0.0f);
+            vertex_index += 1;
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p2.x, p2.y, p2.z, 0.0f);
+            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(un, v, 0.0f, 0.0f);
+            vertex_index += 1;
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p3.x, p3.y, p3.z, 0.0f);
+            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(un, vn, 0.0f, 0.0f);
+            vertex_index += 1;
+            // Output the first triangle of this grid square
+            // triangle(p0, p2, p1)
+            mesh->indices[index_index++] = (uint32_t)vertex_index - 4; // p0
+            mesh->indices[index_index++] = (uint32_t)vertex_index - 2; // p2
+            mesh->indices[index_index++] = (uint32_t)vertex_index - 3; // p1
+            // Output the other triangle of this grid square
+            // triangle(p3, p1, p2) 
+            mesh->indices[index_index++] = (uint32_t)vertex_index - 1; // p3
+            mesh->indices[index_index++] = (uint32_t)vertex_index - 3; // p1
+            mesh->indices[index_index++] = (uint32_t)vertex_index - 2; // p2
+        }
+    }
+    return mesh;
+}
+
+static CGL_vec3 __CGL_mesh_cpu_sphere_parametric_function(float u, float v)
+{
+    return CGL_vec3_init(cosf(u)*sinf(v), cosf(v), sinf(u)*sinf(v));
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_sphere(int res_u, int res_v)
+{
+    return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function
+    );
 }
 
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords)
@@ -4285,7 +4451,7 @@ void CGL_camera_recalculate_mat(CGL_camera* camera)
 
 #endif
 
-
+// phong renderer
 #ifndef CGL_EXCLUDE_GRAPHICS_API // cannot have PHONG RENDERER without Graphics API
 
 // The phong renderer
@@ -4940,6 +5106,7 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 
 #endif
 
+// tilemap renderer
 #ifndef CGL_EXCLUDE_GRAPHICS_API // cannot have TILE RENDERER without Graphics API
 
 // tilemap renderer
@@ -5186,6 +5353,271 @@ void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, floa
 
 
 #endif
+
+// sky renderer
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+#ifndef CGL_EXCLUDE_SKY_RENDERER
+
+struct CGL_sky
+{
+    CGL_vec3 sun_pos;
+    CGL_texture* cubemap;
+    CGL_shader* cubemap_shader;
+    CGL_shader* procedural_shader;
+    CGL_mesh_gpu* skybox_mesh;
+    CGL_mesh_gpu* skysphere_mesh;
+    CGL_mesh_gpu* active_mesh;
+    float cirrus;
+    float cumulus;
+    float upf;
+    float time;
+    bool is_procedural;
+    // unifroms
+    int cs_u_projection;
+    int cs_u_view;
+    int cs_u_texture;
+    int ps_u_projection;
+    int ps_u_view;
+    int ps_u_cirrus;
+    int ps_u_cumulus;
+    int ps_u_upf;
+    int ps_u_time;
+    int ps_u_fsun;
+
+};
+
+static const char* __CGL_SKY_VERTEX_SHADER = "#version 430 core\n"
+"\n"
+"layout (location = 0) in vec4 position;\n"
+"layout (location = 1) in vec4 normal;\n"
+"layout (location = 2) in vec4 texcoord;\n"
+"\n"
+"out vec3 Position;\n"
+"\n"
+"\n"
+"uniform mat4 u_projection;\n"
+"uniform mat4 u_view;\n"
+"\n"
+"void main()\n"
+"{\n"
+"	gl_Position = u_projection * transpose(u_view) * vec4(position.xyz, 1.0f);\n"
+"	Position = position.xyz;\n"
+"}";
+
+static const char* __CGL_SKY_CUBEMAP_FRAGMENT_SHADER = "#version 430 core\n"
+"\n"
+"out vec4 FragColor;\n"
+"\n"
+"in vec3 Position;\n"
+"\n"
+"uniform samplerCube u_texture;\n"
+"\n"
+"void main()\n"
+"{\n"
+"	vec4 color = texture(u_texture, Position);\n"
+"	FragColor = color;\n"
+"}";
+
+static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER = "#version 430 core\n"
+"uniform vec3 fsun = vec3(0, 0.2, 0.1);\n"
+"uniform float time = 0.0;\n"
+"uniform float cirrus = 0.4;\n"
+"uniform float cumulus = 0.8;\n"
+"uniform float upf = 0.35;\n"
+"\n"
+"in vec3 Position;"
+"\n"
+"out vec4 FragColor;\n"
+"\n"
+"const float Br = 0.0025;\n"
+"const float Bm = 0.0003;\n"
+"const float g = 0.9800;\n"
+"const vec3 nitrogen = vec3(0.650, 0.570, 0.475);\n"
+"const vec3 Kr = Br / pow(nitrogen, vec3(4.0));\n"
+"const vec3 Km = Bm / pow(nitrogen, vec3(0.84));\n"
+"\n"
+"float hash(float n) {\n"
+"  return fract(sin(n) * 43758.5453123);\n"
+"}\n"
+"\n"
+"float noise(vec3 x) {\n"
+"  vec3 f = fract(x);\n"
+"  float n = dot(floor(x), vec3(1.0, 157.0, 113.0));\n"
+"  return mix(mix(mix(hash(n + 0.0), hash(n + 1.0), f.x),\n"
+"      mix(hash(n + 157.0), hash(n + 158.0), f.x), f.y),\n"
+"    mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),\n"
+"      mix(hash(n + 270.0), hash(n + 271.0), f.x), f.y), f.z);\n"
+"}\n"
+"\n"
+"const mat3 m = mat3(0.0, 1.60, 1.20, -1.6, 0.72, -0.96, -1.2, -0.96, 1.28);\n"
+"float fbm(vec3 p) {\n"
+"  float f = 0.0;\n"
+"  f += noise(p) / 2;\n"
+"  p = m * p * 1.1;\n"
+"  f += noise(p) / 4;\n"
+"  p = m * p * 1.2;\n"
+"  f += noise(p) / 6;\n"
+"  p = m * p * 1.3;\n"
+"  f += noise(p) / 12;\n"
+"  p = m * p * 1.4;\n"
+"  f += noise(p) / 24;\n"
+"  return f;\n"
+"}\n"
+"\n"
+"void main() {\n"
+"  vec3 pos = vec3(Position.x, Position.y+upf, Position.z);\n"
+"\n"
+"  // Atmosphere Scattering\n"
+"  float mu = dot(normalize(pos), normalize(fsun));\n"
+"  float rayleigh = 3.0 / (8.0 * 3.14) * (1.0 + mu * mu);\n"
+"  vec3 mie = (Kr + Km * (1.0 - g * g) / (2.0 + g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5)) / (Br + Bm);\n"
+"\n"
+"  vec3 day_extinction = exp(-exp(-((pos.y + fsun.y * 4.0) * (exp(-pos.y * 16.0) + 0.1) / 80.0) / Br) * (exp(-pos.y * 16.0) + 0.1) * Kr / Br) * exp(-pos.y * exp(-pos.y * 8.0) * 4.0) * exp(-pos.y * 2.0) * 4.0;\n"
+"  vec3 night_extinction = vec3(1.0 - exp(fsun.y)) * 0.2;\n"
+"  vec3 extinction = mix(day_extinction, night_extinction, -fsun.y * 0.2 + 0.5);\n"
+"  FragColor.rgb = rayleigh * mie * extinction;\n"
+"\n"
+"  // Cirrus Clouds\n"
+"  float density = smoothstep(1.0 - cirrus, 1.0, fbm(pos.xyz / pos.y * 2.0 + time * 0.05)) * 0.3;\n"
+"  FragColor.rgb = mix(FragColor.rgb, extinction * 4.0, density * max(pos.y, 0.0));\n"
+"\n"
+"  // Cumulus Clouds\n"
+"  for (int i = 0; i < 3; i++) {\n"
+"    float density = smoothstep(1.0 - cumulus, 1.0, fbm((0.7 + float(i) * 0.01) * pos.xyz / pos.y + time * 0.3));\n"
+"    FragColor.rgb = mix(FragColor.rgb, extinction * density * 5.0, min(density, 1.0) * max(pos.y, 0.0));\n"
+"  }\n"
+"\n"
+"  // Dithering Noise\n"
+"  FragColor.rgb += noise(pos * 1000) * 0.01;\n"
+"}";
+
+CGL_sky* CGL_sky_create()
+{
+    CGL_sky* sky = (CGL_sky*)CGL_malloc(sizeof(CGL_sky));
+    if(!sky) return NULL;
+    sky->sun_pos = CGL_vec3_init(0.0f, 0.2f, 0.1f);
+    sky->time = 0.0f;
+    sky->cirrus = 0.4f;
+    sky->cumulus = 0.8f;
+    sky->upf = 0.35f;
+    sky->is_procedural = true;
+    sky->cubemap = CGL_texture_create_cubemap();
+
+    CGL_mesh_cpu* skybox_cpu = CGL_mesh_cpu_cube(true);
+    sky->skybox_mesh = CGL_mesh_gpu_create();
+    CGL_mesh_gpu_upload(sky->skybox_mesh, skybox_cpu, true);
+    CGL_free(skybox_cpu);
+
+    CGL_mesh_cpu* skysphere_cpu = CGL_mesh_cpu_sphere(16, 16);
+    sky->skysphere_mesh = CGL_mesh_gpu_create();
+    CGL_mesh_gpu_upload(sky->skysphere_mesh, skysphere_cpu, true);
+    CGL_free(skysphere_cpu);
+
+    sky->active_mesh = sky->skybox_mesh;
+
+    sky->cubemap_shader = CGL_shader_create(__CGL_SKY_VERTEX_SHADER, __CGL_SKY_CUBEMAP_FRAGMENT_SHADER, NULL);
+    sky->cs_u_projection = CGL_shader_get_uniform_location(sky->cubemap_shader, "u_projection");
+    sky->cs_u_view = CGL_shader_get_uniform_location(sky->cubemap_shader, "u_view");
+    sky->cs_u_texture = CGL_shader_get_uniform_location(sky->cubemap_shader, "u_texture");
+
+    sky->procedural_shader = CGL_shader_create(__CGL_SKY_VERTEX_SHADER, __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER, NULL);
+    sky->ps_u_projection = CGL_shader_get_uniform_location(sky->procedural_shader, "u_projection");
+    sky->ps_u_view = CGL_shader_get_uniform_location(sky->procedural_shader, "u_view");
+    sky->ps_u_cirrus = CGL_shader_get_uniform_location(sky->procedural_shader, "cirrus");
+    sky->ps_u_cumulus = CGL_shader_get_uniform_location(sky->procedural_shader, "cumulus");
+    sky->ps_u_upf = CGL_shader_get_uniform_location(sky->procedural_shader, "upf");
+    sky->ps_u_time = CGL_shader_get_uniform_location(sky->procedural_shader, "time");
+    sky->ps_u_fsun = CGL_shader_get_uniform_location(sky->procedural_shader, "fsun");
+
+    return sky;
+}
+
+void CGL_sky_destroy(CGL_sky* sky)
+{
+    CGL_texture_destroy(sky->cubemap);
+    CGL_mesh_gpu_destroy(sky->skybox_mesh);
+    CGL_mesh_gpu_destroy(sky->skysphere_mesh);
+    CGL_shader_destroy(sky->cubemap_shader);
+    CGL_shader_destroy(sky->procedural_shader);
+    CGL_free(sky);
+}
+
+void CGL_sky_use_skybox(CGL_sky* sky)
+{
+    sky->active_mesh = sky->skybox_mesh;
+}
+
+void CGL_sky_use_skysphere(CGL_sky* sky)
+{
+    sky->active_mesh = sky->skysphere_mesh;
+}
+
+void CGL_sky_use_cubemap(CGL_sky* sky)
+{
+    sky->is_procedural = false;
+}
+
+void CGL_sky_use_procedural(CGL_sky* sky)
+{
+    sky->is_procedural = true;
+}
+
+void CGL_sky_cubemap_set_face(CGL_sky* sky, int face, CGL_image* image)
+{
+    CGL_texture_cubemap_set_face(sky->cubemap, face, image);
+}
+
+void CGL_sky_procedural_set_options(CGL_sky* sky, float cirrus, float cumulus, float upf)
+{
+    sky->cirrus = cirrus;
+    sky->cumulus = cumulus;
+    sky->upf = upf;
+}
+
+void CGL_sky_procedural_set_time(CGL_sky* sky, float time)
+{
+    sky->time = time;
+}
+
+void CGL_sky_procedural_set_sun_position(CGL_sky* sky, CGL_vec3 position)
+{
+    sky->sun_pos = position;
+}
+
+void CGL_sky_render(CGL_sky* sky, CGL_camera* camera)
+{
+    glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+    if(sky->is_procedural)
+    {
+        CGL_shader_bind(sky->procedural_shader);
+        CGL_shader_set_uniform_mat4(sky->procedural_shader, sky->ps_u_projection, &camera->projection);
+        CGL_mat4 view_matrix = camera->view;
+        view_matrix.m[3] = view_matrix.m[7] = view_matrix.m[11] = 0.0f; // removing the translation
+        CGL_shader_set_uniform_mat4(sky->procedural_shader, sky->ps_u_view, &view_matrix);
+        CGL_shader_set_uniform_float(sky->procedural_shader, sky->ps_u_cirrus, sky->cirrus);
+        CGL_shader_set_uniform_float(sky->procedural_shader, sky->ps_u_cumulus, sky->cumulus);
+        CGL_shader_set_uniform_float(sky->procedural_shader, sky->ps_u_upf, sky->upf);
+        CGL_shader_set_uniform_float(sky->procedural_shader, sky->ps_u_time, sky->time);
+        CGL_shader_set_uniform_vec3v(sky->procedural_shader, sky->ps_u_fsun, sky->sun_pos.x, sky->sun_pos.y, sky->sun_pos.z);
+    }
+    else
+    {
+        CGL_shader_bind(sky->cubemap_shader);
+        CGL_shader_set_uniform_mat4(sky->cubemap_shader, sky->cs_u_projection, &camera->projection);
+        CGL_mat4 view_matrix = camera->view;
+        view_matrix.m[3] = view_matrix.m[7] = view_matrix.m[11] = 0.0f; // removing the translation
+        CGL_shader_set_uniform_mat4(sky->cubemap_shader, sky->cs_u_view, &view_matrix);
+        CGL_texture_bind(sky->cubemap, 0);
+        CGL_shader_set_uniform_int(sky->cubemap_shader, sky->cs_u_texture, 0);
+    }
+    CGL_mesh_gpu_render(sky->active_mesh);
+    glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+}
+
+#endif // CGL_EXCLUDE_SKY_RENDERER
+#endif // CGL_EXCLUDE_GRAPHICS_API
 
 #endif // CGL_IMPLEMENTATION
 
