@@ -196,6 +196,7 @@ size_t CGL_hashtable_get_size(CGL_hashtable* table);
 void CGL_hashtable_destroy(CGL_hashtable* table);
 void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size);
 size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value);
+void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value);
 bool CGL_hashtable_exists(CGL_hashtable* table, const void* key);
 bool CGL_hashtable_remove(CGL_hashtable* table, const void* key);
 void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function);
@@ -948,7 +949,34 @@ void CGL_sky_render(CGL_sky* sky, CGL_camera* camera);
 #endif // CGL_EXCLUDE_SKY_RENDERER
 #endif // CGL_EXCLUDE_GRAPHICS_API
 
-// Implementation of CGL
+// markov chains
+#ifndef CGL_EXCLUDE_MARKOV_API
+
+struct CGL_markov;
+typedef struct CGL_markov CGL_markov;
+
+typedef bool(*CGL_markov_token_function)(void*, void*, void*, void*); // (void* context, void* data, void* key, void* value)
+
+struct CGL_markov_token_function_ngram_text_context;
+typedef struct CGL_markov_token_function_ngram_text_context CGL_markov_token_function_ngram_text_context;
+
+CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_text_context_create();
+void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_function_ngram_text_context* context);
+bool CGL_markov_token_function_ngram_text(void* context, void* data, void* key, void* value);
+
+CGL_markov* CGL_markov_create(size_t key_size, size_t value_size);
+bool CGL_markov_train(CGL_markov* markov, void* context, void* data, CGL_markov_token_function function);
+bool CGL_markov_generate(CGL_markov* markov, void* key, void* value);
+void CGL_markov_destroy(CGL_markov* markov);
+
+#endif
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------------ Implementation of CGL -------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------------------------------------------------
+
 #ifdef CGL_IMPLEMENTATION
 
 // include windows headers for windows builds
@@ -1456,6 +1484,14 @@ size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value)
     if(!entry) return 0;
     if(value && entry->value_size > 0) memcpy(value, ( (entry->value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) ? entry->value : entry->value_static ), entry->value_size);
     return entry->value_size;
+}
+
+void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value)
+{
+    CGL_hashtable_entry* entry = __CGL_hashtable_get_entry_ptr(table, key, NULL);
+    if(!entry) return NULL;
+    if(value) *value = entry->value_size;   
+    return (entry->value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) ? entry->value : entry->value_static;
 }
 
 bool CGL_hashtable_exists(CGL_hashtable* table, const void* key)
@@ -5618,6 +5654,79 @@ void CGL_sky_render(CGL_sky* sky, CGL_camera* camera)
 
 #endif // CGL_EXCLUDE_SKY_RENDERER
 #endif // CGL_EXCLUDE_GRAPHICS_API
+
+// markov chains
+#ifndef CGL_EXCLUDE_MARKOV_API
+
+struct CGL_markov
+{
+    CGL_hashtable* hashtable;
+    size_t key_size;
+    size_t value_size;
+};
+
+struct CGL_markov_token_function_ngram_text_context
+{
+    size_t index;
+};
+
+CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_text_context_create()
+{
+    CGL_markov_token_function_ngram_text_context* ctx = (CGL_markov_token_function_ngram_text_context*)CGL_malloc(sizeof(CGL_markov_token_function_ngram_text_context));
+    if(!ctx) return NULL;
+    return ctx;
+}
+
+void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_function_ngram_text_context* context)
+{
+    CGL_free(context);
+}
+
+
+bool CGL_markov_token_function_ngram_text(void* context, void* dat, void* key, void* value)
+{
+    CGL_markov_token_function_ngram_text_context* ctx = (CGL_markov_token_function_ngram_text_context*)context;
+    char* data = dat;
+    // TODO
+    return false;
+}
+
+CGL_markov* CGL_markov_create(size_t key_size, size_t value_size)
+{
+    CGL_markov* mk = (CGL_markov*)CGL_malloc(sizeof(CGL_markov));
+    if(!mk) return NULL;
+    mk->key_size = key_size;
+    mk->value_size = value_size;
+    mk->hashtable = CGL_hashtable_create(10000, key_size, 1000);
+    return mk;
+}
+
+bool CGL_markov_train(CGL_markov* markov, void* context, void* data, CGL_markov_token_function function)
+{
+    // TODO
+    return false;
+}
+
+bool CGL_markov_generate(CGL_markov* markov, void* key, void* value)
+{
+    if(!CGL_hashtable_exists(markov->hashtable, key)) return false;    
+    size_t vs;
+    char* data = (char*)CGL_hashtable_get_ptr(markov->hashtable, key, value, &vs);
+    size_t count = *(size_t*)data;
+    data += sizeof(size_t);
+    size_t index = CGL_utils_random_int(0, count - 1) * markov->value_size;
+    memcpy(value, data + index, markov->value_size);
+    return true;
+}
+
+void CGL_markov_destroy(CGL_markov* markov)
+{
+    CGL_hashtable_destroy(markov->hashtable);
+    CGL_free(markov);
+}
+
+#endif
+
 
 #endif // CGL_IMPLEMENTATION
 
