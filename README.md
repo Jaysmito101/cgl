@@ -47,7 +47,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - SSL sockets (optional) (requires  OpenSSL)
   - HTTP/HTTPS request (beta)
   
-* General Purpose Markov Chains (Optional)
+* General Purpose Markov Chains (Optional) [Example](./examples/markov_text_generation.c)
   - Can work with any type of data ( text / image / etc.  )
   - Train/Generate with 3 - 4 lines of code
   - Trainer implemented for text generation (n-gram based)
