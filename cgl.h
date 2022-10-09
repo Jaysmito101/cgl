@@ -164,6 +164,7 @@ size_t CGL_list_get_capacity(CGL_list* list);
 size_t CGL_list_push(CGL_list* list, void* data);
 size_t CGL_list_pop(CGL_list* list, void* data);
 void* CGL_list_get(CGL_list* list, size_t index, void* data);
+void* CGL_list_get_random(CGL_list* list, void* data);
 void* CGL_list_set(CGL_list* list, size_t index, void* data);
 bool CGL_list_is_empty(CGL_list* list);
 size_t CGL_list_find(CGL_list* list, void* data);
@@ -955,18 +956,18 @@ void CGL_sky_render(CGL_sky* sky, CGL_camera* camera);
 struct CGL_markov;
 typedef struct CGL_markov CGL_markov;
 
-typedef bool(*CGL_markov_token_function)(void*, void*, void*, void*); // (void* context, void* data, void* key, void* value)
+typedef bool(*CGL_markov_token_function)(void*, const void*, const size_t, void*, void*); // (void* context, const void* data, const size_t data_size, void* key, void* value)
 
 struct CGL_markov_token_function_ngram_text_context;
 typedef struct CGL_markov_token_function_ngram_text_context CGL_markov_token_function_ngram_text_context;
 
-CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_text_context_create();
+CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_text_context_create(size_t n);
 void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_function_ngram_text_context* context);
-bool CGL_markov_token_function_ngram_text(void* context, void* data, void* key, void* value);
+bool CGL_markov_token_function_ngram_text(void* context, const void* data, const size_t data_size, void* key, void* value);
 
-CGL_markov* CGL_markov_create(size_t key_size, size_t value_size);
-bool CGL_markov_train(CGL_markov* markov, void* context, void* data, CGL_markov_token_function function);
-bool CGL_markov_generate(CGL_markov* markov, void* key, void* value);
+CGL_markov* CGL_markov_create(const size_t key_size, const size_t value_size);
+bool CGL_markov_train(CGL_markov* markov, void* context, const void* data, const size_t data_size, const CGL_markov_token_function function);
+bool CGL_markov_generate(const CGL_markov* markov, const void* key, void* value);
 void CGL_markov_destroy(CGL_markov* markov);
 
 #endif
@@ -1068,6 +1069,12 @@ void* CGL_list_get(CGL_list* list, size_t index, void* data)
     if(index >= list->size || index < 0) return NULL;
     if(data) memcpy( data, ((char*)list->data + index * list->item_size), list->item_size );
     return ((char*)list->data + index * list->item_size);
+}
+
+void* CGL_list_get_random(CGL_list* list, void* data)
+{
+    int index = CGL_utils_random_int(0, list->size-1);
+    return CGL_list_get(list, index, data);
 }
 
 void* CGL_list_set(CGL_list* list, size_t index, void* data)
@@ -1322,7 +1329,8 @@ struct CGL_hashtable_entry
     uint8_t key[CGL_HASHTABLE_MAX_KEY_SIZE];
     uint8_t value_static[CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE]; // if value size is less than CGL_HASHTABLE_ENTRY_VALUE_SIZE then place here in static memory rather than allocating
     size_t value_size;
-    CGL_hashtable_entry* next_entry; // next entry in the linked list with same hash
+    size_t next_entry; // next entry in the linked list with same hash
+    size_t index;
     void* value;
     bool set;
 };
@@ -1330,7 +1338,7 @@ struct CGL_hashtable_entry
 struct CGL_hashtable
 {
     CGL_hashtable_entry* storage;
-    CGL_hashtable_entry** table;
+    size_t* table;
     CGL_hash_function hash_function;
     size_t capacity;
     size_t table_size;
@@ -1358,25 +1366,33 @@ static CGL_hashtable_entry* __CGL_hashtable_get_entry_ptr(CGL_hashtable* table, 
 {
     size_t key_size, hashtable_index;
     __CGL_hashtable_calculate_hashtable_index_key_size(table, &key_size, &hashtable_index, key);
-    CGL_hashtable_entry* entry = table->table[hashtable_index];
-    if(!entry) return NULL;
+    size_t entry_id = table->table[hashtable_index];
+    if(entry_id == 0) return NULL;
+    CGL_hashtable_entry* entry = &table->storage[entry_id];
     if(table_index) 
     {
         if(memcmp(entry->key, key, key_size) == 0) *table_index = hashtable_index;
         else *table_index = UINT64_MAX;
     }
-    while(entry)
+
+    while(entry->index != 0)
     {
-        if(memcmp(entry->key, key, key_size) == 0) return entry;
-        entry = entry->next_entry;
+        if (memcmp(entry->key, key, key_size) == 0)
+            return entry;
+        entry = &table->storage[entry->next_entry];
     }
+
     return NULL;
 }
 
 static bool __CGL_hashtable_expand_storage(CGL_hashtable* table)
 {
+    size_t initial_capacity = table->capacity;
+    void* initial_storage = table->storage;
     table->capacity = (size_t)(table->capacity * table->growth_rate);
-    table->storage = (CGL_hashtable_entry*)CGL_realloc(table->storage, table->capacity);
+    table->storage = (CGL_hashtable_entry*)CGL_malloc(table->capacity * sizeof(CGL_hashtable_entry));
+    memset(table->storage, 0, table->capacity * sizeof(CGL_hashtable_entry));
+    CGL_free(table->storage);
     return table->storage != NULL;
 }
 
@@ -1385,30 +1401,26 @@ static void __CGL_hashtable_reset_hashtable_entry(CGL_hashtable_entry* entry)
     memset(entry->key, 0, CGL_HASHTABLE_MAX_KEY_SIZE);
     memset(entry->value_static, 0, CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE);
     entry->value_size = 0;
-    entry->next_entry = NULL;
+    entry->next_entry = 0;
     if(entry->value) CGL_free(entry->value);
     entry->value = NULL;
     entry->set = false;
+    entry->index = 0;
 }
 
-static CGL_hashtable_entry* __CGL_hashtable_get_new_entry(CGL_hashtable* table, bool* expanded)
+static size_t __CGL_hashtable_get_new_entry(CGL_hashtable* table, bool* expanded)
 {
-    CGL_hashtable_entry* entry = NULL;
-    for(size_t i = 0 ; i < table->capacity ; i ++)
-    {
-        if(!table->storage[i].set)
-        {
-            entry = &table->storage[i];
+    size_t entry = 1;
+    for(; entry < table->capacity ; entry ++)
+        if(!table->storage[entry].set)
             break;
-        }
-    }
-    if(!entry)
+    if(entry >= table->capacity)
     {
-        size_t last_index = table->capacity;
-        if(!__CGL_hashtable_expand_storage(table)) return NULL;
-        entry = &table->storage[last_index];
+        entry = table->capacity;
+        if(!__CGL_hashtable_expand_storage(table)) return 0;
         if(expanded) *expanded = true;
     }
+    table->storage[entry].index = entry;
     return entry;
 }
 
@@ -1425,9 +1437,9 @@ CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t i
     table->storage = (CGL_hashtable_entry*)CGL_malloc(sizeof(CGL_hashtable_entry) * initial_capacity);
     if(!table->storage) {CGL_free(table); return NULL;}
     memset(table->storage, 0, (sizeof(CGL_hashtable_entry) * initial_capacity));
-    table->table = (CGL_hashtable_entry**)CGL_malloc(sizeof(CGL_hashtable_entry*) * table_size);
+    table->table = (size_t*)CGL_malloc(sizeof(size_t) * table_size);
     if(!table->table) {CGL_free(table->storage); CGL_free(table); return NULL;}
-    memset(table->table, 0, (sizeof(CGL_hashtable_entry*) * table_size));
+    memset(table->table, 0, (sizeof(size_t) * table_size));
     return table;
 }
 
@@ -1446,36 +1458,38 @@ void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value,
     size_t key_size, hashtable_index;
     __CGL_hashtable_calculate_hashtable_index_key_size(table, &key_size, &hashtable_index, key);
     
-    CGL_hashtable_entry new_entry;
-    new_entry.set = true;
-    memcpy(new_entry.key, key, key_size);
-    new_entry.value_size = value_size;
-    new_entry.next_entry = NULL;
-    new_entry.value = NULL;
-    void* target_value_ptr = NULL;
-    if(value_size <= CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) target_value_ptr = new_entry.value_static;
-    else target_value_ptr = new_entry.value = CGL_malloc(value_size);
-    memcpy(target_value_ptr, value, value_size);
-    CGL_hashtable_entry* new_entry_ptr = NULL;
+
+    size_t new_entry_id = 0;
     CGL_hashtable_entry* existing_entry = __CGL_hashtable_get_entry_ptr(table, key, NULL);
     if(existing_entry)
     {
         if(existing_entry->value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) CGL_free(existing_entry->value);
-        new_entry_ptr = existing_entry;
+        new_entry_id = existing_entry->index;
     }
     else
     {
-        new_entry_ptr = __CGL_hashtable_get_new_entry(table, NULL);        
-        if(!table->table[hashtable_index])
-            table->table[hashtable_index] = new_entry_ptr;
+        new_entry_id = __CGL_hashtable_get_new_entry(table, NULL);    
+        if (table->table[hashtable_index] == 0)
+            table->table[hashtable_index] = new_entry_id;
         else
         {
-            CGL_hashtable_entry* target_entry_ptr = table->table[hashtable_index];
-            while(target_entry_ptr->next_entry != NULL) target_entry_ptr = target_entry_ptr->next_entry;
-            target_entry_ptr->next_entry = new_entry_ptr;
+            CGL_hashtable_entry* target_entry_ptr = &table->storage[table->table[hashtable_index]];
+            while(target_entry_ptr->next_entry != 0) target_entry_ptr = &table->storage[target_entry_ptr->next_entry];
+            target_entry_ptr->next_entry = new_entry_id;
         }
     }
-    memcpy(new_entry_ptr, &new_entry, sizeof(CGL_hashtable_entry));
+
+    
+    table->storage[new_entry_id].set = true;
+    memcpy(table->storage[new_entry_id].key, key, key_size);
+    table->storage[new_entry_id].value_size = value_size;
+    table->storage[new_entry_id].next_entry = 0;
+    table->storage[new_entry_id].value = NULL;
+    void* target_value_ptr = NULL;
+    if(value_size <= CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE) target_value_ptr = table->storage[new_entry_id].value_static;
+    else target_value_ptr = table->storage[new_entry_id].value = CGL_malloc(value_size);
+    memcpy(target_value_ptr, value, value_size);
+        
 }
 
 size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value)
@@ -1506,17 +1520,17 @@ bool CGL_hashtable_remove(CGL_hashtable* table, const void* key)
     size_t key_size, hashtable_index;
     __CGL_hashtable_calculate_hashtable_index_key_size(table, &key_size, &hashtable_index, key);
     
-    CGL_hashtable_entry* entry_to_clear = table->table[hashtable_index];
-    if(memcmp(table->table[hashtable_index]->key, key, key_size) == 0)
-        table->table[hashtable_index] = table->table[hashtable_index]->next_entry;
+    CGL_hashtable_entry* entry_to_clear = &table->storage[table->table[hashtable_index]];
+    if(memcmp(entry_to_clear->key, key, key_size) == 0)
+        table->table[hashtable_index] = entry_to_clear->next_entry;
     else
     {
-        while(table->table[hashtable_index]->next_entry)
+        while(table->storage[table->table[hashtable_index]].next_entry != 0)
         {
-            if(memcmp(table->table[hashtable_index]->next_entry->key, key, key_size) == 0)
+            if(memcmp(table->storage[table->storage[table->table[hashtable_index]].next_entry].key, key, key_size) == 0)
             {
-                entry_to_clear = table->table[hashtable_index]->next_entry;
-                table->table[hashtable_index]->next_entry = table->table[hashtable_index]->next_entry->next_entry;
+                entry_to_clear = &table->storage[table->storage[table->table[hashtable_index]].next_entry];
+                table->storage[table->table[hashtable_index]].next_entry = table->storage[table->storage[table->table[hashtable_index]].next_entry].next_entry;
             }
         }
     }
@@ -1544,7 +1558,7 @@ CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table)
     CGL_hashtable_iterator* iterator = (CGL_hashtable_iterator*)CGL_malloc(sizeof(CGL_hashtable_iterator));
     if(!iterator) return NULL;
     iterator->hashtable = table;
-    iterator->index = 0;
+    iterator->index = 1;
     return iterator;
 }
 
@@ -1555,7 +1569,7 @@ void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator)
 
 void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator)
 {
-    iterator->index = 0;
+    iterator->index = 1;
 }
 
 bool CGL_hashtable_iterator_next(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size)
@@ -5663,17 +5677,22 @@ struct CGL_markov
     CGL_hashtable* hashtable;
     size_t key_size;
     size_t value_size;
+    void* temp_key;
+    void* temp_value;
 };
 
 struct CGL_markov_token_function_ngram_text_context
 {
     size_t index;
+    size_t n;
 };
 
-CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_text_context_create()
+CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_text_context_create(size_t n)
 {
     CGL_markov_token_function_ngram_text_context* ctx = (CGL_markov_token_function_ngram_text_context*)CGL_malloc(sizeof(CGL_markov_token_function_ngram_text_context));
     if(!ctx) return NULL;
+    ctx->index = 0;
+    ctx->n = n;
     return ctx;
 }
 
@@ -5683,45 +5702,69 @@ void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_funct
 }
 
 
-bool CGL_markov_token_function_ngram_text(void* context, void* dat, void* key, void* value)
+bool CGL_markov_token_function_ngram_text(void* context, const void* dat, const size_t data_size, void* key, void* value)
 {
     CGL_markov_token_function_ngram_text_context* ctx = (CGL_markov_token_function_ngram_text_context*)context;
-    char* data = dat;
-    // TODO
-    return false;
+    const char* data = dat;
+    if(ctx->index >= data_size - ctx->n - 1) return false;
+    if(key) memcpy(key, data + ctx->index, ctx->n);
+    if(value) *((char*)value) = *(data + ctx->index + ctx->n);
+    ctx->index++;
+    return true;
 }
 
-CGL_markov* CGL_markov_create(size_t key_size, size_t value_size)
+CGL_markov* CGL_markov_create(const size_t key_size, const size_t value_size)
 {
     CGL_markov* mk = (CGL_markov*)CGL_malloc(sizeof(CGL_markov));
     if(!mk) return NULL;
     mk->key_size = key_size;
     mk->value_size = value_size;
-    mk->hashtable = CGL_hashtable_create(10000, key_size, 1000);
+    mk->hashtable = CGL_hashtable_create(10000, key_size, 100000);
+    mk->temp_key = CGL_malloc(key_size);
+    mk->temp_value = CGL_malloc(value_size);
     return mk;
 }
 
-bool CGL_markov_train(CGL_markov* markov, void* context, void* data, CGL_markov_token_function function)
+bool CGL_markov_train(CGL_markov* markov, void* context, const void* data, const size_t data_size, const CGL_markov_token_function function)
 {
-    // TODO
-    return false;
+    memset(markov->temp_key, 0, markov->key_size);
+    memset(markov->temp_value, 0, markov->value_size);
+    while(function(context, data, data_size, markov->temp_key, markov->temp_value))
+    {   
+        if(!CGL_hashtable_exists(markov->hashtable, markov->temp_key))
+        {
+            CGL_list* list = CGL_list_create(markov->value_size, 10);
+
+            CGL_hashtable_set(markov->hashtable, markov->temp_key, &list, sizeof(CGL_list*));
+        }
+        CGL_list* list = NULL;
+        CGL_hashtable_get(markov->hashtable, markov->temp_key, &list);
+        CGL_list_push(list, markov->temp_value);    
+        memset(markov->temp_key, 0, markov->key_size);
+        memset(markov->temp_value, 0, markov->value_size);
+    }
+    return true;
 }
 
-bool CGL_markov_generate(CGL_markov* markov, void* key, void* value)
+
+bool CGL_markov_generate(const CGL_markov* markov, const void* key, void* value)
 {
-    if(!CGL_hashtable_exists(markov->hashtable, key)) return false;    
-    size_t vs;
-    char* data = (char*)CGL_hashtable_get_ptr(markov->hashtable, key, value, &vs);
-    size_t count = *(size_t*)data;
-    data += sizeof(size_t);
-    size_t index = CGL_utils_random_int(0, count - 1) * markov->value_size;
-    memcpy(value, data + index, markov->value_size);
+    if(!CGL_hashtable_exists(markov->hashtable, key)) return false;
+    CGL_list* list = NULL;
+    CGL_hashtable_get(markov->hashtable, key, &list);
+    CGL_list_get_random(list, value);
     return true;
 }
 
 void CGL_markov_destroy(CGL_markov* markov)
 {
+    CGL_hashtable_iterator* iterator = CGL_hashtable_iterator_create(markov->hashtable);
+    CGL_list* lst = NULL;
+    while(CGL_hashtable_iterator_next(iterator, NULL, &lst, NULL)) CGL_list_destroy(lst);
+    CGL_hashtable_iterator_destroy(iterator);
     CGL_hashtable_destroy(markov->hashtable);
+    CGL_free(markov->temp_key);
+    CGL_free(markov->temp_value);
     CGL_free(markov);
 }
 
