@@ -695,6 +695,7 @@ void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* dat
 void CGL_texture_destroy(CGL_texture* texture); // destroy texture
 void CGL_texture_bind(CGL_texture* texture, int unit); // bind texture to unit
 void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
+void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data); // set texture data
 void CGL_texture_set_user_data(CGL_texture* texture, void* user_data); // set texture user data
 void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
 void CGL_texture_get_size(CGL_texture* texture, int* width, int* height); // get texture size
@@ -971,6 +972,42 @@ bool CGL_markov_generate(const CGL_markov* markov, const void* key, void* value)
 void CGL_markov_destroy(CGL_markov* markov);
 
 #endif
+
+// text rendering
+#ifndef CGL_EXCLUDE_TEXT_RENDER
+
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+
+struct CGL_font_character
+{
+    CGL_vec2 size;
+    CGL_vec2 normalized_size;
+    CGL_vec2 offset;
+    CGL_vec2 normalized_offset;
+    CGL_vec2 bearing;
+    CGL_vec2 advance;
+    unsigned char* bitmap;
+    char ch;
+};
+typedef struct CGL_font_character CGL_font_character;
+
+struct CGL_font;
+typedef struct CGL_font CGL_font;
+
+bool CGL_text_init();
+void CGL_text_shutdown();
+CGL_font* CGL_font_load(const char* path);
+void CGL_font_destory(CGL_font* font);
+CGL_texture* CGL_font_get_atlas(CGL_font* font);
+bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t font_size);
+CGL_font_character* CGL_font_get_characters(CGL_font* font);
+
+CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, CGL_font* font, size_t* width, size_t* height);
+
+#endif
+
+#endif
+
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3100,6 +3137,14 @@ void CGL_texture_set_data(CGL_texture* texture, void* data)
     glBindTexture(texture->target, texture->handle);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(texture->target, 0, texture->internal_format, texture->width, texture->height, 0, texture->format, texture->type, data);
+    glBindTexture(texture->target, 0);
+}
+
+void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data) // set texture sub data
+{
+    glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexSubImage2D(texture->target, 0, (GLint)offset_x, (GLint)offset_y, (GLsizei)size_x, (GLsizei)size_y, texture->format, texture->type, data);
     glBindTexture(texture->target, 0);
 }
 
@@ -5767,6 +5812,158 @@ void CGL_markov_destroy(CGL_markov* markov)
     CGL_free(markov->temp_value);
     CGL_free(markov);
 }
+
+#endif
+
+// text rendering
+#ifndef CGL_EXCLUDE_TEXT_RENDER
+
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+
+#include <ft2build.h>
+#include FT_FREETYPE_H  
+
+struct CGL_font
+{
+    CGL_font_character characters[128];
+    CGL_texture* atlas;
+    size_t atlas_width;
+    size_t atlas_height;
+    FT_Face face;
+};
+
+static FT_Library __CGL_free_type_library;
+
+bool CGL_text_init()
+{
+    bool result = FT_Init_FreeType(&__CGL_free_type_library);
+    if(result) { CGL_LOG("Could not Initialize FreeType\n"); }
+    return !result;
+}
+
+void CGL_text_shutdown()
+{
+    FT_Done_FreeType(__CGL_free_type_library);
+}
+
+CGL_font* CGL_font_load(const char* path)
+{
+    CGL_font* font = (CGL_font*)CGL_malloc(sizeof(CGL_font));
+    if(!font) return NULL;
+    if(FT_New_Face(__CGL_free_type_library, path, 0, &font->face)) {CGL_LOG("Could not Load Font\n");}
+    memset(font->characters, 0, sizeof(CGL_font_character) * 128);
+    font->atlas_width = 0;
+    font->atlas_height = 0;
+    font->atlas = NULL;
+    return font;
+}
+
+void CGL_font_destory(CGL_font* font)
+{
+    FT_Done_Face(font->face);
+    if(font->atlas) CGL_texture_destroy(font->atlas);
+    for(size_t i = 0 ; i < 127 ; i++)
+        if(font->characters[i].bitmap)
+            CGL_free(font->characters[i].bitmap);
+    CGL_free(font);
+}
+
+CGL_texture* CGL_font_get_atlas(CGL_font* font)
+{
+    return font->atlas;
+}
+
+bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t font_size)
+{
+    if(font->atlas) CGL_texture_destroy(font->atlas);
+    FT_Set_Pixel_Sizes(font->face, 0, (FT_UInt)font_size);  
+    int64_t offset_x = 0;
+    int64_t offset_y = 0;
+    int64_t max_size_y = 0;
+    font->atlas_width = width;
+    font->atlas_height = height;
+    font->atlas = CGL_texture_create_blank((int)width, (int)height, GL_RED, GL_RED, GL_UNSIGNED_BYTE);
+    for(char ch = 0 ; ch < 127 ; ch++)
+    {
+        if(FT_Load_Char(font->face, ch, FT_LOAD_RENDER))
+        {
+            CGL_LOG("Could not Font Load Character %c\n", ch);
+            return false;
+        }
+        int64_t size_x = font->face->glyph->bitmap.width;
+        int64_t size_y = font->face->glyph->bitmap.rows;
+
+        if(font->characters[ch].bitmap) CGL_free(font->characters[ch].bitmap);
+        font->characters[ch].size = CGL_vec2_init((float)size_x, (float)size_y);
+        font->characters[ch].normalized_size = CGL_vec2_init((float)size_x / font->atlas_width, (float)size_y / font->atlas_height);
+        font->characters[ch].offset = CGL_vec2_init((float)offset_x, (float)offset_y);
+        font->characters[ch].normalized_offset = CGL_vec2_init((float)offset_x / font->atlas_width, (float)offset_y / font->atlas_height);
+        font->characters[ch].bearing = CGL_vec2_init((float)font->face->glyph->bitmap_left, (float)font->face->glyph->bitmap_top);
+        font->characters[ch].advance = CGL_vec2_init((float)font->face->glyph->advance.x, (float)0.0f);
+        font->characters[ch].ch = ch;
+        font->characters[ch].bitmap = (unsigned char*)CGL_malloc(sizeof(unsigned char) * size_x * size_y);
+        if(!font->characters[ch].bitmap) return false;
+        memcpy(font->characters[ch].bitmap, font->face->glyph->bitmap.buffer, (sizeof(unsigned char) * size_x * size_y));
+
+        for(int64_t iy = 0 ; iy <= size_y / 2 ; iy++)
+        {
+            for(int64_t ix = 0 ; ix < size_x ; ix++)
+            {
+                int64_t next_y = size_y - iy;
+                int64_t ind_src = iy * size_x + ix;
+                int64_t ind_dst = next_y * size_x + ix;
+                unsigned char tmp = font->characters[ch].bitmap[ind_src];
+                font->characters[ch].bitmap[ind_src] = font->characters[ch].bitmap[ind_dst];
+                font->characters[ch].bitmap[ind_dst] = tmp;
+            }
+        }
+        CGL_texture_set_sub_data(font->atlas, offset_x, offset_y, size_x, size_y, font->characters[ch].bitmap);
+       
+        offset_x += size_x + 5;
+        max_size_y = max(max_size_y, size_y);
+        if(((int64_t)width - offset_x) <= 10 )
+        {
+            offset_x = 0;
+            offset_y += max_size_y + 10;
+            max_size_y = 0;
+        }
+    }
+    return true;
+}
+
+CGL_font_character* CGL_font_get_characters(CGL_font* font)
+{
+    return font->characters;
+}
+
+CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, CGL_font* font, size_t* width, size_t* height)
+{
+    size_t tex_width = 0;
+    size_t tex_height = 0;
+    for(int i = 0 ; i < string_length ; i++ )
+    {
+        char ch = string[i];
+        tex_width += (((int)font->characters[ch].advance.x) >> 6);
+        tex_height = max(tex_height, (int)font->characters[ch].size.y);
+    }
+    if(width) *width = tex_width;
+    if(height) *height = tex_height;
+    CGL_texture* tex = CGL_texture_create_blank((int)tex_width, (int)tex_height, GL_RED, GL_RED, GL_UNSIGNED_BYTE);
+    if(!tex) return NULL;
+    size_t offset_x = 0;
+    size_t offset_y = 0;
+    for(int i = 0 ; i < string_length ; i++ )
+    {
+        char ch = string[i];
+        size_t offset_x_local = offset_x + (int)font->characters[ch].bearing.x;
+        size_t offset_y_local = offset_y + ((int)font->characters[ch].size.y - (int)font->characters[ch].bearing.y) ;
+        CGL_texture_set_sub_data(tex, offset_x_local, offset_y_local, (int)font->characters[ch].size.x, (int)font->characters[ch].size.y, font->characters[ch].bitmap);
+        offset_x += (((int)font->characters[ch].advance.x) >> 6);        
+    }
+    return tex;
+}
+
+#endif
 
 #endif
 
