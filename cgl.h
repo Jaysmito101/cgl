@@ -3038,9 +3038,10 @@ CGL_texture* CGL_texture_create_cubemap()
     texture->depth = 0;
     texture->target = GL_TEXTURE_CUBE_MAP;
     texture->user_data = NULL;
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glGenTextures(1, &texture->handle);
 	glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -3091,6 +3092,7 @@ void CGL_texture_cubemap_set_face(CGL_texture* texture, int face, CGL_image* ima
     else
     {printf("Invalid bit depth for image\n");return;}
 	glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(face, 0, internal_format, image->width, image->height, 0, format, type, image->data);
 	glBindTexture(texture->target, 0);
@@ -3099,6 +3101,7 @@ void CGL_texture_cubemap_set_face(CGL_texture* texture, int face, CGL_image* ima
 void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* data)
 {
     glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexSubImage3D(texture->target, 0, 0, 0, layer, texture->width, texture->height, 1, texture->format, texture->type, data);
 	glBindTexture(texture->target, 0);
@@ -3135,6 +3138,7 @@ void CGL_texture_bind(CGL_texture* texture, int unit)
 void CGL_texture_set_data(CGL_texture* texture, void* data)
 {
     glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(texture->target, 0, texture->internal_format, texture->width, texture->height, 0, texture->format, texture->type, data);
     glBindTexture(texture->target, 0);
@@ -3143,6 +3147,7 @@ void CGL_texture_set_data(CGL_texture* texture, void* data)
 void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data) // set texture sub data
 {
     glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexSubImage2D(texture->target, 0, (GLint)offset_x, (GLint)offset_y, (GLsizei)size_x, (GLsizei)size_y, texture->format, texture->type, data);
     glBindTexture(texture->target, 0);
@@ -5885,7 +5890,7 @@ bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t fo
     font->atlas = CGL_texture_create_blank((int)width, (int)height, GL_RED, GL_RED, GL_UNSIGNED_BYTE);
     for(char ch = 0 ; ch < 127 ; ch++)
     {
-        if(FT_Load_Char(font->face, ch, FT_LOAD_RENDER))
+        if(FT_Load_Char(font->face, (FT_ULong)ch, FT_LOAD_RENDER))
         {
             CGL_LOG("Could not Font Load Character %c\n", ch);
             return false;
@@ -5904,19 +5909,7 @@ bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t fo
         font->characters[ch].bitmap = (unsigned char*)CGL_malloc(sizeof(unsigned char) * size_x * size_y);
         if(!font->characters[ch].bitmap) return false;
         memcpy(font->characters[ch].bitmap, font->face->glyph->bitmap.buffer, (sizeof(unsigned char) * size_x * size_y));
-
-        for(int64_t iy = 0 ; iy <= size_y / 2 ; iy++)
-        {
-            for(int64_t ix = 0 ; ix < size_x ; ix++)
-            {
-                int64_t next_y = size_y - iy;
-                int64_t ind_src = iy * size_x + ix;
-                int64_t ind_dst = next_y * size_x + ix;
-                unsigned char tmp = font->characters[ch].bitmap[ind_src];
-                font->characters[ch].bitmap[ind_src] = font->characters[ch].bitmap[ind_dst];
-                font->characters[ch].bitmap[ind_dst] = tmp;
-            }
-        }
+        
         CGL_texture_set_sub_data(font->atlas, offset_x, offset_y, size_x, size_y, font->characters[ch].bitmap);
        
         offset_x += size_x + 5;
@@ -5940,11 +5933,13 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 {
     size_t tex_width = 0;
     size_t tex_height = 0;
+    size_t max_bottom_pad = 0;
     for(int i = 0 ; i < string_length ; i++ )
     {
         char ch = string[i];
         tex_width += (((int)font->characters[ch].advance.x) >> 6);
-        tex_height = max(tex_height, (int)font->characters[ch].size.y);
+        max_bottom_pad = max(max_bottom_pad, (size_t)(font->characters[ch].size.y - font->characters[ch].bearing.y));
+        tex_height = max(tex_height, (size_t)font->characters[ch].size.y + max_bottom_pad);
     }
     if(width) *width = tex_width;
     if(height) *height = tex_height;
@@ -5955,8 +5950,9 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
     for(int i = 0 ; i < string_length ; i++ )
     {
         char ch = string[i];
-        size_t offset_x_local = offset_x + (int)font->characters[ch].bearing.x;
-        size_t offset_y_local = offset_y + ((int)font->characters[ch].size.y - (int)font->characters[ch].bearing.y) ;
+        size_t offset_x_local = offset_x + (size_t)font->characters[ch].bearing.x;
+        size_t offset_y_local = offset_y + (size_t)(font->characters[ch].size.y - font->characters[ch].bearing.y) - max_bottom_pad;
+        offset_y_local += ((tex_height) - (size_t)font->characters[ch].size.y);
         CGL_texture_set_sub_data(tex, offset_x_local, offset_y_local, (int)font->characters[ch].size.x, (int)font->characters[ch].size.y, font->characters[ch].bitmap);
         offset_x += (((int)font->characters[ch].advance.x) >> 6);        
     }
