@@ -101,7 +101,14 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Perspective & Orthographic
   - It internally handles all matrix calculations (just input the position and rotation)
   - Auto calculates the Up, Right, Front vectors
+ 
+* Text Rendering (Optional) (Requires [FreeType2](http://freetype.org/))
+  - You can completely diable it with `#define CGL_EXCLUDE_TEXT_RENDER`
+  - Load Fonts from `.ttf` files
+  - Bake bitmaps for characters
+  - Bake textures from strings
   
+ 
 * Sky Renderer (Optional)
   - You can completely diable it with `#define CGL_EXCLUDE_SKY_RENDERER`
   - Supports both a Sky Box (cube mesh) and Sky Sphere/Dome (sphere mesh)
@@ -141,7 +148,6 @@ NOTE: Do not think that header only means its going to increase compile time as 
     
  ## Things that are being worked on:
  
-  * text rendering (static and dynamic) (optional) (requires stb_truetype)
  * PBR renderer (optional)
  * IBL (optional)
  
