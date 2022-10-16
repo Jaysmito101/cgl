@@ -1041,11 +1041,21 @@ void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord);
 void CGL_widgets_add_vertex_p3ft(float pos_x, float pos_y, float pos_z, CGL_vec2 tex_coord);
 void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, float tex_x, float tex_y);
 void CGL_widgets_add_vertex_p3ft2f(float pos_x, float pos_y, float pos_z, float tex_x, float tex_y);
-void CGL_widgets_set_stroke_color(float r, float g, float b, float a);
-void CGL_widgets_set_fill_color(float r, float g, float b, float a);
+void CGL_widgets_set_stroke_color(CGL_color color);
+void CGL_widgets_set_stroke_colorf(float r, float g, float b, float a);
+void CGL_widgets_set_stroke_thicnkess(float thickness);
+void CGL_widgets_set_fill_color(CGL_color color);
+void CGL_widgets_set_fill_colorf(float r, float g, float b, float a);
 void CGL_widgets_set_fill_mode(bool is_enabled);
 void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
-
+void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
+void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end);
+void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size);
+void CGL_widgets_add_rect2f(float start_x, float start_y, float size_x, float size_y);
+void CGL_widgets_add_circle(CGL_vec3 position, float radius);
+void CGL_widgets_add_circle2f(float pos_x, float pos_y, float radius);
+void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
+void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radius_y);
 
 #endif
 #endif
@@ -6010,18 +6020,19 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 
 struct CGL_widgets_context
 {
+    CGL_vec4 stroke_color;
+    CGL_vec4 fill_color;
     CGL_mesh_vertex* vertices;
     uint32_t* indices;
     size_t max_vertices;
     size_t vertices_count;
     size_t max_indices;
     size_t indices_count;
-    bool flushed;
+    float stroke_thickness;
     GLuint vertex_array;
     GLuint vertex_buffer;
     GLuint index_buffer;
-    CGL_vec4 stroke_color;
-    CGL_vec4 fill_color;
+    bool flushed;
     bool is_fill;
     CGL_shader* shader;    
 };
@@ -6135,6 +6146,7 @@ bool CGL_widgets_begin()
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = 0.05f;
     return true;
 }
 
@@ -6250,19 +6262,34 @@ void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, float tex_x, float tex_y)
     CGL_widgets_add_vertex_pt(position, CGL_vec2_init(tex_x, tex_y));
 }
 
-void CGL_widgets_set_stroke_color(float r, float g, float b, float a)
+void CGL_widgets_set_stroke_color(CGL_color color)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
+}
+
+void CGL_widgets_set_stroke_colorf(float r, float g, float b, float a)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(r, g, b, a);
 }
 
-void CGL_widgets_set_fill_color(float r, float g, float b, float a)
+void CGL_widgets_set_stroke_thicnkess(float thickness)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = thickness;
+}
+
+void CGL_widgets_set_fill_color(CGL_color color)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
+}
+
+void CGL_widgets_set_fill_colorf(float r, float g, float b, float a)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(r, g, b, a);
 }
 
 void CGL_widgets_set_fill_mode(bool is_enabled)
 {
-    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = is_enabled;
 }
 
 void __CGL_widgets_add_triangle_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
@@ -6272,9 +6299,11 @@ void __CGL_widgets_add_triangle_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
     CGL_widgets_add_vertex_p(c);
 }
 
-void __CGL_widgets_add_triangle_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+static void __CGL_widgets_add_triangle_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 {
-    CGL_LOG("void __CGL_widgets_add_triangle_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c) not implemented\n");
+    CGL_widgets_add_line(a, b);
+    CGL_widgets_add_line(b, c);
+    CGL_widgets_add_line(a, c);
 }
 
 void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
@@ -6283,6 +6312,118 @@ void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
     else __CGL_widgets_add_triangle_stroked(a, b, c);
 }
 
+static void __CGL_widgets_add_quad_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+{
+    CGL_widgets_add_vertex_pt2f(a, 0.0f, 0.0f);
+    CGL_widgets_add_vertex_pt2f(c, 1.0f, 1.0f);
+    CGL_widgets_add_vertex_pt2f(d, 0.0f, 1.0f);
+    CGL_widgets_add_vertex_pt2f(a, 0.0f, 0.0f);
+    CGL_widgets_add_vertex_pt2f(b, 1.0f, 0.0f);
+    CGL_widgets_add_vertex_pt2f(c, 1.0f, 1.0f);
+}
+
+static void __CGL_widgets_add_quad_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+{
+    CGL_widgets_add_line(a, b);
+    CGL_widgets_add_line(b, c);
+    CGL_widgets_add_line(c, d);
+    CGL_widgets_add_line(a, d);
+}
+
+void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_quad_filled(a, b, c, d);
+    else __CGL_widgets_add_quad_stroked(a, b, c, d);
+}
+
+void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
+{
+    CGL_vec3 a, b, c, d;
+
+    float original_slope = (end.y - start.y) / (end.x - start.x);
+    float perp_slope = -1.0f / original_slope;
+    float angle = atanf(perp_slope);
+    float thickness = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness;
+    float r = thickness / 2.0f;
+
+    a = CGL_vec3_init(start.x + r * cosf(angle), start.y + r * sinf(angle), start.z);
+    b = CGL_vec3_init(start.x - r * cosf(angle), start.y - r * sinf(angle), start.z);
+
+    c = CGL_vec3_init(end.x - r * cosf(angle), end.y - r * sinf(angle), end.z);
+    d = CGL_vec3_init(end.x + r * cosf(angle), end.y + r * sinf(angle), end.z);
+
+    bool was_fill = __CGL_WIDGETS_CURRENT_CONTEXT->is_fill;
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = false;
+    __CGL_widgets_add_quad_filled(a, b, c, d);
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = was_fill;
+}
+
+void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size)
+{
+    CGL_widgets_add_quad(
+        CGL_vec3_init(start.x, start.y, start.z),
+        CGL_vec3_init(start.x + size.x, start.y, start.z),
+        CGL_vec3_init(start.x + size.x, start.y + size.y, start.z),
+        CGL_vec3_init(start.x, start.y + size.y, start.z)
+    );
+}
+
+void CGL_widgets_add_rect2f(float start_x, float start_y, float size_x, float size_y)
+{
+    CGL_widgets_add_quad(
+        CGL_vec3_init(start_x, start_y, 0.0f),
+        CGL_vec3_init(start_x + size_x, start_y, 0.0f),
+        CGL_vec3_init(start_x + size_x, start_y + size_y, 0.0f),
+        CGL_vec3_init(start_x, start_y + size_y, 0.0f)
+    );
+}
+
+void __CGL_widgets_add_oval_filled(CGL_vec3 position, CGL_vec2 radius)
+{
+    float x = 0.0f, y = 0.0f;
+    for(float i =0; i <= 360;)
+    {
+        x = radius.x * cosf(i);
+        y = radius.y * sinf(i);
+        CGL_widgets_add_vertex_p3f(x + position.x, y + position.y, position.z);
+        i = i + 0.5f;
+        x = radius.x * cosf(i);
+        y = radius.y * sinf(i);
+        CGL_widgets_add_vertex_p3f(x + position.x, y + position.y, position.z);
+        CGL_widgets_add_vertex_p3f(position.x, position.y, position.z);
+        i = i + 0.5f;
+    }
+}
+
+void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius)
+{
+    CGL_LOG("void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius) not implemented\n");
+}
+
+void CGL_widgets_add_circle2f(float pos_x, float pos_y, float radius)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
+    else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
+}
+
+void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(position, radius);
+    else __CGL_widgets_add_oval_stroked(position, radius);
+}
+
+void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radius_y)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius_x, radius_y));
+    else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius_x, radius_y));
+}
+
+
+void CGL_widgets_add_circle(CGL_vec3 position, float radius)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(position, CGL_vec2_init(radius, radius));
+    else __CGL_widgets_add_oval_stroked(position, CGL_vec2_init(radius, radius));    
+}
 
 #endif
 #endif
