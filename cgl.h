@@ -1008,6 +1008,47 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 
 #endif
 
+// widgets
+#ifndef CGL_EXCLUDE_WIDGETS
+#ifndef CGL_GRAPHICS_API
+
+#ifndef CGL_WIDGETS_MAX_VERTICES
+#define CGL_WIDGETS_MAX_VERTICES 1024 * 4
+#endif
+
+#ifndef CGL_WIDGETS_MAX_INDICES
+#define CGL_WIDGETS_MAX_INDICES 1024 * 6
+#endif
+
+struct CGL_widgets_context;
+typedef struct CGL_widgets_context CGL_widgets_context;
+
+CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_indices);
+void CGL_widgets_context_destroy(CGL_widgets_context* context);
+CGL_widgets_context* CGL_window_get_current_context();
+bool CGL_widgets_init();
+void CGL_widgets_shutdown();
+void CGL_window_set_current_context(CGL_widgets_context* context);
+bool CGL_widgets_begin();
+bool CGL_widgets_end();
+bool CGL_widgets_flush();
+bool CGL_widgets_flush_if_required();
+bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, uint32_t* indices, size_t index_count);
+void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex);
+void CGL_widgets_add_vertex_p(CGL_vec3 position);
+void CGL_widgets_add_vertex_p3f(float pos_x, float pos_y, float pos_z);
+void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord);
+void CGL_widgets_add_vertex_p3ft(float pos_x, float pos_y, float pos_z, CGL_vec2 tex_coord);
+void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, float tex_x, float tex_y);
+void CGL_widgets_add_vertex_p3ft2f(float pos_x, float pos_y, float pos_z, float tex_x, float tex_y);
+void CGL_widgets_set_stroke_color(float r, float g, float b, float a);
+void CGL_widgets_set_fill_color(float r, float g, float b, float a);
+void CGL_widgets_set_fill_mode(bool is_enabled);
+void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
+
+
+#endif
+#endif
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3580,8 +3621,7 @@ void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
 // render mesh instanfced (gpu)
 void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
 {
-    if(mesh->index_count <= 0)
-        return;
+    if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)mesh->index_count, GL_UNSIGNED_INT, 0, count);
 }
@@ -5964,6 +6004,290 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 #endif
 
 
+// widgets
+#ifndef CGL_EXCLUDE_WIDGETS
+#ifndef CGL_GRAPHICS_API
+
+struct CGL_widgets_context
+{
+    CGL_mesh_vertex* vertices;
+    uint32_t* indices;
+    size_t max_vertices;
+    size_t vertices_count;
+    size_t max_indices;
+    size_t indices_count;
+    bool flushed;
+    GLuint vertex_array;
+    GLuint vertex_buffer;
+    GLuint index_buffer;
+    CGL_vec4 stroke_color;
+    CGL_vec4 fill_color;
+    bool is_fill;
+    CGL_shader* shader;    
+};
+
+static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+"\n"
+"layout (location = 0) in vec4 position;\n"
+"layout (location = 1) in vec4 normal;\n"
+"layout (location = 2) in vec4 texcoord;\n"
+"\n"
+"out vec3 Position;\n"
+"out vec3 Normal;\n"
+"out vec2 TexCoord; \n"
+"out vec4 Color;\n"
+"\n"
+"void main()\n"
+"{\n"
+"	gl_Position = vec4(position.xyz, 1.0f);\n"
+"	Position = position.xyz;\n"
+"	Normal = normal.xyz;\n"
+"	TexCoord = texcoord.xy;		\n"
+"	Color = vec4(position.w, texcoord.zw, normal.w);\n"
+"}";
+
+static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+"\n"
+"out vec4 FragColor;\n"
+"//out int MousePick0;\n"
+"//out int MousePick1;\n"
+"//out int MousePick2;\n"
+"\n"
+"in vec3 Position;\n"
+"in vec3 Normal;\n"
+"in vec2 TexCoord;\n"
+"in vec4 Color;\n"
+"\n"
+"\n"
+"void main()\n"
+"{\n"
+"	vec4 color = Color;\n"
+"	FragColor = color;\n"
+"//	MousePick0 = 0;\n"
+"//	MousePick1 = 0;\n"
+"//	MousePick2 = 0;\n"
+"}";
+
+static CGL_widgets_context* __CGL_WIDGETS_CURRENT_CONTEXT = NULL;
+
+CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_indices)
+{
+    CGL_widgets_context* context = (CGL_widgets_context*)CGL_malloc(sizeof(CGL_widgets_context));
+    if(!context) return NULL;
+    context->max_indices = max_indices;
+    context->max_vertices = max_vertices;
+    context->vertices = (CGL_mesh_vertex*)CGL_malloc(sizeof(CGL_mesh_vertex) * max_vertices);
+    context->indices = (uint32_t*)CGL_malloc(sizeof(uint32_t) * max_indices);
+    context->vertices_count = 0;
+    context->indices_count = 0;
+    context->flushed = true;
+    glGenVertexArrays(1, &context->vertex_array);
+    glBindVertexArray(context->vertex_array);
+    glGenBuffers(1, &context->vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, context->vertex_buffer);
+    glGenBuffers(1, &context->index_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, context->index_buffer);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, position));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, normal));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, texture_coordinates));
+    glEnableVertexAttribArray(2);
+    context->shader = CGL_shader_create(__CGL_WIDGETS_VERTEX_SHADER_SOURCE, __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE, NULL);
+    return context;
+}
+
+void CGL_widgets_context_destory(CGL_widgets_context* context)
+{
+    glDeleteBuffers(1, &context->index_buffer);
+    glDeleteBuffers(1, &context->vertex_buffer);
+    glDeleteVertexArrays(1, &context->vertex_array);
+    CGL_shader_destroy(context->shader);
+    if(context->indices) CGL_free(context->indices);
+    if(context->vertices) CGL_free(context->vertices);
+    CGL_free(context);
+}
+
+CGL_widgets_context* CGL_window_get_current_context()
+{
+    return __CGL_WIDGETS_CURRENT_CONTEXT;   
+}
+
+bool CGL_widgets_init()
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT = CGL_widgets_context_create(CGL_WIDGETS_MAX_VERTICES, CGL_WIDGETS_MAX_INDICES);
+    return __CGL_WIDGETS_CURRENT_CONTEXT != NULL;
+}
+
+void CGL_widgets_shutdown()
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT) CGL_widgets_context_destory(__CGL_WIDGETS_CURRENT_CONTEXT);
+}
+
+void CGL_window_set_current_context(CGL_widgets_context* context)
+{
+    if(context) __CGL_WIDGETS_CURRENT_CONTEXT = context;
+}
+
+bool CGL_widgets_begin()
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->flushed = false;
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
+    __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
+    return true;
+}
+
+bool CGL_widgets_end()
+{
+    return CGL_widgets_flush();
+}
+
+bool CGL_widgets_flush()
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count == 0 || __CGL_WIDGETS_CURRENT_CONTEXT->indices_count == 0) return false;
+    // first upload the data
+    glBindBuffer(GL_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->vertices_count * sizeof(CGL_mesh_vertex), __CGL_WIDGETS_CURRENT_CONTEXT->vertices, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->index_buffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->indices_count * sizeof(uint32_t), __CGL_WIDGETS_CURRENT_CONTEXT->indices, GL_DYNAMIC_DRAW);
+    // render
+    CGL_shader_bind(__CGL_WIDGETS_CURRENT_CONTEXT->shader);
+    glBindVertexArray(__CGL_WIDGETS_CURRENT_CONTEXT->vertex_array);
+    glDrawElements(GL_TRIANGLES, (GLsizei)__CGL_WIDGETS_CURRENT_CONTEXT->indices_count, GL_UNSIGNED_INT, NULL);
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices_count = 0;
+    __CGL_WIDGETS_CURRENT_CONTEXT->indices_count = 0;
+    __CGL_WIDGETS_CURRENT_CONTEXT->flushed = true;
+    return true;
+}
+
+bool CGL_widgets_flush_if_required()
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count >= (__CGL_WIDGETS_CURRENT_CONTEXT->max_vertices - 10) && __CGL_WIDGETS_CURRENT_CONTEXT->indices_count % 3 == 0) return CGL_widgets_flush();
+    return false;
+}
+
+
+bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, uint32_t* indices, size_t index_count)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count + vertex_count >= (__CGL_WIDGETS_CURRENT_CONTEXT->max_vertices - 10)) return false;
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->indices_count + index_count >= (__CGL_WIDGETS_CURRENT_CONTEXT->max_indices - 10)) return false;
+    memcpy(&__CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count], vertices, sizeof(CGL_mesh_vertex) * vertex_count);
+    memcpy(&__CGL_WIDGETS_CURRENT_CONTEXT->indices[__CGL_WIDGETS_CURRENT_CONTEXT->indices_count], indices, sizeof(uint32_t) * index_count);
+    for(size_t i = __CGL_WIDGETS_CURRENT_CONTEXT->indices_count ; i < __CGL_WIDGETS_CURRENT_CONTEXT->indices_count + index_count ; i++) __CGL_WIDGETS_CURRENT_CONTEXT->indices[i] += (uint32_t)__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count;
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices_count += vertex_count;
+    __CGL_WIDGETS_CURRENT_CONTEXT->indices_count += index_count;
+    CGL_widgets_flush_if_required();
+    return true;
+}
+
+void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
+{
+    CGL_widgets_flush_if_required();
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count++] = *vertex;
+    __CGL_WIDGETS_CURRENT_CONTEXT->indices[__CGL_WIDGETS_CURRENT_CONTEXT->indices_count++] = (uint32_t)(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1);
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill)
+    {
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.x;
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.y;
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.z;
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].normal.w = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.w;
+    }
+    else
+    {
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.x;
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.y;
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.z;
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].normal.w = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.w;
+    }
+}
+
+void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord)
+{
+    CGL_mesh_vertex vertex;
+    vertex.position = CGL_vec4_init(position.x, position.y, position.z, 1.0f);
+    vertex.texture_coordinates = CGL_vec4_init(tex_coord.x, tex_coord.y, 0.0f, 0.0f);
+    vertex.normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    if((__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count + 1) % 3 == 0)
+    {
+        CGL_vec4 a = __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 2].position;
+        CGL_vec4 b = __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position;
+        CGL_vec4 c = vertex.position;
+        CGL_vec3 ab = CGL_vec3_sub(b, a);
+        CGL_vec3 bc = CGL_vec3_sub(c, b);
+        CGL_vec3 normal = CGL_vec3_cross(ab, bc);
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 2].normal = CGL_vec4_init(normal.x, normal.y, normal.z, 0.0f);
+        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].normal = CGL_vec4_init(normal.x, normal.y, normal.z, 0.0f);
+        vertex.normal = CGL_vec4_init(normal.x, normal.y, normal.z, 0.0f);
+    }
+    CGL_widgets_add_vertex(&vertex);
+}
+
+void CGL_widgets_add_vertex_p3ft2f(float pos_x, float pos_y, float pos_z, float tex_x, float tex_y)
+{
+    CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), CGL_vec2_init(tex_x, tex_y));
+}
+
+void CGL_widgets_add_vertex_p(CGL_vec3 position)
+{
+    CGL_widgets_add_vertex_pt(position, CGL_vec2_init(0.0f, 0.0f));
+}
+
+void CGL_widgets_add_vertex_p3f(float pos_x, float pos_y, float pos_z)
+{
+    CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), CGL_vec2_init(0.0f, 0.0f));
+}
+
+void CGL_widgets_add_vertex_p3ft(float pos_x, float pos_y, float pos_z, CGL_vec2 tex_coord)
+{
+    CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), tex_coord);
+}
+
+void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, float tex_x, float tex_y)
+{
+    CGL_widgets_add_vertex_pt(position, CGL_vec2_init(tex_x, tex_y));
+}
+
+void CGL_widgets_set_stroke_color(float r, float g, float b, float a)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(r, g, b, a);
+}
+
+void CGL_widgets_set_fill_color(float r, float g, float b, float a)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(r, g, b, a);
+}
+
+void CGL_widgets_set_fill_mode(bool is_enabled)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
+}
+
+void __CGL_widgets_add_triangle_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+{
+    CGL_widgets_add_vertex_p(a);
+    CGL_widgets_add_vertex_p(b);
+    CGL_widgets_add_vertex_p(c);
+}
+
+void __CGL_widgets_add_triangle_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+{
+    CGL_LOG("void __CGL_widgets_add_triangle_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c) not implemented\n");
+}
+
+void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_triangle_filled(a, b, c);
+    else __CGL_widgets_add_triangle_stroked(a, b, c);
+}
+
+
+#endif
+#endif
+
 #endif // CGL_IMPLEMENTATION
 
 #endif // CGL_H
+
