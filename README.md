@@ -59,6 +59,21 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Condition Variables (TODO)
   - NOTE: Implmented using `Win32 Threads` on Windows and `pthread` on linux. (on linux you need to link `pthread` to build)
 
+* CGL Widgets (Optional)
+  - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
+  - API Like [p5.js](https://p5js.org/)
+  - Bach Renderer backend (very fast even for a large number of widgets)
+  - draw (filled or stroked) :
+    - triangle [`CGL_widgets_add_triangle`]
+    - geeneral quad [`CGL_widgets_add_quad`]
+    - rectangle [`CGL_widgets_add_rect` `CGL_widgets_add_rect2f`]
+    - line [`CGL_widgets_add_line`]
+    - circle [`CGL_widgets_add_circle` `CGL_widgets_add_circle2f`]
+    - oval [`CGL_widgets_add_oval`, `CGL_widgets_add_oval2f`]
+  - Add individual verticices
+  - Adjust stroke color/thickness
+  - Customize Batch renderer max vertices capacity (for low memory systems)
+
 * Math library
   - vec2/vec3/vec4
   - mat3/mat4
