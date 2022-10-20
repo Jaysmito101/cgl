@@ -375,15 +375,15 @@ typedef struct CGL_mat4 CGL_mat4;
 #define CGL_vec4_max(a, b) (CGL_vec4){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w}
 #define CGL_vec4_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w)
 
-#define CGL_mat4_identity() (CGL_mat4){1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_scale(x, y, z) (CGL_mat4){x, 0.0f, 0.0f, 0.0f, 0.0f, y, 0.0f, 0.0f, 0.0f, 0.0f, z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_translate(x, y, z) (CGL_mat4){1.0f, 0.0f, 0.0f, x, 0.0f, 1.0f, 0.0f, y, 0.0f, 0.0f, 1.0f, z, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_rotate_x(x) (CGL_mat4){1.0f, 0.0f, 0.0f, 0.0f, 0.0f, cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_rotate_y(x) (CGL_mat4){cosf(x), 0.0f, -sinf(x), 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, sinf(x), 0.0f, cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_rotate_z(x) (CGL_mat4){cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
-#define CGL_mat4_add(a, b) (CGL_mat4){a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8], a.m[9] + b.m[9], a.m[10] + b.m[10], a.m[11] + b.m[11], a.m[12] + b.m[12], a.m[13] + b.m[13], a.m[14] + b.m[14], a.m[15] + b.m[15]}
-#define CGL_mat4_sub(a, b) (CGL_mat4){a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8], a.m[9] - b.m[9], a.m[10] - b.m[10], a.m[11] - b.m[11], a.m[12] - b.m[12], a.m[13] - b.m[13], a.m[14] - b.m[14], a.m[15] - b.m[15]}
-#define CGL_mat4_mul(a, b) (CGL_mat4){ \
+#define CGL_mat4_identity() (CGL_mat4){{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
+#define CGL_mat4_scale(x, y, z) (CGL_mat4){{x, 0.0f, 0.0f, 0.0f, 0.0f, y, 0.0f, 0.0f, 0.0f, 0.0f, z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
+#define CGL_mat4_translate(x, y, z) (CGL_mat4){{1.0f, 0.0f, 0.0f, x, 0.0f, 1.0f, 0.0f, y, 0.0f, 0.0f, 1.0f, z, 0.0f, 0.0f, 0.0f, 1.0f}}
+#define CGL_mat4_rotate_x(x) (CGL_mat4){{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
+#define CGL_mat4_rotate_y(x) (CGL_mat4){{cosf(x), 0.0f, -sinf(x), 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, sinf(x), 0.0f, cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
+#define CGL_mat4_rotate_z(x) (CGL_mat4){{cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
+#define CGL_mat4_add(a, b) (CGL_mat4){{a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8], a.m[9] + b.m[9], a.m[10] + b.m[10], a.m[11] + b.m[11], a.m[12] + b.m[12], a.m[13] + b.m[13], a.m[14] + b.m[14], a.m[15] + b.m[15]}}
+#define CGL_mat4_sub(a, b) (CGL_mat4){{a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8], a.m[9] - b.m[9], a.m[10] - b.m[10], a.m[11] - b.m[11], a.m[12] - b.m[12], a.m[13] - b.m[13], a.m[14] - b.m[14], a.m[15] - b.m[15]}}
+#define CGL_mat4_mul(a, b) (CGL_mat4){{ \
     a.m[0] * b.m[0] + a.m[4] * b.m[1] + a.m[8] * b.m[2] + a.m[12] * b.m[3], \
     a.m[1] * b.m[0] + a.m[5] * b.m[1] + a.m[9] * b.m[2] + a.m[13] * b.m[3], \
     a.m[2] * b.m[0] + a.m[6] * b.m[1] + a.m[10] * b.m[2] + a.m[14] * b.m[3], \
@@ -403,9 +403,9 @@ typedef struct CGL_mat4 CGL_mat4;
     a.m[1] * b.m[12] + a.m[5] * b.m[13] + a.m[9] * b.m[14] + a.m[13] * b.m[15], \
     a.m[2] * b.m[12] + a.m[6] * b.m[13] + a.m[10] * b.m[14] + a.m[14] * b.m[15], \
     a.m[3] * b.m[12] + a.m[7] * b.m[13] + a.m[11] * b.m[14] + a.m[15] * b.m[15] \
-}
-#define CGL_mat4_perspective(aspect, fov, znear, zfar) (CGL_mat4){1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, 0.0f, 0.0f, -1.0f * ( (zfar + znear) / (zfar - znear) ), -1.0f, 0.0f, 0.0f, -2.0f * znear * zfar / (zfar - znear), 1.0f}
-#define CGL_mat4_transpose(a) (CGL_mat4){a.m[0], a.m[4], a.m[12], a.m[1], a.m[5], a.m[9], a.m[13], a.m[2], a.m[6], a.m[10], a.m[14], a.m[3], a.m[7], a.m[11], a.m[15]}
+}}
+#define CGL_mat4_perspective(aspect, fov, znear, zfar) (CGL_mat4){{1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, 0.0f, 0.0f, -1.0f * ( (zfar + znear) / (zfar - znear) ), -1.0f, 0.0f, 0.0f, -2.0f * znear * zfar / (zfar - znear), 1.0f}}
+#define CGL_mat4_transpose(a) (CGL_mat4){{a.m[0], a.m[4], a.m[12], a.m[1], a.m[5], a.m[9], a.m[13], a.m[2], a.m[6], a.m[10], a.m[14], a.m[3], a.m[7], a.m[11], a.m[15]}}
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 
 typedef CGL_vec3(*CGL_parametric_function)(float, float);
@@ -916,6 +916,9 @@ typedef struct CGL_tile CGL_tile;
 
 CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, uint32_t tile_size_x, uint32_t tile_size_y, uint32_t ssbo_binding);
 void CGL_tilemap_destroy(CGL_tilemap* tilemap);
+void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value);
+bool CGL_tilemap_get_auto_upload(CGL_tilemap* tilemap);
+bool CGL_tilemap_upload(CGL_tilemap* tilemap);
 void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float r, float g, float b);
 void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index);
 void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float texture_x_min, float texture_y_min, float texture_x_max, float texture_y_max);
@@ -5382,6 +5385,7 @@ struct CGL_tilemap
     uint32_t tile_count_y;
     uint32_t tile_size_x;
     uint32_t tile_size_y;
+    bool auto_update;
     // renderer data
     CGL_mesh_gpu* mesh;
     CGL_shader* shader;
@@ -5429,6 +5433,7 @@ CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, ui
     tilemap->u_tile_size = CGL_shader_get_uniform_location(tilemap->shader, "u_tile_size");
     tilemap->u_texture_tileset = CGL_shader_get_uniform_location(tilemap->shader, "u_texture_tileset");
     tilemap->u_texture_array = CGL_shader_get_uniform_location(tilemap->shader, "u_texture_array");
+    tilemap->auto_update = true;
     CGL_tilemap_reset(tilemap);
     return tilemap;
 }
@@ -5442,32 +5447,48 @@ void CGL_tilemap_destroy(CGL_tilemap* tilemap)
     free(tilemap);
 }
 
+void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value)
+{
+    tilemap->auto_update = value;
+}
+
+bool CGL_tilemap_get_auto_upload(CGL_tilemap* tilemap)
+{
+    return tilemap->auto_update;
+}
+
+bool CGL_tilemap_upload(CGL_tilemap* tilemap)
+{
+    CGL_ssbo_set_data(tilemap->ssbo, (sizeof(CGL_tile) * tilemap->tile_count_x * tilemap->tile_count_y), tilemap->tile_data, false);
+    return true;
+}
+
 void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float r, float g, float b)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(r, g, b, 2.5f);
-    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+    if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
 void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init((float)texture_index, 0.0f, 0.0f, 1.5f);
-    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+    if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
 void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float texture_x_min, float texture_y_min, float texture_x_max, float texture_y_max)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(texture_x_min, texture_y_min, texture_x_max, texture_y_max);
-    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+    if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
 void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 3.5f);
-    CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
+    if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
 void CGL_tilemap_reset(CGL_tilemap* tilemap)
@@ -5486,8 +5507,7 @@ void CGL_tilemap_reset(CGL_tilemap* tilemap)
 void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, float offset_x, float offset_y, CGL_texture* texture)
 {
     CGL_shader_bind(tilemap->shader);
-    if(texture)
-        CGL_texture_bind(texture, 0);
+    if(texture) CGL_texture_bind(texture, 0);
     CGL_shader_set_uniform_vec2v(tilemap->shader, tilemap->u_offset, -offset_x, -offset_y);
     CGL_shader_set_uniform_vec2v(tilemap->shader, tilemap->u_scale, 1.0f / scale_x, 1.0f / scale_y);
     CGL_shader_set_uniform_vec2v(tilemap->shader, tilemap->u_tile_count, (float)tilemap->tile_count_x, (float)tilemap->tile_count_y);
