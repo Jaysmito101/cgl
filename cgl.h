@@ -329,6 +329,13 @@ struct CGL_mat4
 };
 typedef struct CGL_mat4 CGL_mat4;
 
+struct CGL_quat
+{
+    CGL_vec3 vec;
+    float w;
+};
+typedef struct CGL_quat CGL_quat;
+
 // math functions with macros
 
 #define CGL_vec2_init(x, y) ((CGL_vec2){x, y})
@@ -409,6 +416,23 @@ typedef struct CGL_mat4 CGL_mat4;
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 
 typedef CGL_vec3(*CGL_parametric_function)(float, float);
+
+
+#define CGL_quat_init(x, y, z, w) (CGL_quat){{x, y, z}, w}
+#define CGL_quat_identity() CGL_quat_init(0.0f, 0.0f, 0.0f, 1.0f)
+#define CGL_quat_equal(a, b) (CGL_vec3_equal(a.vec, b.vec) && (a.w == b.w))
+#define CGL_quat_from_axis_angle(x, y, z, angle) CGL_quat_init(sinf(angle / 2.0f) * x, sinf(angle / 2.0f) * y, sinf(angle / 2.0f) * z, cosf(angle / 2.0f))
+float CGL_quat_to_axis_angle(CGL_quat quat, float* x, float* y, float* z);
+#define CGL_quat_from_x_rotation(angle) CGL_quat_from_axis_angle(1.0f, 0.0f, 0.0f, angle)
+#define CGL_quat_from_y_rotation(angle) CGL_quat_from_axis_angle(0.0f, 1.0f, 0.0f, angle)
+#define CGL_quat_from_z_rotation(angle) CGL_quat_from_axis_angle(0.0f, 0.0f, 1.0f, angle)
+#define CGL_quat_from_euler_zyx(z, y, x) CGL_quat_init(cosf(x * 0.5f) * sinf(z * 0.5f) * cosf(y * 0.5f) - sinf(x * 0.5f) * cosf(z * 0.5f) * sinf(y * 0.5f), cosf(x * 0.5f) * cosf(z * 0.5f) * sinf(y * 0.5f) + sinf(x * 0.5f) * sinf(z * 0.5f) * cosf(y * 0.5f), sinf(x * 0.5f) * cosf(z * 0.5f) * cosf(y * 0.5f) - cosf(x * 0.5f) * sinf(z * 0.5f) * sinf(y * 0.5f), cosf(x * 0.5f) * cosf(z * 0.5f) * cosf(y * 0.5f) + sinf(x * 0.5f) * sinf(z * 0.5f) * sinf(y * 0.5f))
+void CGL_quat_to_euler_zyx(CGL_quat quat, float* z, float* y, float* x);
+#define CGL_quat_conjuigate(q) CGL_quat_init(-q.vec.x, -q.vec.y, -q.vec.z, q.w)
+#define CGL_quat_length(q) sqrtf(q.w * q.w + q.vec.x * q.vec.x + q.vec.y * q.vec.y + q.vec.z * q.vec.z)
+#define CGL_quat_normalize(q) {float __CGL_quat_length##__LINE__ = 1.0f / CGL_quat_length(q); q.w *= __CGL_quat_length##__LINE__; q.vec.x *= __CGL_quat_length##__LINE__; q.vec.y *= __CGL_quat_length##__LINE__; q.vec.z *= __CGL_quat_length##__LINE__; }
+CGL_quat CGL_quat_multiply(CGL_quat a, CGL_quat b);
+void CGL_quat_rotate(CGL_quat q, float x, float y, float z, float* ox, float* oy, float* oz);
 
 #endif
 
@@ -2547,6 +2571,74 @@ uint32_t CGL_utils_super_fast_hash(const void* dat, size_t len)
 
 // common lib and mat
 #if 1 // Just to use code folding
+
+float CGL_quat_to_axis_angle(CGL_quat quat, float* x, float* y, float* z)
+{
+    float angle = 2.0f * acosf(quat.w);
+    // float divider = sqrtf(1.0f - quat.w * quat.w);
+    float divider = sinf(angle / 2.0f);
+    if(divider == 0.0f) return angle;
+    if(x) *x = quat.vec.x / divider;
+    if(y) *y = quat.vec.y / divider;
+    if(z) *z = quat.vec.z / divider;
+    return angle;
+}
+
+void CGL_quat_to_euler_zyx(CGL_quat q, float* z, float* y, float* x)
+{
+    // roll (x-axis rotation)
+    if(z)
+    {
+        float sinr_cosp = 2.0f * (q.w * q.vec.x + q.vec.y * q.vec.z);
+        float cosr_cosp = 1.0f - 2.0f * (q.vec.x * q.vec.x + q.vec.y * q.vec.y);
+        *z = atan2f(sinr_cosp, cosr_cosp);
+    }
+    // pitch (y-axis rotation)
+    if(y)
+    {
+        float sinp = 2.0f * (q.w * q.vec.y - q.vec.z * q.vec.x);
+        if(fabs(sinp) >= 1) *y = copysignf(3.141f / 2.0f, sinp); // use 90 deg if out of range
+        else *y = asinf(sinp);
+    }
+    // yaw (z-axis rotation)
+    if(z)
+    {
+        float siny_cosp = 2.0f * (q.w * q.vec.z + q.vec.x * q.vec.y);
+        float cosy_cosp = 1.0f - 2.0f * (q.vec.y * q.vec.y - q.vec.z * q.vec.z);
+        *z = atan2f(siny_cosp, cosy_cosp);
+    }
+}
+
+CGL_quat CGL_quat_multiply(CGL_quat a, CGL_quat b)
+{
+    CGL_quat result;
+    CGL_vec3 temp1, temp2, temp3;
+    temp1 = CGL_vec3_scale(a.vec, b.w);
+    temp2 = CGL_vec3_scale(b.vec, a.w);
+    temp3 = CGL_vec3_cross(a.vec, b.vec);
+    result.w = a.w * b.w - CGL_vec3_dot(a.vec, b.vec);
+    result.vec = CGL_vec3_add(temp1, temp2);
+    result.vec = CGL_vec3_add(result.vec, temp3);
+    return result;
+}
+
+void CGL_quat_rotate(CGL_quat q, float x, float y, float z, float* ox, float* oy, float* oz)
+{
+    float ww = q.w * q.w;
+    float xx = q.vec.x * q.vec.x;
+    float yy = q.vec.y * q.vec.y;
+    float zz = q.vec.z * q.vec.z;
+    float wx = q.w * q.vec.x;
+    float wy = q.w * q.vec.y;
+    float wz = q.w * q.vec.z;
+    float xy = q.vec.x * q.vec.y;
+    float xz = q.vec.x * q.vec.z;
+    float yz = q.vec.y * q.vec.z;
+
+    if(ox) *ox = ww * x + 2.0f * wy * z - 2.0f * wz * y + xx * x + 2.0f * xy * y + 2.0f * xz * z - zz * x - yy * x;
+    if(oy) *oy = 2.0f * xy * x + yy * y + 2.0f * yz * z + 2.0f * wz * x - zz * y + ww * y - 2.0f * wx * z - xx * y;
+    if(oz) *oz = 2.0f * xz * x + 2.0f * yz * y + zz * z - 2.0f * wy * x - yy * z + 2.0f * wx * y - xx * z + ww * z;
+}
 
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
 {
