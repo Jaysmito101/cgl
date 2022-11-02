@@ -22,14 +22,14 @@ NOTE: Do not think that header only means its going to increase compile time as 
 
 [Examples](./examples)
 
-### Target Platforms
-    * Windows
-    * Linux
-    * MacOS (untested)
-    * WebAssembly (Beta)
-    * Android (Comming soon...)
+## Target Platforms
+* Windows
+* Linux
+* MacOS (untested)
+* WebAssembly (Beta)
+* Android (Comming soon...)
 
-### What does CGL provide?
+## What does CGL provide?
 
 * Windowing library (Optional)
   - You can completely disable it by `#define CGL_EXCLUDE_WINDOW_API`
