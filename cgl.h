@@ -27,6 +27,18 @@ SOFTWARE.
 #ifndef CGL_H
 #define CGL_H
 
+#ifdef CGL_WASM
+#define CGL_EXCLUDE_NETWORKING
+#define CGL_EXCLUDES_THREADS
+#ifdef CGL_EXCLUDE_WINDOW_API
+#undef CGL_EXCLUDE_WINDOW_API
+#endif
+#ifdef __EMSCRIPTEN__
+  #include <emscripten/emscripten.h>
+#endif
+#define CGL_wasm_set_loop_func(func, data) emscripten_set_main_loop_arg((em_arg_callback_func)func, data, 0, true);
+#endif
+
 // common
 #if 1 // Just to use code folding
 
@@ -649,13 +661,21 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 
 #ifndef CGL_EXCLUDE_GRAPHICS_API
 
+//#ifndef  CGL_EXCLUDE_WINDOW_API
 #include <glad/glad.h>
 
-#define CGL_OPENGL_VERSION_MAJOR 4
-#define CGL_OPENGL_VERSION_MINOR 6
 
+#ifdef CGL_WASM
+#define CGL_OPENGL_VERSION_MAJOR 2
+#define CGL_OPENGL_VERSION_MINOR 0
+#define CGL_OPENGL_VERSION_MAJOR_STR "2"
+#define CGL_OPENGL_VERSION_MINOR_STR "0"
+#else
+#define CGL_OPENGL_VERSION_MAJOR 4
+#define CGL_OPENGL_VERSION_MINOR 3
 #define CGL_OPENGL_VERSION_MAJOR_STR "4"
-#define CGL_OPENGL_VERSION_MINOR_STR "6"
+#define CGL_OPENGL_VERSION_MINOR_STR "3"
+#endif
 
 struct CGL_image
 {
@@ -727,8 +747,10 @@ void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method);
 void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
 
 // framebuffer
-CGL_framebuffer* CGL_framebuffer_create(int width, int height); // create framebuffer (32 bit)
+#ifndef CGL_EXCLUDE_WINDOW_API
 CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window); // create framebuffer from default framebuffer
+#endif
+CGL_framebuffer* CGL_framebuffer_create(int width, int height); // create framebuffer (32 bit)
 void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer); // destroy framebuffer
 void CGL_framebuffer_bind(CGL_framebuffer* framebuffer); // bind framebuffer
 void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, int* width, int* height); // get framebuffer size
@@ -1099,8 +1121,14 @@ void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radi
 #if defined(_WIN32) || defined(_WIN64)
 #pragma warning(push, 0)
 #define WIN32_LEAN_AND_MEAN
+#ifndef  CGL_WASM
 #include <Windows.h>
+#endif
 #pragma warning(pop)
+#endif
+
+#ifdef __EMSCRIPTEN__
+  #include <emscripten/emscripten.h>
 #endif
 
 // list
@@ -1209,7 +1237,7 @@ size_t CGL_list_find(CGL_list* list, void* data)
     for(size_t i = 0 ; i < list->size ; i++)
         if(memcmp(((char*)list->data + i * list->item_size), data, list->item_size) == 0)
             return i;
-    return UINT64_MAX;
+    return (size_t)UINT64_MAX;
 }
 
 void CGL_list_reserve(CGL_list* list, size_t size)
@@ -1487,7 +1515,7 @@ static CGL_hashtable_entry* __CGL_hashtable_get_entry_ptr(CGL_hashtable* table, 
     if(table_index) 
     {
         if(memcmp(entry->key, key, key_size) == 0) *table_index = hashtable_index;
-        else *table_index = UINT64_MAX;
+        else *table_index = (size_t)UINT64_MAX;
     }
 
     while(entry->index != 0)
@@ -2225,6 +2253,7 @@ void CGL_net_ssl_log_errors()
 
 float CGL_utils_get_time()
 {
+#ifndef CGL_WASM
 #if defined(_WIN32) || defined(_WIN64)
     LARGE_INTEGER frequency, starting_time;
     QueryPerformanceFrequency(&frequency); 
@@ -2239,6 +2268,9 @@ float CGL_utils_get_time()
         return 0.0f;
     } 
     return (float)(spec.tv_sec * 1000 + spec.tv_nsec / 1e6) / 1000.0f;
+#endif
+#else 
+    return 0.0f;
 #endif
 }
 
@@ -2842,11 +2874,18 @@ CGL_window* CGL_window_create(int width, int height, const char* title)
             return false;
         }
     }
+#ifdef CGL_WASM
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+//    glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_CONTEXT_API);
+#else
     // tell glfw we are going to use opengl api
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 	// tell glfw to initialize opengl context for opengl version 4.6 (latest)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+#endif
 	// tell glfw to use the opengl core profile and not the compatibility profile
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -3171,7 +3210,9 @@ CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLen
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#ifndef CGL_WASM
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+#endif
     glBindTexture(texture->target, 0);
     return texture;
 }
@@ -3192,7 +3233,9 @@ CGL_texture* CGL_texture_create_cubemap()
 	glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#ifndef CGL_WASM
 	glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+#endif
 	glBindTexture(texture->target, 0);
     return texture;
 }
@@ -3263,7 +3306,9 @@ void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
 {
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#ifndef CGL_WASM
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+#endif
 }
 
 // destroy texture
@@ -3410,6 +3455,7 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
     return framebuffer;
 }
 
+#ifndef CGL_EXCLUDE_WINDOW_API
 // create framebuffer from default framebuffer
 CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window)
 {
@@ -3421,6 +3467,7 @@ CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window)
     framebuffer->user_data = window;
     return framebuffer;
 }
+#endif
 
 // destroy framebuffer
 void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer)
@@ -3442,7 +3489,11 @@ void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
     if(framebuffer->is_default)
     {
         int width = 0, height = 0;
+#ifdef CGL_WASM
+        // TODO
+#else
         CGL_window_get_size((CGL_window*)framebuffer->user_data, &width, &height);
+#endif
         glViewport(0, 0, width, height);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -3459,7 +3510,11 @@ void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, int* width, int* hei
     if(framebuffer->is_default)
     {
         int w = 0, h = 0;
+#ifdef CGL_WASM
+        // TODO
+#else
         CGL_window_get_framebuffer_size((CGL_window*)framebuffer->user_data, &w, &h);
+#endif
         if(width)   *width = w;
         if(height)  *height = h;
     }
@@ -3592,7 +3647,7 @@ void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data)
     if(size)
         *size = ssbo->size;
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
-    glGetNamedBufferSubData(ssbo->handle, 0, ssbo->size, data);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, ssbo->size, data);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -3605,7 +3660,7 @@ void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* dat
         return;
     }
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
-    glGetNamedBufferSubData(ssbo->handle, offset, size, data);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -3656,12 +3711,17 @@ void CGL_gl_clear(float r, float g, float b, float a)
 // load opengl functions
 bool CGL_gl_init()
 {
+#ifdef CGL_WASM
+    int gles_version = gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
+    return true;
+#else
     bool result = gladLoadGL();
     if(!result)
     {
         CGL_LOG("Failed to load OpenGL functions");
     }
     return result;
+#endif
 }
 
 // clean up
@@ -4768,7 +4828,12 @@ struct CGL_phong_light
     void* user_data;
 };
 
-static const char* __CGL_PHONG_VERTEX_SHADER = "#version 430 core\n"
+static const char* __CGL_PHONG_VERTEX_SHADER =
+#ifdef CGL_WASM
+"#version 300 es\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
@@ -4792,7 +4857,12 @@ static const char* __CGL_PHONG_VERTEX_SHADER = "#version 430 core\n"
 "}";
 
 
-static const char* __CGL_PHONG_FRAGMENT_SHADER = "#version 430 core\n"
+static const char* __CGL_PHONG_FRAGMENT_SHADER = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "#define MAX_LIGHTS             16\n"
 "\n"
@@ -5359,7 +5429,12 @@ void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 
 #ifndef CGL_EXCLUDE_TILEMAP_RENDERER
 
-static const char* __CGL_TILEMAP_VERTEX_SHADER = "#version 430 core\n"
+static const char* __CGL_TILEMAP_VERTEX_SHADER = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
@@ -5370,7 +5445,12 @@ static const char* __CGL_TILEMAP_VERTEX_SHADER = "#version 430 core\n"
 "	gl_Position = vec4(position.xyz, 1.0f);\n"
 "}";
 
-static const char* __CGL_TILEMAP_FRAGENT_SHADER = "#version 430 core\n"
+static const char* __CGL_TILEMAP_FRAGENT_SHADER = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "//out int MousePick0;\n"
@@ -5648,7 +5728,12 @@ struct CGL_sky
 
 };
 
-static const char* __CGL_SKY_VERTEX_SHADER = "#version 430 core\n"
+static const char* __CGL_SKY_VERTEX_SHADER = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
@@ -5666,7 +5751,12 @@ static const char* __CGL_SKY_VERTEX_SHADER = "#version 430 core\n"
 "	Position = position.xyz;\n"
 "}";
 
-static const char* __CGL_SKY_CUBEMAP_FRAGMENT_SHADER = "#version 430 core\n"
+static const char* __CGL_SKY_CUBEMAP_FRAGMENT_SHADER =
+#ifdef CGL_WASM
+"#version 300 es\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -5680,7 +5770,12 @@ static const char* __CGL_SKY_CUBEMAP_FRAGMENT_SHADER = "#version 430 core\n"
 "	FragColor = color;\n"
 "}";
 
-static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER = "#version 430 core\n"
+static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
+#ifdef CGL_WASM
+"#version 300 es\n"
+#else
+"#version 430 core\n"
+#endif
 "uniform vec3 fsun = vec3(0, 0.2, 0.1);\n"
 "uniform float time = 0.0;\n"
 "uniform float cirrus = 0.4;\n"
