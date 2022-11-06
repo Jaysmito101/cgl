@@ -27,6 +27,13 @@ SOFTWARE.
 #ifndef CGL_H
 #define CGL_H
 
+#if defined(_WIN32) || defined(_WIN64)
+#define CGL_WINDOWS
+#else
+// TODO: seperate linux and macos and android
+#define CGL_UNIX
+#endif
+
 #ifdef CGL_WASM
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDES_THREADS
@@ -155,6 +162,19 @@ float CGL_utils_get_time();
 #define CGL_realloc(ptr, size) realloc(ptr, size)
 #define CGL_free(ptr) free(ptr)
 #define CGL_exit(code) exit(code)
+
+#define CGL_CONSOLE_COLOR_RESET  0
+#define CGL_CONSOLE_COLOR_RED    1
+#define CGL_CONSOLE_COLOR_GREEN  2
+#define CGL_CONSOLE_COLOR_GRAY   3
+#define CGL_CONSOLE_COLOR_BLUE   4
+
+void CGL_console_set_color(uint8_t color);
+
+void CGL_printf_red(const char* format, ...);
+void CGL_printf_green(const char* format, ...);
+void CGL_printf_gray(const char* format, ...);
+void CGL_printf_blue(const char* format, ...);
 
 #endif
 
@@ -2250,6 +2270,80 @@ void CGL_net_ssl_log_errors()
 
 // utils
 #if 1
+
+
+void CGL_console_set_color(uint8_t color)
+{
+#ifdef CGL_WINDOWS
+    static WORD saved_attributes;
+    HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+    if(color == CGL_CONSOLE_COLOR_RESET) SetConsoleTextAttribute(console, saved_attributes);
+    CONSOLE_SCREEN_BUFFER_INFO console_info;
+    GetConsoleScreenBufferInfo(console, &console_info);    
+    saved_attributes = console_info.wAttributes;
+    switch(color)
+    {
+        case 1:  SetConsoleTextAttribute(console, FOREGROUND_RED); break;
+        case 2:  SetConsoleTextAttribute(console, FOREGROUND_GREEN); break;
+        case 3:  SetConsoleTextAttribute(console, FOREGROUND_INTENSITY); break;
+        case 4:  SetConsoleTextAttribute(console, FOREGROUND_BLUE); break;
+        default: break;
+    }
+#else
+    if(color == CGL_CONSOLE_COLOR_RESET) printf("\x1B[0m");
+    else
+    {
+        switch(color)
+        {
+            case 1:  printf("\x1B[31m"); break;
+            case 2:  printf("\x1B[32m"); break;
+            case 3:  printf("\x1B[33m"); break;
+            case 3:  printf("\x1B[34m"); break;
+            default: break;
+        }   
+    }
+#endif   
+}
+
+void CGL_printf_red(const char* format, ...)
+{
+    CGL_console_set_color(CGL_CONSOLE_COLOR_RED);
+    va_list args;
+    va_start (args, format);
+    vprintf (format, args);
+    va_end (args);
+    CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
+}
+
+void CGL_printf_green(const char* format, ...)
+{
+    CGL_console_set_color(CGL_CONSOLE_COLOR_GREEN);
+    va_list args;
+    va_start (args, format);
+    vprintf (format, args);
+    va_end (args);
+    CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
+}
+
+void CGL_printf_gray(const char* format, ...)
+{
+    CGL_console_set_color(CGL_CONSOLE_COLOR_GRAY);
+    va_list args;
+    va_start (args, format);
+    vprintf (format, args);
+    va_end (args);
+    CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
+}
+
+void CGL_printf_blue(const char* format, ...)
+{
+    CGL_console_set_color(CGL_CONSOLE_COLOR_BLUE);
+    va_list args;
+    va_start (args, format);
+    vprintf (format, args);
+    va_end (args);
+    CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
+}
 
 float CGL_utils_get_time()
 {
