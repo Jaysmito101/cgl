@@ -41,6 +41,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - CRC32/CRC64
   - ROT13 encryption
   - General Purpose Hashing Functions [refer here]( http://www.azillionmonkeys.com/qed/hash.html)
+  - Colored printf (red, green, blue, gray/yellow)
   - TODO: [ MD5 / SHA 256 / SHA 128 / AES ]
 
 * Data structures
@@ -69,7 +70,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
 * CGL Widgets (Optional)
   - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
   - API Like [p5.js](https://p5js.org/)
-  - Bach Renderer backend (very fast even for a large number of widgets)
+  - Batch Renderer backend (very fast even for a large number of widgets)
   - draw (filled or stroked) :
     - triangle [`CGL_widgets_add_triangle`]
     - general quad [`CGL_widgets_add_quad`]
