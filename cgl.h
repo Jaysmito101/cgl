@@ -69,7 +69,7 @@ SOFTWARE.
 #include <time.h>
 
 #ifdef CGL_LOGGING_ENABLED
-#define CGL_LOG(...) printf(__VA_ARGS__)
+#define CGL_LOG(...) CGL_log_internal(__VA_ARGS__)
 #else
 #define CGL_LOG(...)
 #endif // CGL_LOG_ENABLED
@@ -143,8 +143,10 @@ void CGL_net_ssl_log_errors();
 // CGL utils
 
 char* CGL_utils_read_file(const char* path, size_t* size); // read file into memory
+bool CGL_utils_append_file(const char* path, const char* data, size_t size);
 bool CGL_utils_write_file(const char* path, const char* data, size_t size); // write data to file
 float CGL_utils_get_time();
+void CGL_utils_get_timestamp(char* buffer);
 
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
 #define CGL_utils_random_int(min, max) (rand() % (max - min + 1) + min)
@@ -176,6 +178,61 @@ void CGL_printf_green(const char* format, ...);
 void CGL_printf_gray(const char* format, ...);
 void CGL_printf_blue(const char* format, ...);
 
+#endif
+
+#define CGL_LOG_LEVEL_TRACE         0
+#define CGL_LOG_LEVEL_INFO          1
+#define CGL_LOG_LEVEL_WARN          2
+#define CGL_LOG_LEVEL_ERROR         3 
+#define CGL_LOG_LEVEL_INTERNAL      4 
+#define CGL_LOGGER_MAX_LOG_FILES    32
+#define CGL_LOGGER_LOG_BUFFER_SIZE  (1024 * 4)
+
+#ifndef CGL_ENABLE_CONSOLE_LOGGING
+#define CGL_ENABLE_CONSOLE_LOGGING true
+#endif
+
+#ifndef CGL_DISABLE_LOGGER
+
+
+struct CGL_logger_context;
+typedef struct CGL_logger_context CGL_logger_context;
+
+void CGL_logger_init(bool enable_console_logging);
+void CGL_logger_shutdown();
+CGL_logger_context* CGL_logger_get_context();
+void CGL_logger_set_context(CGL_logger_context* context);
+bool CGL_logger_attach_log_file(const char* path);
+bool CGL_logger_detach_log_file(const char* path);
+void CGL_logger_flush();
+void CGL_logger_disable_console_logging();
+void CGL_logger_enable_console_logging();
+void CGL_logger_log(int level, const char* log_format, ...);
+
+#define CGL_trace(...)        CGL_logger_log(CGL_LOG_LEVEL_TRACE, __VA_ARGS__)
+#define CGL_info(...)         CGL_logger_log(CGL_LOG_LEVEL_INFO, __VA_ARGS__)
+#define CGL_warn(...)         CGL_logger_log(CGL_LOG_LEVEL_WARN, __VA_ARGS__)
+#define CGL_error(...)        CGL_logger_log(CGL_LOG_LEVEL_ERROR, __VA_ARGS__)
+#ifndef CGL_DISABLE_INTERNAL_LOGGING
+#define CGL_log_internal(...) CGL_logger_log(CGL_LOG_LEVEL_INTERNAL, __VA_ARGS__)
+#endif
+
+#else
+#define CGL_logger_init(...)
+#define CGL_logger_shutdown()
+#define CGL_logger_get_context() NULL
+#define CGL_logger_set_context(...)
+#define CGL_logger_attach_log_file(path)
+#define CGL_logger_dettach_log_file(path)
+#define CGL_logger_flush()
+#define CGL_logger_disable_console_logging()
+#define CGL_logger_enable_console_logging()
+#define CGL_logger_log(...)
+#define CGL_info(...)
+#define CGL_trace(...)
+#define CGL_warn(...)
+#define CGL_error(...)
+#define CGL_log_internal(...)
 #endif
 
 // math and data structures
@@ -2172,7 +2229,7 @@ int CGL_net_http_post(const char* host, const char* path, void* buffer, size_t* 
 
 int CGL_net_https_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body)
 {
-    CGL_LOG("TO BE IMPLEMENTED!\n");
+    CGL_log_internal("TO BE IMPLEMENTED!\n");
     return 0;
 }
 
@@ -2206,7 +2263,7 @@ CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* soc)
     sock->ssl = SSL_new(sock->ctx);
     if(!sock->ssl)
     {
-        CGL_LOG("Error in creating SSL\n");
+        CGL_log_internal("Error in creating SSL\n");
         CGL_free(sock);
         return NULL;
     }
@@ -2215,11 +2272,11 @@ CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* soc)
     int err = SSL_connect(sock->ssl);
     if(err <= 0)
     {
-        CGL_LOG("Error in creating SSL connection (%d)\n", err);
+        CGL_log_internal("Error in creating SSL connection (%d)\n", err);
         CGL_free(sock);
         return NULL;
     }
-    CGL_LOG("SSL connection established using %s\n", SSL_get_cipher(sock->ssl));    
+    CGL_log_internal("SSL connection established using %s\n", SSL_get_cipher(sock->ssl));    
     return sock;
 }
 
@@ -2265,6 +2322,125 @@ void CGL_net_ssl_log_errors()
 
 
 #endif //  CGL_EXCLUDE_NETWORKING
+
+#endif
+
+#ifndef CGL_DISABLE_LOGGER
+
+
+struct CGL_logger_context
+{
+    char log_file_paths[CGL_LOGGER_MAX_LOG_FILES][4096];
+    char log_buffer[CGL_LOGGER_LOG_BUFFER_SIZE];
+    int log_buffer_length;
+    bool console_logging_enabled;
+    bool flush_on_log;
+};
+
+static CGL_logger_context* __CGL_CURRENT_LOGGER_CONTEXT = NULL;
+
+void CGL_logger_init(bool enable_console_logging)
+{
+    __CGL_CURRENT_LOGGER_CONTEXT = (CGL_logger_context*)CGL_malloc(sizeof(CGL_logger_context));
+    __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length = 0;
+    __CGL_CURRENT_LOGGER_CONTEXT->flush_on_log = false;
+    __CGL_CURRENT_LOGGER_CONTEXT->console_logging_enabled = enable_console_logging;
+    memset(__CGL_CURRENT_LOGGER_CONTEXT->log_buffer, 0, sizeof(char) * CGL_LOGGER_LOG_BUFFER_SIZE);
+    memset(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths, 0, sizeof(char) * CGL_LOGGER_MAX_LOG_FILES * 4096);
+    CGL_log_internal("Started Logger Session");
+}
+
+void CGL_logger_shutdown()
+{
+    CGL_log_internal("Ending Logger Session");
+    CGL_logger_flush();
+    CGL_free(__CGL_CURRENT_LOGGER_CONTEXT);
+}
+
+CGL_logger_context* CGL_logger_get_context()
+{
+    return __CGL_CURRENT_LOGGER_CONTEXT;
+}
+
+void CGL_logger_set_context(CGL_logger_context* context)
+{
+    __CGL_CURRENT_LOGGER_CONTEXT = context;
+}
+
+bool CGL_logger_attach_log_file(const char* path)
+{
+    for(int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++) if(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] == '\0')
+    {
+        strcpy(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i], path);
+        CGL_log_internal("Attached Log File : %s", path);
+        return true;
+    }
+    return false;
+}
+
+bool CGL_logger_detach_log_file(const char* path)
+{
+    for(int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++) if(strcmp(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i], path) == 0)
+    {
+        __CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] = '\0';
+        CGL_log_internal("Detached Log File : %s", path);
+        return true;
+    }
+    return false;
+}
+
+void CGL_logger_flush()
+{
+    for(int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++)
+        if(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] != '\0')
+            CGL_utils_append_file(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i], __CGL_CURRENT_LOGGER_CONTEXT->log_buffer, __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length);
+    __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length = 0;
+    __CGL_CURRENT_LOGGER_CONTEXT->log_buffer[0] = '\0';
+    if(!__CGL_CURRENT_LOGGER_CONTEXT->flush_on_log) { CGL_log_internal("Flushed Log Buffer"); }
+}
+
+void CGL_logger_disable_console_logging()
+{
+    __CGL_CURRENT_LOGGER_CONTEXT->console_logging_enabled = false;
+}
+
+void CGL_logger_enable_console_logging()
+{
+    __CGL_CURRENT_LOGGER_CONTEXT->console_logging_enabled = true;
+}
+
+void CGL_logger_log(int level, const char* log_format, ...)
+{
+    static char buffer1[1024 * 4];
+    static char buffer2[256];
+    static char buffer3[1024 * 4];
+    static const char* LOG_LEVEL_STR[] = {
+        "TRACE",   
+        "INFO",    
+        "WARN",    
+        "ERROR",   
+        "INTERNAL"
+    };
+    va_list args;
+    va_start (args, log_format);
+    vsprintf (buffer1, log_format, args);
+    va_end (args);
+    CGL_utils_get_timestamp(buffer2);
+    sprintf(buffer3, "[%s] [%s] : %s\n", LOG_LEVEL_STR[level], buffer2, buffer1);
+    int log_length = (int)strlen(buffer3);
+    if(log_length + __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length >= CGL_LOGGER_LOG_BUFFER_SIZE) CGL_logger_flush();
+    strcat(__CGL_CURRENT_LOGGER_CONTEXT->log_buffer, buffer3);
+    __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length += log_length;
+    switch(level)
+    {
+        case CGL_LOG_LEVEL_TRACE   : printf(buffer3); break;
+        case CGL_LOG_LEVEL_INFO    : CGL_printf_green(buffer3); break;
+        case CGL_LOG_LEVEL_WARN    : CGL_printf_gray(buffer3); break;
+        case CGL_LOG_LEVEL_ERROR   : CGL_printf_red(buffer3); break;
+        case CGL_LOG_LEVEL_INTERNAL: CGL_printf_blue(buffer3); break;
+    }
+    if(__CGL_CURRENT_LOGGER_CONTEXT->flush_on_log) CGL_logger_flush();
+}
 
 #endif
 
@@ -2366,6 +2542,13 @@ float CGL_utils_get_time()
 #else 
     return 0.0f;
 #endif
+}
+
+void CGL_utils_get_timestamp(char* buffer)
+{
+    time_t ltime = time(NULL);
+    sprintf(buffer, "%s", asctime( localtime(&ltime)));
+    buffer[strlen(buffer) - 2] = '\0';
 }
 
 /*
@@ -2806,27 +2989,21 @@ CGL_context* __CGL_context = NULL;
 
 bool CGL_init()
 {
-    if(__CGL_context != NULL)
-        return true;
+    if(__CGL_context != NULL) return true;
     __CGL_context = (CGL_context*)malloc(sizeof(CGL_context));
-    if(__CGL_context == NULL)
-        return false;
-
+    if(__CGL_context == NULL) return false;
     __CGL_context->is_initialized = true;
-
-
     __CGL_context->window_count = 0;
-
-
+    CGL_logger_init(CGL_ENABLE_CONSOLE_LOGGING);
     return true;
 }
 
 void CGL_shutdown()
 {
-    if(__CGL_context == NULL)
-        return;
+    if(__CGL_context == NULL) return;
     free(__CGL_context);
     __CGL_context = NULL;
+    CGL_logger_shutdown();
 }
 
 #endif
@@ -2837,7 +3014,7 @@ void CGL_shutdown()
 // read file into memory
 char* CGL_utils_read_file(const char* path, size_t* size_ptr)
 {
-    FILE* file = fopen(path, "rb");
+    FILE* file = fopen(path, "r");
     if(file == NULL)
         return NULL;
     fseek(file, 0, SEEK_END);
@@ -2860,7 +3037,17 @@ char* CGL_utils_read_file(const char* path, size_t* size_ptr)
 // write data to file
 bool CGL_utils_write_file(const char* path, const char* data, size_t size)
 {
-    FILE* file = fopen(path, "wb");
+    FILE* file = fopen(path, "w");
+    if(file == NULL)
+        return false;
+    fwrite(data, 1, size, file);
+    fclose(file);
+    return true;
+}
+
+bool CGL_utils_append_file(const char* path, const char* data, size_t size)
+{
+    FILE* file = fopen(path, "a");
     if(file == NULL)
         return false;
     fwrite(data, 1, size, file);
@@ -2964,7 +3151,7 @@ CGL_window* CGL_window_create(int width, int height, const char* title)
     {
         if (!glfwInit())
         {
-            CGL_LOG("Failed to initialize GLFW\n");
+            CGL_log_internal("Failed to initialize GLFW\n");
             return false;
         }
     }
@@ -2988,13 +3175,13 @@ CGL_window* CGL_window_create(int width, int height, const char* title)
     CGL_window* window = (CGL_window*)malloc(sizeof(CGL_window));
     if(window == NULL)
     {
-        CGL_LOG("Failed to allocate memory for window\n");
+        CGL_log_internal("Failed to allocate memory for window\n");
         return NULL;
     }
     window->handle = glfwCreateWindow(width, height, title, NULL, NULL);
     if (window->handle == NULL)
     {
-        CGL_LOG("Failed to create GLFW window\n");
+        CGL_log_internal("Failed to create GLFW window\n");
         return false;
     }
     glfwSwapInterval(1); // vsync
@@ -3531,11 +3718,11 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
         for(int i = 0; i < 3; i++)
             CGL_texture_destroy(framebuffer->mousepick_texture[i]);
         free(framebuffer);
-        CGL_LOG("Framebuffer is not complete\n");
+        CGL_log_internal("Framebuffer is not complete\n");
         // get and print opengl error
         GLenum error = glGetError();
         if(error != GL_NO_ERROR)
-            CGL_LOG("OpenGL error: %d\n", (error));
+            CGL_log_internal("OpenGL error: %d\n", (error));
         return NULL;
     }
 
@@ -3727,7 +3914,7 @@ void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* dat
 {
     if(offset + size > ssbo->size)
     {
-        CGL_LOG("CGL_ssbo_set_sub_data: offset + size > ssbo->size");
+        CGL_log_internal("CGL_ssbo_set_sub_data: offset + size > ssbo->size");
         return;
     }
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
@@ -3750,7 +3937,7 @@ void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* dat
 {
     if(offset + size > ssbo->size)
     {
-        CGL_LOG("CGL_ssbo_get_sub_data: offset + size > ssbo->size");
+        CGL_log_internal("CGL_ssbo_get_sub_data: offset + size > ssbo->size");
         return;
     }
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
@@ -3781,12 +3968,12 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 {
     if(dst_offset + size > dst->size)
     {
-        CGL_LOG("CGL_ssbo_copy: dst_offset + size > dst->size");
+        CGL_log_internal("CGL_ssbo_copy: dst_offset + size > dst->size");
         return;
     }
     if(src_offset + size > src->size)
     {
-        CGL_LOG("CGL_ssbo_copy: src_offset + size > src->size");
+        CGL_log_internal("CGL_ssbo_copy: src_offset + size > src->size");
         return;
     }
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, dst->handle);
@@ -3812,7 +3999,7 @@ bool CGL_gl_init()
     bool result = gladLoadGL();
     if(!result)
     {
-        CGL_LOG("Failed to load OpenGL functions");
+        CGL_log_internal("Failed to load OpenGL functions");
     }
     return result;
 #endif
@@ -4346,7 +4533,7 @@ bool __CGL_shader_compile(const char* source, GLenum type, GLuint* handle, char*
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
         char* log = (char*)malloc(log_length);
         glGetShaderInfoLog(shader, log_length, NULL, log);
-        CGL_LOG("%s\n", log);
+        CGL_log_internal("%s\n", log);
         if(error)
             *error = log;
         else
@@ -4386,7 +4573,7 @@ CGL_shader* CGL_shader_compute_create(const char* compute_shader_source, char** 
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
         char* log = (char*)malloc(log_length);
         glGetProgramInfoLog(program, log_length, NULL, log);
-        CGL_LOG("%s\n", log);
+        CGL_log_internal("%s\n", log);
         if(error)
             *error = log;
         else
@@ -4408,7 +4595,7 @@ CGL_shader* CGL_shader_compute_create_from_files(const char* compute_shader_file
     char* compute_shader_source = CGL_utils_read_file(compute_shader_file, NULL);
     if(compute_shader_source == NULL)
     {
-        CGL_LOG("Failed to read compute shader file %s\n", compute_shader_file);
+        CGL_log_internal("Failed to read compute shader file %s\n", compute_shader_file);
         return NULL;
     }
     CGL_shader* shader = CGL_shader_compute_create(compute_shader_source, error);
@@ -4453,7 +4640,7 @@ CGL_shader* CGL_shader_create(const char* vertex_shader_source, const char* frag
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
         char* log = (char*)malloc(log_length);
         glGetProgramInfoLog(program, log_length, NULL, log);
-        CGL_LOG("%s\n", log);
+        CGL_log_internal("%s\n", log);
         if(error)
             *error = log;
         else
@@ -4483,13 +4670,13 @@ CGL_shader* CGL_shader_create_from_files(const char* vertex_shader_file, const c
     char* vertex_shader_source = CGL_utils_read_file(vertex_shader_file, NULL);
     if(vertex_shader_source == NULL)
     {
-        CGL_LOG("Failed to read vertex shader file %s\n", vertex_shader_file);
+        CGL_log_internal("Failed to read vertex shader file %s\n", vertex_shader_file);
         return NULL;
     }
     char* fragment_shader_source = CGL_utils_read_file(fragment_shader_file, NULL);
     if(fragment_shader_source == NULL)
     {
-        CGL_LOG("Failed to read fragment shader file %s\n", fragment_shader_file);
+        CGL_log_internal("Failed to read fragment shader file %s\n", fragment_shader_file);
         free(vertex_shader_source);
         return NULL;
     }
@@ -6193,7 +6380,7 @@ static FT_Library __CGL_free_type_library;
 bool CGL_text_init()
 {
     bool result = FT_Init_FreeType(&__CGL_free_type_library);
-    if(result) { CGL_LOG("Could not Initialize FreeType\n"); }
+    if(result) { CGL_log_internal("Could not Initialize FreeType\n"); }
     return !result;
 }
 
@@ -6206,7 +6393,7 @@ CGL_font* CGL_font_load(const char* path)
 {
     CGL_font* font = (CGL_font*)CGL_malloc(sizeof(CGL_font));
     if(!font) return NULL;
-    if(FT_New_Face(__CGL_free_type_library, path, 0, &font->face)) {CGL_LOG("Could not Load Font\n");}
+    if(FT_New_Face(__CGL_free_type_library, path, 0, &font->face)) {CGL_log_internal("Could not Load Font\n");}
     memset(font->characters, 0, sizeof(CGL_font_character) * 128);
     font->atlas_width = 0;
     font->atlas_height = 0;
@@ -6243,7 +6430,7 @@ bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t fo
     {
         if(FT_Load_Char(font->face, (FT_ULong)ch, FT_LOAD_RENDER))
         {
-            CGL_LOG("Could not Font Load Character %c\n", ch);
+            CGL_log_internal("Could not Font Load Character %c\n", ch);
             return false;
         }
         int64_t size_x = font->face->glyph->bitmap.width;
