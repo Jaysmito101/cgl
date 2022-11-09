@@ -49,6 +49,12 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Hashtable -> This hastable is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
      - Hashtable Iterator -> Iterate through the hashtable using a [simple](https://github.com/Jaysmito101/cgl/blob/main/examples/using_hashtable_iterator.c) API
   
+* Logger
+  - Can be enabled/disabled by `#define CGL_DISABLE_LOGGER`
+  - Log to multiple log files simultaneously
+  - Log to console with colored output for seperate log levels
+  - Logger with auto timestamps
+  
 * Cross Platform Networking (Optional)
   - You can disable all networking by `#define CGL_EXCLUDE_NETWORKING`
   - Low-level sockets 
