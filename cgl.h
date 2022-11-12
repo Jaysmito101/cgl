@@ -1175,6 +1175,7 @@ void CGL_widgets_set_fill_colorf(float r, float g, float b, float a);
 void CGL_widgets_set_fill_mode(bool is_enabled);
 void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
 void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
+void CGL_widgets_add_quad_8f(float ax, float ay, float bx, float by, float cx, float cy, float dx, float dy);
 void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end);
 void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size);
 void CGL_widgets_add_rect2f(float start_x, float start_y, float size_x, float size_y);
@@ -1182,6 +1183,9 @@ void CGL_widgets_add_circle(CGL_vec3 position, float radius);
 void CGL_widgets_add_circle2f(float pos_x, float pos_y, float radius);
 void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
 void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radius_y);
+bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy);
+bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy);
+
 
 #endif
 #endif
@@ -6824,6 +6828,16 @@ void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
     else __CGL_widgets_add_quad_stroked(a, b, c, d);
 }
 
+void CGL_widgets_add_quad_8f(float ax, float ay, float bx, float by, float cx, float cy, float dx, float dy)
+{
+    CGL_widgets_add_quad(
+        CGL_vec3_init(ax, ay, 0.0f),
+        CGL_vec3_init(bx, by, 0.0f),
+        CGL_vec3_init(cx, cy, 0.0f),
+        CGL_vec3_init(dx, dy, 0.0f)
+        );
+}
+
 void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
 {
     CGL_vec3 a, b, c, d;
@@ -6911,6 +6925,410 @@ void CGL_widgets_add_circle(CGL_vec3 position, float radius)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(position, CGL_vec2_init(radius, radius));
     else __CGL_widgets_add_oval_stroked(position, CGL_vec2_init(radius, radius));    
+}
+
+
+bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy)
+{
+    bool was_fill = __CGL_WIDGETS_CURRENT_CONTEXT->is_fill;
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
+    switch(c)
+    {
+        case '0':
+        {            
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            return true;
+        }
+        case '1':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            return true;
+        }
+        case '2':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case '3':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case '4':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            return true;
+        }
+        case '5':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case '6':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case '7':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            return true;
+        }
+        case '8':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            return true;
+        }
+        case '9':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            return true;
+        }
+        case 'a':
+        case 'A':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            return true;
+        }
+        case 'b':
+        case 'B':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case 'c':
+        case 'C':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case 'd':
+        case 'D':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            return true;
+        }
+        case 'e':
+        case 'E':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            return true;
+        }
+        case 'f':
+        case 'F':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            return true;
+        }
+        case 'g':
+        case 'G':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x + 0.5f * sx, y + (0.5f - 0.125f) * sy, sx * 0.5f, sy * 0.25f);
+            return true;
+        }
+        case 'h':
+        case 'H':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            return true;
+        }
+        case 'i':
+        case 'I':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            return true;
+        }
+        case 'j':
+        case 'J':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy * 0.5f);
+            return true;
+        }
+        case 'k':
+        case 'K':
+        {
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_quad_8f(
+                x, y + (0.5f + 0.15f) * sy,
+                x, y + (0.5f - 0.15f) * sy,
+                x + sx, y + 0.85f * sy,
+                x + 0.85f * sx, y + sy
+            );
+            CGL_widgets_add_quad_8f(
+                x, y + (0.5f + 0.15f) * sy,
+                x, y + (0.5f - 0.15f) * sy,
+                x + 0.85f * sx, y,
+                x + sx, y + 0.15f * sy
+            );
+            return true;
+        }
+        case 'l':
+        case 'L':
+        {
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case 'm':
+        case 'M':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            return true;
+        }
+        case 'n':
+        case 'N':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_quad_8f(
+                x + 0.15f * sx, y + sy,
+                x, y + 0.85f * sy,
+                x + 0.85f * sx, y,
+                x + sx, y + 0.15f * sy
+            );
+            return true;
+        }
+        case 'o':
+        case 'O':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            return true;
+        }
+        case 'p':
+        case 'P':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            return true;
+        }
+        case 'q':
+        case 'Q':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y, sx * 0.25f, sy * 0.5f);
+            return true;
+        }
+        case 'r':
+        case 'R':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_quad_8f(
+                x, y + (0.5f + 0.15f) * sy,
+                x, y + (0.5f - 0.15f) * sy,
+                x + 0.85f * sx, y,
+                x + sx, y + 0.15f * sy
+            );
+            return true;
+        }
+        case 's':
+        case 'S':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            return true;
+        }
+        case 't':
+        case 'T':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y, sx * 0.25f, sy);
+            return true;
+        }
+        case 'u':
+        case 'U':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case 'v':
+        case 'V':
+        {
+            CGL_widgets_add_quad_8f(
+                x + sx, y + 0.85f * sy,
+                x + 0.85f * sx, y + sy,
+                x + (0.5f - 0.125f) * sx, y,
+                x + (0.5f + 0.125f) * sx, y
+            );
+            CGL_widgets_add_quad_8f(
+                x + 0.15f * sx, y + sy,
+                x, y + 0.85f * sy,
+                x + (0.5f - 0.125f) * sx, y,
+                x + (0.5f + 0.125f) * sx, y
+            );
+            return true;
+        }
+        case 'w':
+        case 'W':
+        {
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y, sx * 0.25f, sy * 0.5f);
+            return true;
+        }
+        case 'x':
+        case 'X':
+        {
+            CGL_widgets_add_quad_8f(
+                x + 0.15f * sx, y + sy,
+                x, y + 0.85f * sy,
+                x + 0.85f * sx, y,
+                x + sx, y + 0.15f * sy
+            );
+            CGL_widgets_add_quad_8f(
+                x + 0.85f * sx, y + sy,
+                x + sx, y + 0.85f * sy,
+                x + 0.15f * sx, y,
+                x, y + 0.15f * sy
+            );
+            return true;
+        }
+        case 'y':
+        case 'Y':
+        {
+            CGL_widgets_add_rect2f(x, y + 0.5f * sy, sx * 0.25f, sy * 0.5f);
+            CGL_widgets_add_rect2f(x + sx * 0.75f, y, sx * 0.25f, sy);
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            return true;
+        }
+        case 'z':
+        case 'Z':
+        {
+            CGL_widgets_add_rect2f(x, y + sy * 0.75f, sx, sy * 0.25f);
+            CGL_widgets_add_rect2f(x, y, sx, sy * 0.25f);
+            CGL_widgets_add_quad_8f(
+                x + 0.85f * sx, y + sy,
+                x + sx, y + 0.85f * sy,
+                x + 0.15f * sx, y,
+                x, y + 0.15f * sy
+            );
+            return true;
+        }
+        case '-':
+        {
+            CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            return true;
+        }
+        case '.':
+        {
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y, sx * 0.25f, sy * 0.25f);
+            return true;
+        }
+        case ' ':
+        {
+            return true;
+        }
+    }
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = was_fill;
+    return false;
+}
+
+bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy)
+{
+    const float line_gap = 0.01f;
+    const float char_gap = 0.01f;
+    int length = (int)strlen(str);
+    int line_length = 0;
+    int line_length_max = 0;
+    int num_lines = 1;
+    float ix = x, iy = y + sy;
+    for(int i = 0; i < length ; i++)
+    {
+        line_length++;
+        if(str[i] == '\n')
+        {
+            line_length_max = CGL_utils_max(line_length, line_length_max);
+            line_length = 0;
+            num_lines ++;
+        }        
+    }
+    line_length_max = CGL_utils_max(line_length, line_length_max);
+    float character_sx =  sx / line_length - char_gap;
+    float character_sy = (sy - line_gap * num_lines) / (num_lines);
+    y += sy - character_sy;
+    for(int i = 0 ; i < length ; i ++)
+    {
+        if(str[i] == '\n')
+        {
+            y = y - line_gap - character_sy;
+            x = ix;
+            continue;
+        }
+        if(!CGL_widgets_add_character(str[i], x, y, character_sx, character_sy)) return false;
+        x = x + character_sx + char_gap;
+    }
+    return true;
 }
 
 #endif
