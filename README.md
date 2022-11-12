@@ -76,6 +76,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
 * CGL Widgets (Optional)
   - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
   - API Like [p5.js](https://p5js.org/)
+  - Text widgets (render high quality crisp text without loadinf or baking any font)
   - Batch Renderer backend (very fast even for a large number of widgets)
   - draw (filled or stroked) :
     - triangle [`CGL_widgets_add_triangle`]
