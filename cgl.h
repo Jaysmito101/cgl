@@ -6030,7 +6030,7 @@ void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat*
     }    
     CGL_shader_set_uniform_float(pipeline->shader, pipeline->u_shininess, material->shininess);
     if(material->wireframe)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     CGL_mesh_gpu_render(mesh);
     if(material->wireframe)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
