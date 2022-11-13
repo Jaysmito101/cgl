@@ -73,6 +73,13 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Condition Variables (TODO)
   - NOTE: Implemented using `Win32 Threads` on Windows and `pthread` on Linux. (on Linux you need to link `pthread` to build)
 
+* Bloom
+  - Apply bloom to any tuxtures with just 1 line of code
+  - Implementation based of Unity's bloom
+  - Custom thresholding
+  - Custom downsample/upsample passes
+  - Entirely done in Compute Shaders
+
 * CGL Widgets (Optional)
   - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
   - API Like [p5.js](https://p5js.org/)
