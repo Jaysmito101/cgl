@@ -906,9 +906,40 @@ void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo); // get ssbo user data
 size_t CGL_ssbo_get_size(CGL_ssbo* ssbo); // get ssbo size
 void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size); // copy ssbo
 
-#endif
 
 #endif
+#endif
+
+// BLOOM
+#ifndef CGL_EXCLUDE_BLOOM
+#ifdef CGL_EXCLUDE_GRAPHICS_API
+#error "CGL Bloom requires CGL Graphics API"
+#endif
+
+#define CGL_BLOOM_SHADER_MODE_PREFILTER      0
+#define CGL_BLOOM_SHADER_MODE_DOWNSAMPLE     1
+#define CGL_BLOOM_SHADER_MODE_UPSAMPLE       2
+#define CGL_BLOOM_SHADER_MODE_COMPOSITE      3
+
+#define CGL_BLOOM_MAX_ITERATIONS 8
+
+struct CGL_bloom;
+typedef struct CGL_bloom CGL_bloom;
+
+CGL_bloom* CGL_bloom_create(int width, int height, int iterations);
+void CGL_bloom_destroy(CGL_bloom* bloom);
+void CGL_bloom_set_threshold(CGL_bloom* bloom, float val);
+float CGL_bloom_get_threshold(CGL_bloom* bloom);
+void CGL_bloom_set_knee(CGL_bloom* bloom, float val);
+float CGL_bloom_get_knee(CGL_bloom* bloom);
+void CGL_bloom_set_offset(CGL_bloom* bloom, float x, float y);
+void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex);
+int CGL_bloom_get_iterations(CGL_bloom* bloom);
+CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, int index);
+CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom);
+
+#endif
+
 
 // camera
 #if 1
@@ -4062,8 +4093,7 @@ void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh)
 // bind mesh (gpu)
 void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
 {
-    if(mesh->index_count <= 0)
-        return;
+    if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
     glDrawElements(GL_TRIANGLES, (GLsizei)mesh->index_count, GL_UNSIGNED_INT, 0);
 }
@@ -4079,8 +4109,7 @@ void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
 // upload mesh from (cpu) to (gpu)
 void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw)
 {
-    if(mesh_cpu->index_count <= 0)
-        return;
+    if(mesh_cpu->index_count <= 0) return;
     mesh->index_count = mesh_cpu->index_count;
     mesh->vertex_count = mesh_cpu->vertex_count;
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
@@ -4104,11 +4133,9 @@ void* CGL_mesh_gpu_get_user_data(CGL_mesh_gpu* mesh)
 // destroy mesh (cpu)
 void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh)
 {
-    if(mesh->vertices)
-        free(mesh->vertices);
-    if(mesh->indices)
-        free(mesh->indices);
-    free(mesh);
+    if(mesh->vertices) CGL_free(mesh->vertices);
+    if(mesh->indices) CGL_free(mesh->indices);
+    CGL_free(mesh);
 }
 
 // create mesh (cpu)
@@ -4270,9 +4297,8 @@ CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
 {
-    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(4, 6);
-    if(mesh == NULL)
-        return NULL;
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(6, 6);
+    if(mesh == NULL) return NULL;
     CGL_vec3 ab = CGL_vec3_sub(b, a);
     CGL_vec3 ac = CGL_vec3_sub(c, a);
     // CGL_vec3 ad = CGL_vec3_sub(d, a);
@@ -4283,21 +4309,34 @@ CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
     mesh->vertices[0].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
     mesh->vertices[0].normal = normal_abc_4;
     mesh->vertices[0].texture_coordinates = CGL_vec4_init(1.0f, 1.0f, 0.0f, 1.0f);
+
     mesh->vertices[1].position = CGL_vec4_init(b.x, b.y, b.z, 1.0f);
     mesh->vertices[1].normal = normal_abc_4;
     mesh->vertices[1].texture_coordinates = CGL_vec4_init(1.0f, 0.0f, 0.0f, 1.0f);
+    
     mesh->vertices[2].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
     mesh->vertices[2].normal = normal_abc_4;
     mesh->vertices[2].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
-    mesh->vertices[3].position = CGL_vec4_init(d.x, d.y, d.z, 1.0f);
+    
+    mesh->vertices[3].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
     mesh->vertices[3].normal = normal_abc_4;
-    mesh->vertices[3].texture_coordinates = CGL_vec4_init(0.0f, 1.0f, 0.0f, 1.0f);
+    mesh->vertices[3].texture_coordinates = CGL_vec4_init(1.0f, 1.0f, 0.0f, 1.0f);
+    
+    mesh->vertices[4].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
+    mesh->vertices[4].normal = normal_abc_4;
+    mesh->vertices[4].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
+    
+    mesh->vertices[5].position = CGL_vec4_init(d.x, d.y, d.z, 1.0f);
+    mesh->vertices[5].normal = normal_abc_4;
+    mesh->vertices[5].texture_coordinates = CGL_vec4_init(0.0f, 1.0f, 0.0f, 1.0f);
+    
+
     mesh->indices[0] = 0;
     mesh->indices[1] = 1;
-    mesh->indices[2] = 3;
-    mesh->indices[3] = 1;
-    mesh->indices[4] = 2;
-    mesh->indices[5] = 3;
+    mesh->indices[2] = 2;
+    mesh->indices[3] = 3;
+    mesh->indices[4] = 4;
+    mesh->indices[5] = 5;
     return mesh;
 }
 
@@ -4805,6 +4844,309 @@ void* CGL_shader_get_user_data(CGL_shader* shader)
 {
     return shader->user_data;
 }
+
+
+// BLOOM
+#ifndef CGL_EXCLUDE_BLOOM
+
+struct CGL_bloom
+{
+    CGL_texture* tex_lod[CGL_BLOOM_MAX_ITERATIONS * 2];    
+    CGL_texture* prefiltered;
+    CGL_shader* compute;
+    float offset_x;
+    float offset_y;
+    int width;
+    int height;
+    int iterations;
+    float threshold;
+    float knee;
+    int cs_u_mode;
+    int cs_u_src_size;
+    int cs_u_dst_size;
+    int cs_u_prefilter_threshold;
+    int cs_u_offset;
+};
+
+const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
+"layout(local_size_x = 1, local_size_y = 1) in;\n"
+"layout(rgba32f, binding = 0) uniform image2D tex_src;\n"
+"layout(rgba32f, binding = 1) uniform image2D tex_dst;\n"
+"\n"
+"#define MODE_PREFILTER      0\n"
+"#define MODE_DOWNSAMPLE     1\n"
+"#define MODE_UPSAMPLE       2\n"
+"#define MODE_COMPOSITE      3\n"
+"\n"
+"uniform int u_mode;\n"
+"uniform vec2 u_src_size;\n"
+"uniform ivec2 u_offset;\n"
+"uniform vec2 u_dst_size;\n"
+"uniform vec4 u_prefilter_threshold;\n"
+"\n"
+"vec4 prefilter(vec4 color)\n"
+"{\n"
+"    // pixel brightness\n"
+"    float br = max(color.x, max(color.y, color.z));\n"
+"\n"
+"    // under-threshold part : quadratic curve\n"
+"    vec3 curve = u_prefilter_threshold.yzw; // curve = (threshold - knee, knee * 2, 0.25 / knee)\n"
+"    float rq = clamp(br - curve.x, 0.0f, curve.y);\n"
+"    rq = curve.z * rq * rq;\n"
+"\n"
+"    //  combine and apply the brightness response curve\n"
+"    float threshold = u_prefilter_threshold.x;\n"
+"    //color *= max(rq, br - threshold) / max(br, 0.00001f);\n"
+"    color *= (br - threshold) / max(br, 0.00001f);\n"
+"\n"
+"    return color;\n"
+"}\n"
+"\n"
+"vec4 downsample_box_13_tap(ivec2 src_coord)\n"
+"{\n"
+"    vec4 A = imageLoad(tex_src, src_coord + ivec2(-2, -2));\n"
+"    vec4 B = imageLoad(tex_src, src_coord + ivec2( 0, -2));\n"
+"    vec4 C = imageLoad(tex_src, src_coord + ivec2( 2, -2));\n"
+"    vec4 D = imageLoad(tex_src, src_coord + ivec2(-1, -1));\n"
+"    vec4 E = imageLoad(tex_src, src_coord + ivec2( 1, -1));\n"
+"    vec4 F = imageLoad(tex_src, src_coord + ivec2(-2,  0));\n"
+"    vec4 G = imageLoad(tex_src, src_coord                );\n"
+"    vec4 H = imageLoad(tex_src, src_coord + ivec2( 2,  0));\n"
+"    vec4 I = imageLoad(tex_src, src_coord + ivec2(-1,  1));\n"
+"    vec4 J = imageLoad(tex_src, src_coord + ivec2( 1,  1));\n"
+"    vec4 K = imageLoad(tex_src, src_coord + ivec2(-2,  2));\n"
+"    vec4 L = imageLoad(tex_src, src_coord + ivec2( 0,  2));\n"
+"    vec4 M = imageLoad(tex_src, src_coord + ivec2( 2,  2));\n"
+"\n"
+"    vec2 div = (1.0f / 4.0f) * vec2(0.5f, 0.125f);\n"
+"\n"
+"    vec4 o = (D + E + I + J) * div.x;\n"
+"    o += (A + B + G + F) * div.y;\n"
+"    o += (B + C + H + G) * div.y;\n"
+"    o += (F + G + L + K) * div.y;\n"
+"    o += (G + H + M + L) * div.y;\n"
+"\n"
+"        //pixel = imageLoad(tex_src, pixel_coords);\n"
+"    return o;\n"
+"}\n"
+"\n"
+"vec4 upsample_tent(ivec2 src_coord)\n"
+"{\n"
+"    ivec4 d = ivec4(1, 1, -1, 0);\n"
+"\n"
+"    vec4 s;\n"
+"    s =  imageLoad(tex_src, src_coord - d.xy);\n"
+"    s += imageLoad(tex_src, src_coord - d.wy) * 2.0f;\n"
+"    s += imageLoad(tex_src, src_coord - d.zy);\n"
+"    s += imageLoad(tex_src, src_coord + d.zw) * 2.0f;\n"
+"    s += imageLoad(tex_src, src_coord       ) * 4.0f;\n"
+"    s += imageLoad(tex_src, src_coord + d.xw) * 2.0f;\n"
+"    s += imageLoad(tex_src, src_coord + d.zy);\n"
+"    s += imageLoad(tex_src, src_coord + d.wy) * 2.0f;\n"
+"    s += imageLoad(tex_src, src_coord + d.xy);\n"
+"\n"
+"    return s * (1.0f / 16.0f);\n"
+"}\n"
+"\n"
+"vec3 aces_tonemap(vec3 x){	\n"
+"	const float a = 2.51f;\n"
+"    const float b = 0.03f;\n"
+"    const float c = 2.43f;\n"
+"    const float d = 0.59f;\n"
+"    const float e = 0.14f;\n"
+"    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
+"}\n"
+"\n"
+"void main() {\n"
+"    if(u_mode == MODE_PREFILTER)\n"
+"    {\n"
+"        vec4 pixel = vec4(1.0f, 1.0f, 0.0f, 1.0f);    \n"
+"        ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);    \n"
+"        pixel = imageLoad(tex_src, pixel_coords);\n"
+"        imageStore(tex_dst, pixel_coords, prefilter(pixel));\n"
+"    }\n"
+"    else if(u_mode == MODE_DOWNSAMPLE)\n"
+"    {\n"
+"        vec4 pixel = vec4(1.0f, 0.0f, 1.0f, 1.0f);    \n"
+"        ivec2 dst_pixel_coords = ivec2(gl_GlobalInvocationID.xy);    \n"
+"        vec2 uv = vec2(dst_pixel_coords) / u_dst_size;\n"
+"        ivec2 src_pixel_coords = ivec2(uv * u_src_size);\n"
+"        imageStore(tex_dst, dst_pixel_coords, downsample_box_13_tap(src_pixel_coords));\n"
+"    }\n"
+"    else if(u_mode == MODE_UPSAMPLE)\n"
+"    {\n"
+"        vec4 pixel = vec4(1.0f, 0.0f, 1.0f, 1.0f);    \n"
+"        ivec2 dst_pixel_coords = ivec2(gl_GlobalInvocationID.xy);    \n"
+"        vec2 uv = vec2(dst_pixel_coords) / u_dst_size;\n"
+"        ivec2 src_pixel_coords = ivec2(uv * u_src_size);\n"
+"        imageStore(tex_dst, dst_pixel_coords, upsample_tent(src_pixel_coords));\n"
+"    }\n"
+"    else if(u_mode == MODE_COMPOSITE)\n"
+"    {\n"
+"        vec4 pixel = vec4(0.0f, 0.0f, 0.0f, 0.0f);    \n"
+"        ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);\n"
+"        ivec2 pixel_coords2 = ivec2(gl_GlobalInvocationID.xy) + u_offset;\n"
+"        pixel += imageLoad(tex_dst, pixel_coords); \n"
+"        pixel = vec4(aces_tonemap(pixel.xyz), clamp(pixel.w, 0.0f, 1.0f));\n"
+"        pixel += imageLoad(tex_src, pixel_coords2); \n"
+"        imageStore(tex_dst, pixel_coords, pixel);        \n"
+"    }\n"
+"    else\n"
+"    {\n"
+"        vec4 pixel = vec4(1.0f, 0.0f, 0.0f, 1.0f);    \n"
+"        ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);\n"
+"        imageStore(tex_dst, pixel_coords, pixel);\n"
+"    }\n"
+"}";
+
+CGL_bloom* CGL_bloom_create(int width, int height, int iterations)
+{
+    CGL_bloom* bloom = (CGL_bloom*)CGL_malloc(sizeof(CGL_bloom));
+    if(bloom == NULL) return NULL;
+    bloom->threshold = 0.5f;
+    bloom->knee = 0.5f;
+    bloom->iterations = 0;
+    bloom->width = width;
+    bloom->height = height;
+    iterations = CGL_utils_min(CGL_utils_max(1, iterations), CGL_BLOOM_MAX_ITERATIONS);
+    bloom->prefiltered = CGL_texture_create_blank(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);
+    int i = 0;
+    for(i = 0 ; i < iterations ; i++)
+    {
+        width /= 2; height /= 2;
+        if(width < 10 || height < 10)
+        {
+            width *= 2; height *= 2;
+            iterations = i;
+            break;
+        }
+        bloom->tex_lod[i] = CGL_texture_create_blank(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);
+    }
+    for(; i < 2 * iterations ; i++)
+    {
+        width *= 2; height *= 2;
+        if(i == 2 * iterations - 1) {width = bloom->width; height = bloom->height;}
+        bloom->tex_lod[i] = CGL_texture_create_blank(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);
+    }
+    bloom->iterations = iterations;
+    bloom->compute = CGL_shader_compute_create(__CGL_BLOOM_SHADER_SOURCE, NULL);
+    bloom->cs_u_mode = CGL_shader_get_uniform_location(bloom->compute, "u_mode");
+    bloom->cs_u_src_size = CGL_shader_get_uniform_location(bloom->compute, "u_src_size");
+    bloom->cs_u_dst_size = CGL_shader_get_uniform_location(bloom->compute, "u_dst_size");
+    bloom->cs_u_prefilter_threshold = CGL_shader_get_uniform_location(bloom->compute, "u_prefilter_threshold");
+    bloom->cs_u_offset = CGL_shader_get_uniform_location(bloom->compute, "u_offset");
+    return bloom;
+}
+
+void CGL_bloom_destroy(CGL_bloom* bloom)
+{
+    CGL_texture_destroy(bloom->prefiltered);
+    for(int i = 0 ; i < bloom->iterations * 2 ; i++)
+        CGL_texture_destroy(bloom->tex_lod[i]);
+    CGL_shader_destroy(bloom->compute);
+    CGL_free(bloom);
+}
+
+void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
+{
+    CGL_shader_bind(bloom->compute);
+
+    // prefilter
+    glBindImageTexture(0, tex->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, bloom->prefiltered->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_PREFILTER);
+    CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
+    CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->width, (float)bloom->height);
+    CGL_shader_set_uniform_vec4v(bloom->compute, bloom->cs_u_prefilter_threshold, bloom->threshold, bloom->threshold - bloom->knee, bloom->knee * 2.0f, 0.25f / bloom->knee);
+    CGL_shader_compute_dispatch(bloom->compute, bloom->width, bloom->height, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    // downsample
+    glBindImageTexture(0, bloom->prefiltered->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, bloom->tex_lod[0]->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_DOWNSAMPLE);
+    CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
+    CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->tex_lod[0]->width, (float)bloom->tex_lod[0]->height);
+    CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[0]->width, bloom->tex_lod[0]->height, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    int i = 0;
+    for(i = 0 ; i < bloom->iterations - 1 ; i++)
+    {
+        glBindImageTexture(0, bloom->tex_lod[i]->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+        glBindImageTexture(1, bloom->tex_lod[i + 1]->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+        CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_DOWNSAMPLE);
+        CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->tex_lod[i]->width, (float)bloom->tex_lod[i]->height);
+        CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->tex_lod[i + 1]->width, (float)bloom->tex_lod[i + 1]->height);
+        CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[i + 1]->width, bloom->tex_lod[i + 1]->height, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+
+    // upsample
+    for(; i < 2 * bloom->iterations - 1 ; i++)
+    {
+        glBindImageTexture(0, bloom->tex_lod[i]->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+        glBindImageTexture(1, bloom->tex_lod[i + 1]->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+        CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_UPSAMPLE);
+        CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->tex_lod[i]->width, (float)bloom->tex_lod[i]->height);
+        CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->tex_lod[i + 1]->width, (float)bloom->tex_lod[i + 1]->height);
+        CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[i + 1]->width, bloom->tex_lod[i + 1]->height, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+
+    // composite
+    glBindImageTexture(0, bloom->tex_lod[bloom->iterations * 2 - 1]->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, tex->handle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+    CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_COMPOSITE);
+    CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
+    CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->width, (float)bloom->height);
+    CGL_shader_set_uniform_ivec2v(bloom->compute, bloom->cs_u_offset, (int)bloom->offset_x, (int)bloom->offset_y);
+    CGL_shader_compute_dispatch(bloom->compute, bloom->width, bloom->height, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, int index)
+{
+    return bloom->tex_lod[index];
+}
+
+CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom)
+{
+    return bloom->prefiltered;
+}
+
+void CGL_bloom_set_knee(CGL_bloom* bloom, float val)
+{
+    bloom->knee = val;
+}
+
+float CGL_bloom_get_knee(CGL_bloom* bloom)
+{
+    return bloom->knee;
+}
+
+void CGL_bloom_set_threshold(CGL_bloom* bloom, float val)
+{
+    bloom->threshold = val;
+}
+
+float CGL_bloom_get_threshold(CGL_bloom* bloom)
+{
+    return bloom->threshold;
+}
+
+int CGL_bloom_get_iterations(CGL_bloom* bloom)
+{
+    return bloom->iterations;
+}
+
+void CGL_bloom_set_offset(CGL_bloom* bloom, float x, float y)
+{
+    bloom->offset_x = x;
+    bloom->offset_y = y;
+}
+
+#endif
 
 #endif
 
