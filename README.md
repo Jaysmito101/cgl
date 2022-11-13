@@ -83,7 +83,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
 * CGL Widgets (Optional)
   - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
   - API Like [p5.js](https://p5js.org/)
-  - Text widgets (render high quality crisp text without loadinf or baking any font)
+  - Text widgets (render high quality crisp text without loading or baking any font)
   - Batch Renderer backend (very fast even for a large number of widgets)
   - draw (filled or stroked) :
     - triangle [`CGL_widgets_add_triangle`]
@@ -105,6 +105,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - perspective for mat4
   - transpose for mat4/(mat3 TODO)
   - look_at matrix 
+  - Quaternion math
   - NOTE: Most of math functions are implemented via macros so will be totally inclined and quite fast without any unnecessary function calls
 
 * High Level OpenGL API for (Optional)
