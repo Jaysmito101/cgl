@@ -80,6 +80,14 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Custom downsample/upsample passes
   - Entirely done in Compute Shaders
 
+* CGL Node Editor
+  - Very fast as its powered by CGL Widgets
+  - Custom nodes, pins, links
+  - Minimal & Powerful
+  - Render your own nodes & links type API
+  - Zoom In/Out
+  - Global Offsets
+
 * CGL Widgets (Optional)
   - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
   - API Like [p5.js](https://p5js.org/)
