@@ -148,6 +148,7 @@ bool CGL_utils_write_file(const char* path, const char* data, size_t size); // w
 float CGL_utils_get_time();
 void CGL_utils_get_timestamp(char* buffer);
 
+#define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy))
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
 #define CGL_utils_random_int(min, max) (rand() % (max - min + 1) + min)
 #define CGL_utils_random_bool() (rand() % 2)
@@ -159,6 +160,7 @@ void CGL_utils_get_timestamp(char* buffer);
 #define CGL_utils_array_size(array) (sizeof(array) / sizeof(array[0]))
 #define CGL_utils_max(a, b) ( ((a) > (b)) ? (a) : (b) )
 #define CGL_utils_min(a, b) ( ((a) < (b)) ? (a) : (b) )
+#define CGL_utils_mix(x, y, f) (x * f + y * (1.0f - f))
 
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
@@ -1187,6 +1189,7 @@ bool CGL_widgets_init();
 void CGL_widgets_shutdown();
 void CGL_window_set_current_context(CGL_widgets_context* context);
 bool CGL_widgets_begin();
+bool CGL_widgets_begin_int(float scale_x, float scale_y, float offset_x, float offset_y);
 bool CGL_widgets_end();
 bool CGL_widgets_flush();
 bool CGL_widgets_flush_if_required();
@@ -1219,6 +1222,88 @@ bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float s
 
 
 #endif
+#endif
+
+#ifndef CGL_EXCLUDE_NODE_EDITOR
+
+#ifdef CGL_EXCLUDE_WIDGETS
+#error "CGL Widgets are required for CGL Node Editor"
+#endif
+
+#define CGL_NODE_EDITOR_NODE_MAX_PINS 8
+
+struct CGL_node_editor;
+typedef struct CGL_node_editor CGL_node_editor;
+
+struct CGL_node_editor_node;
+typedef struct CGL_node_editor_node CGL_node_editor_node;
+
+struct CGL_node_editor_pin
+{
+    CGL_color color;
+    CGL_node_editor_node* parent;
+    void* user_data;
+    float pos_x;
+    float pos_y;
+    int index;
+    bool left;
+    bool is_set;
+};
+typedef struct CGL_node_editor_pin CGL_node_editor_pin;
+
+struct CGL_node_editor_node
+{
+    CGL_node_editor_pin left_pins[CGL_NODE_EDITOR_NODE_MAX_PINS];
+    CGL_node_editor_pin right_pins[CGL_NODE_EDITOR_NODE_MAX_PINS];
+    char title[256];
+    CGL_color color;
+    int pins_count[2];
+    CGL_node_editor* editor;
+    void* user_data;
+    float pos_x;
+    float pos_y;
+    float size_x;
+    float size_y;
+    bool selected;
+    bool render_title;
+};
+
+struct CGL_node_editor_input
+{
+    float mouse_pos_x;
+    float mouse_pos_y;
+    float aspect_ratio;
+    float scale;
+    bool mouse_button_left;    
+    bool mouse_button_right;    
+    bool mouse_button_middle;   
+    bool shift; 
+    bool ctrl; 
+    bool escape;
+};
+typedef struct CGL_node_editor_input CGL_node_editor_input;
+
+CGL_node_editor* CGL_node_editor_create();
+void CGL_node_editor_destroy(CGL_node_editor* editor);
+void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* input);
+void CGL_node_editor_set_on_connect(CGL_node_editor* editor, void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*));
+void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(float, float, CGL_node_editor_pin*));
+void CGL_node_editor_render_begin(CGL_node_editor* editor);
+void CGL_node_editor_clear_focused_pins(CGL_node_editor* editor);
+void CGL_node_editor_render_end(CGL_node_editor* editor);
+void CGL_node_editor_set_offset(CGL_node_editor* editor, float x, float y);
+void CGL_node_editor_get_offset(CGL_node_editor* editor, float* x, float* y);
+void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pin** x, CGL_node_editor_pin** y);
+void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, float midper);
+void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, float cr, float cg, float cb, float ca, float midper);
+
+void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node);
+void CGL_node_editor_node_update(CGL_node_editor_node* node);
+void CGL_node_editor_node_render(CGL_node_editor_node* node);
+void CGL_node_editor_node_set_position(CGL_node_editor_node* node, float x, float y);
+void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const char* title);
+CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bool left, int index);
+
 #endif
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -6856,6 +6941,8 @@ struct CGL_widgets_context
 {
     CGL_vec4 stroke_color;
     CGL_vec4 fill_color;
+    CGL_vec4 scale;
+    CGL_vec4 offset;
     CGL_mesh_vertex* vertices;
     uint32_t* indices;
     size_t max_vertices;
@@ -6974,14 +7061,21 @@ void CGL_window_set_current_context(CGL_widgets_context* context)
     if(context) __CGL_WIDGETS_CURRENT_CONTEXT = context;
 }
 
-bool CGL_widgets_begin()
+bool CGL_widgets_begin_int(float scale_x, float scale_y, float offset_x, float offset_y)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->flushed = false;
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = 0.05f;
+    __CGL_WIDGETS_CURRENT_CONTEXT->scale = CGL_vec4_init(scale_x, scale_y, 0.0f, 0.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->offset = CGL_vec4_init(offset_x, offset_y, 0.0f, 0.0f);
     return true;
+}
+
+bool CGL_widgets_begin()
+{
+    return CGL_widgets_begin_int(1.0f, 1.0f, 0.0f, 0.0f);
 }
 
 bool CGL_widgets_end()
@@ -7032,6 +7126,9 @@ bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, ui
 void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
 {
     CGL_widgets_flush_if_required();
+    vertex->position.x = vertex->position.x * __CGL_WIDGETS_CURRENT_CONTEXT->scale.x + __CGL_WIDGETS_CURRENT_CONTEXT->offset.x;
+    vertex->position.y = vertex->position.y * __CGL_WIDGETS_CURRENT_CONTEXT->scale.y + __CGL_WIDGETS_CURRENT_CONTEXT->offset.y;
+
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count++] = *vertex;
     __CGL_WIDGETS_CURRENT_CONTEXT->indices[__CGL_WIDGETS_CURRENT_CONTEXT->indices_count++] = (uint32_t)(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1);
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill)
@@ -7674,6 +7771,321 @@ bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float s
 }
 
 #endif
+#endif
+
+#ifndef CGL_EXCLUDE_NODE_EDITOR
+
+struct CGL_node_editor
+{
+    CGL_node_editor_input* input;
+    CGL_node_editor_pin* start_pin;
+    CGL_node_editor_pin* end_pin;
+    void(*ondrop)(float, float, CGL_node_editor_pin*);
+    void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*);
+    float mouse_pos_x;
+    float mouse_pos_y;
+    float mouse_delta_x;
+    float mouse_delta_y;
+    float offset_x;
+    float offset_y;
+    float aspect_ratio;
+    float scale;
+    int num_selected;
+    bool has_lifted;
+};
+
+CGL_node_editor* CGL_node_editor_create()
+{
+    CGL_node_editor* editor = (CGL_node_editor*)CGL_malloc(sizeof(CGL_node_editor));
+    if(!editor) return NULL;
+    editor->mouse_pos_x = 0.0f;
+    editor->mouse_pos_y = 0.0f;
+    editor->mouse_delta_x = 0.0f;
+    editor->mouse_delta_y = 0.0f;
+    editor->offset_x = 0.0f;
+    editor->offset_y = 0.0f;
+    editor->input = NULL;
+    editor->aspect_ratio = 1.0f;
+    editor->scale = 1.0f;
+    editor->start_pin = editor->end_pin = NULL;
+    editor->ondrop = NULL;
+    editor->onconnect = NULL;
+    editor->has_lifted = true;
+    return editor;
+}
+
+void CGL_node_editor_destroy(CGL_node_editor* editor)
+{
+    CGL_free(editor);
+}
+
+void CGL_node_editor_set_on_connect(CGL_node_editor* editor, void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*))
+{
+    editor->onconnect = onconnect;
+}
+
+void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(float, float, CGL_node_editor_pin*))
+{
+    editor->ondrop = ondrop;
+}
+
+void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* input)
+{
+    editor->input = input;
+    editor->mouse_delta_x = CGL_utils_clamp(input->mouse_pos_x - editor->mouse_pos_x, -0.2f, 0.2f);
+    editor->mouse_delta_y = CGL_utils_clamp(input->mouse_pos_y - editor->mouse_pos_y, -0.2f, 0.2f);
+    editor->mouse_pos_x = input->mouse_pos_x;
+    editor->mouse_pos_y = input->mouse_pos_y;
+    editor->aspect_ratio = input->aspect_ratio;
+    editor->scale = CGL_utils_max(input->scale, 0.01f);
+    if (editor->start_pin && editor->end_pin) { if (editor->onconnect) editor->onconnect(editor->start_pin, editor->end_pin); editor->start_pin = editor->end_pin = NULL; editor->has_lifted = false; }
+    if (editor->start_pin && !input->mouse_button_left) { if (editor->ondrop) editor->ondrop(editor->mouse_pos_x / editor->scale, editor->mouse_pos_y / editor->scale, editor->start_pin); editor->start_pin = NULL;  }
+    if (!input->mouse_button_left) editor->has_lifted = true;
+    if(input->mouse_button_middle)
+    {
+        editor->offset_x += editor->mouse_delta_x * editor->scale;
+        editor->offset_y += editor->mouse_delta_y * editor->scale;
+    }
+    editor->num_selected = 0;
+}
+
+void CGL_node_editor_render_begin(CGL_node_editor* editor)
+{
+    CGL_widgets_begin_int(editor->scale, editor->scale, 0.0f, 0.0f);
+    CGL_widgets_set_stroke_thicnkess(0.03f);
+}
+
+void CGL_node_editor_clear_focused_pins(CGL_node_editor* editor)
+{
+    editor->start_pin = editor->end_pin = NULL;
+}
+
+void CGL_node_editor_render_end(CGL_node_editor* editor)
+{
+    if(editor->start_pin && !editor->end_pin)
+    {
+        CGL_widgets_set_stroke_colorf(1.0f, 1.0f, 0.0f, 1.0f);
+        CGL_widgets_add_line(
+            CGL_vec3_init(editor->offset_x + editor->start_pin->pos_x, editor->offset_y + editor->start_pin->pos_y, 0.0f),
+            CGL_vec3_init(editor->mouse_pos_x / editor->scale, editor->mouse_pos_y / editor->scale, 0.0f)
+        );
+    }
+    CGL_widgets_end();
+}
+
+void CGL_node_editor_set_offset(CGL_node_editor* editor, float x, float y)
+{
+    editor->offset_x = x;
+    editor->offset_y = y;
+}
+
+void CGL_node_editor_get_offset(CGL_node_editor* editor, float* x, float* y)
+{
+    if(x) *x = editor->offset_x;
+    if(y) *y = editor->offset_y;
+}
+
+void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pin** x, CGL_node_editor_pin** y)
+{
+    if(x) *x = editor->start_pin;
+    if(y) *y = editor->end_pin;
+}
+
+void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, float midper)
+{
+    if(!left || !right) return;
+    CGL_widgets_set_stroke_color(color);
+    float mx = CGL_utils_mix(left->pos_x, right->pos_x, midper);
+
+
+    float ofx = right->parent->editor->offset_x;
+    float ofy = right->parent->editor->offset_y;
+
+    CGL_widgets_add_line(
+        CGL_vec3_init(ofx + left->pos_x, ofy + left->pos_y, 0.0f),
+        CGL_vec3_init(ofx + mx, ofy + left->pos_y, 0.0f)
+    );
+
+    CGL_widgets_add_line(
+        CGL_vec3_init(ofx + mx, ofy + left->pos_y, 0.0f),
+        CGL_vec3_init(ofx + mx, ofy + right->pos_y, 0.0f)
+    );
+
+    CGL_widgets_add_line(
+        CGL_vec3_init(ofx + mx, ofy + right->pos_y, 0.0f),
+        CGL_vec3_init(ofx + right->pos_x, ofy + right->pos_y, 0.0f)
+    );
+}
+
+void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, float cr, float cg, float cb, float ca, float midper)
+{
+    CGL_node_editor_render_link(left, right, CGL_vec4_init(cr, cg, cb, ca), midper);
+}
+
+void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node)
+{
+    node->editor = editor;
+    node->color = CGL_utils_random_color();
+    strcpy(node->title, "Node");
+    node->render_title = true;
+    node->pins_count[0] = node->pins_count[1] = 0;
+    node->pos_y = node->pos_x = 0.0f;
+    node->size_y = node->size_x = 0.3f;
+    node->selected = false;
+    memset(node->left_pins, 0, sizeof(CGL_node_editor_pin) * CGL_NODE_EDITOR_NODE_MAX_PINS);
+    memset(node->right_pins, 0, sizeof(CGL_node_editor_pin) * CGL_NODE_EDITOR_NODE_MAX_PINS);
+}
+
+static bool __CGL_node_editor_pin_update(CGL_node_editor_pin* pin)
+{
+    CGL_node_editor_node* node = pin->parent;
+    CGL_node_editor* editor = node->editor;
+    float sx = 0.05f / pin->parent->editor->input->aspect_ratio;
+    float sy = 0.05f;
+
+    bool focused = false;
+    float ofx = node->editor->offset_x;
+    float ofy = node->editor->offset_y;
+
+    if(editor->input->mouse_button_left
+    && CGL_utils_is_point_in_rect(
+        editor->input->mouse_pos_x, editor->input->mouse_pos_y,
+        ofx + pin->pos_x, ofy + pin->pos_y,
+        sx, sy,
+        editor->scale, editor->scale
+    )) focused = true;
+
+    if(focused && editor->has_lifted)
+    {
+        if(editor->start_pin && pin != editor->start_pin) editor->end_pin = pin;
+        else if(editor->start_pin == NULL) { editor->start_pin = pin; editor->end_pin = NULL;}
+    }
+
+    return focused;
+}
+
+void CGL_node_editor_node_update(CGL_node_editor_node* node)
+{
+    const CGL_node_editor* editor = node->editor;
+    node->pins_count[0] = node->pins_count[1] = 0;
+    for(int i = 0 ; i < CGL_NODE_EDITOR_NODE_MAX_PINS ; i++) 
+    {
+        if(node->left_pins[i].is_set) node->pins_count[0]++;
+        if(node->right_pins[i].is_set) node->pins_count[1]++;
+    }    
+    float ofx = node->editor->offset_x;
+    float ofy = node->editor->offset_y;
+    float sx = node->size_x;
+    float sy = node->size_y = (0.1f + (float)CGL_utils_max(node->pins_count[0], node->pins_count[1]) * (0.05f + 0.1f));
+    if(node->render_title) sy += 0.1f;
+    bool require_movement = false;
+    if(editor->input->mouse_button_left && !editor->input->shift) node->selected = false;
+    require_movement = node->selected && editor->input->ctrl; 
+    if(editor->input->mouse_button_left && !editor->start_pin
+    && CGL_utils_is_point_in_rect(
+        editor->input->mouse_pos_x, editor->input->mouse_pos_y,
+        ofx + node->pos_x, ofy + node->pos_y,
+        sx, sy,
+        editor->scale, editor->scale
+    ))  require_movement = node->selected = true;
+    if(node->selected) node->editor->num_selected++;
+
+    // TODO: try to do it in the loop above
+    for(int i = 0 ; i < CGL_NODE_EDITOR_NODE_MAX_PINS ; i++) 
+    {
+        if(node->left_pins[i].is_set) 
+            require_movement &= !__CGL_node_editor_pin_update(&node->left_pins[i]);
+        if(node->right_pins[i].is_set)
+            require_movement &= !__CGL_node_editor_pin_update(&node->right_pins[i]);
+    }    
+
+    if(require_movement)
+    {
+        node->pos_x += editor->mouse_delta_x;
+        node->pos_y += editor->mouse_delta_y;
+    }
+}
+
+void CGL_node_editor_node_render(CGL_node_editor_node* node)
+{
+    const CGL_node_editor* editor = node->editor;
+    float sx = node->size_x;
+    float sy = node->size_y;
+    if(node->render_title) sy += 0.1f;
+    //if(sx > sy) sy = sx * node->editor->input->aspect_ratio;
+    //else sx = sy / node->editor->input->aspect_ratio;    
+    float ofx = node->editor->offset_x;
+    float ofy = node->editor->offset_y;
+    // render selection
+    if(node->selected)
+    {
+        CGL_widgets_set_fill_colorf(0.8f, 0.8f, 0.1f, 1.0f);
+        CGL_widgets_add_rect2f(ofx + node->pos_x - 0.01f, ofy + node->pos_y - 0.01f, sx +  0.02f, sy + 0.02f);
+    }
+    // render body
+    CGL_widgets_set_fill_color(node->color);
+    CGL_widgets_add_rect2f(ofx + node->pos_x, ofy + node->pos_y, sx, sy);
+    //render title
+    if(node->render_title)
+    {
+        CGL_widgets_set_fill_colorf(node->color.x * 0.7f, node->color.y * 0.7f, node->color.z * 0.7f, 1.0f);
+        CGL_widgets_add_rect2f(ofx + node->pos_x, ofy + node->pos_y + sy - 0.1f - 0.01f, sx, 0.1f);
+        CGL_widgets_set_fill_colorf(0.0f, 0.0f, 0.0f, 1.0f);
+        CGL_widgets_add_string(node->title, ofx + node->pos_x + 0.01f, ofy + node->pos_y + sy - 0.1f - 0.01f, sx - 0.02f, (0.1f - 0.02f));
+    }
+    // render pins
+
+    // left pins
+    float ty1 = ofy + node->pos_y + 0.1f;
+    float ty2 = ofy + node->pos_y + 0.1f;
+    for(int i = CGL_NODE_EDITOR_NODE_MAX_PINS - 1 ; i >= 0 ; i--)
+    {
+        if(node->left_pins[i].is_set)
+        {
+            CGL_widgets_set_fill_color(node->left_pins[i].color);
+            CGL_widgets_add_rect2f(ofx + node->pos_x - 0.02f, ty1, 0.05f / node->editor->input->aspect_ratio, 0.05f);
+            node->left_pins[i].pos_x = node->pos_x - 0.02f;
+            node->left_pins[i].pos_y = ty1 - ofy;
+            ty1 += 0.1f + 0.05f;
+        }
+
+        if(node->right_pins[i].is_set)
+        {
+            CGL_widgets_set_fill_color(node->right_pins[i].color);
+            CGL_widgets_add_rect2f(ofx + node->pos_x + sx - 0.05f / node->editor->input->aspect_ratio + 0.02f, ty2, 0.05f / node->editor->input->aspect_ratio, 0.05f);
+            node->right_pins[i].pos_x = node->pos_x + sx - 0.05f / node->editor->input->aspect_ratio + 0.02f;
+            node->right_pins[i].pos_y = ty2 - ofy;
+            ty2 += 0.1f + 0.05f;
+        }
+    }
+
+}
+
+void CGL_node_editor_node_set_position(CGL_node_editor_node* node, float x, float y)
+{
+    node->pos_x = x;
+    node->pos_y = y;
+}
+
+void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const char* title)
+{
+    if(title == NULL) {node->render_title = false; return;}
+    node->render_title = true;
+    strcpy(node->title, title);
+}
+
+CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bool left, int index)
+{
+    CGL_node_editor_pin* pin = NULL;
+    if(left) pin = &node->left_pins[index];
+    else pin = &node->right_pins[index];
+    pin->index = index;
+    pin->left = left;
+    pin->parent = node;
+    pin->color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
+    return pin;
+}
+
 #endif
 
 #endif // CGL_IMPLEMENTATION
