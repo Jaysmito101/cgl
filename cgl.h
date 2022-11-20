@@ -442,6 +442,8 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_vec2_min(a, b) (CGL_vec2){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y}
 #define CGL_vec2_max(a, b) (CGL_vec2){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y}
 #define CGL_vec2_equal(a, b) (a.x == b.x && a.y == b.y)
+#define CGL_vec2_rotate_about_point(a, p, theta) CGL_vec2_init(((a.x - p.x) * cosf(theta) - (a.y - p.y) * sinf(theta) ), ((a.x - p.x) * sinf(theta) + (a.y - p.y) * cosf(theta)))
+#define CGL_vec2_centroid_of_triangle(a, b, c) CGL_vec2_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f)
 
 #define CGL_vec3_init(x, y, z) ((CGL_vec3){x, y, z})
 #define CGL_vec3_add(a, b) (CGL_vec3){a.x + b.x, a.y + b.y, a.z + b.z}
@@ -460,6 +462,7 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_vec3_rotate_x(v, theta) (CGL_vec3){v.x * cosf(theta) - v.y * sinf(theta), v.x * sinf(theta) + v.y * cosf(theta), v.z}
 #define CGL_vec3_rotate_y(v, theta) (CGL_vec3){v.x * cosf(theta) + v.z * sinf(theta), v.y, -1.0f * v.x * sinf(theta) + v.z * cosf(theta)}
 #define CGL_vec3_rotate_z(v, theta) (CGL_vec3){v.x, v.y * cosf(theta) - v.z * sinf(theta), v.y * sinf(theta) + v.z * cosf(theta)}
+#define CGL_vec3_centroid_of_triangle(a, b, c) CGL_vec3_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f, (a.z + b.z + c.z) / 3.0f)
 
 #define CGL_vec4_init(x, y, z, w) ((CGL_vec4){x, y, z, w})
 #define CGL_vec4_add(a, b) (CGL_vec4){a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w}
@@ -525,7 +528,19 @@ void CGL_quat_to_euler_zyx(CGL_quat quat, float* z, float* y, float* x);
 CGL_quat CGL_quat_multiply(CGL_quat a, CGL_quat b);
 void CGL_quat_rotate(CGL_quat q, float x, float y, float z, float* ox, float* oy, float* oz);
 
+
+
 #endif
+
+struct CGL_shape_triangle
+{
+    CGL_vec3 a;
+    CGL_vec3 b;
+    CGL_vec3 c;
+};
+typedef struct CGL_shape_triangle CGL_shape_triangle;
+
+bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 
 // window
 #if 1 // Just to use code folding
@@ -1306,6 +1321,31 @@ CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bo
 
 #endif
 
+
+#ifndef CGL_EXCLUDE_RAY_CASTER
+
+#define CGL_RAY_CASTER_MAX_TRIANGLES 4096
+#define CGL_RAY_CASTER_MAX_WALLS     4096
+
+struct CGL_ray_caster;
+typedef struct CGL_ray_caster CGL_ray_caster;
+
+CGL_ray_caster* CGL_ray_caster_create();
+void CGL_ray_caster_destroy(CGL_ray_caster* caster);
+void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, int walls_count);
+void CGL_ray_caster_add_wall(CGL_ray_caster* caster, CGL_vec4 wall);
+void CGL_ray_caster_clear_walls(CGL_ray_caster* caster);
+float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4 wall, CGL_vec2* intersection_point, float* angle, float max_dist);
+float CGL_ray_caster_get_intersection_point_for_walls(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4* walls, int wall_count, CGL_vec2* intersection_point, float* angle, float max_dist);
+void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotation, bool visualise_rays);
+bool CGL_ray_caster_is_in_view(CGL_ray_caster* caster, CGL_vec2 point);
+void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, float min_angle, float max_angle);
+void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, float val);
+CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, int* count);
+
+#endif
+
+
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------ Implementation of CGL -------------------------------------------------------------------------
@@ -1482,6 +1522,11 @@ CGL_thread* CGL_thread_create()
     return thread;
 }
 
+
+// The function CGL_thread_start() starts a new thread. The function
+// argument is the function that the thread will execute. The argument
+// argument is passed to the thread function. The return value is true
+// if the thread was successfully started, and false otherwise.
 bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* argument)
 {
     if(thread->running) CGL_thread_join(thread);
@@ -1493,6 +1538,9 @@ bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* ar
     return thread->handle != NULL;
 }
 
+
+// This function is called when the thread is destroyed
+// It frees the thread structure from memory
 void CGL_thread_destroy(CGL_thread* thread)
 {
     if(thread->running) CGL_thread_join(thread);
@@ -1505,6 +1553,10 @@ uintptr_t CGL_thread_get_id(CGL_thread* thread)
     return thread->id;
 }
 
+// Description: This function checks to see if the thread is running.
+// Parameters:
+//  thread: The thread to check
+// Return value: true if the thread is running, false otherwise
 bool CGL_thread_is_running(CGL_thread* thread)
 {
     if(!thread->handle) return false;
@@ -1520,6 +1572,12 @@ bool CGL_thread_is_running(CGL_thread* thread)
     return thread->running;
 }
 
+/*
+ * This function joins the thread, which means that the calling thread
+ * will wait until the thread represented by the given thread pointer
+ * has finished executing. This function returns true if the thread
+ * was joined successfully, or false if an error occurred.
+ */
 bool CGL_thread_join(CGL_thread* thread)
 {
     if(!thread->handle) return true;
@@ -1528,12 +1586,26 @@ bool CGL_thread_join(CGL_thread* thread)
     return result;
 }
 
+/*
+ * Returns true if the thread is joinable, false otherwise.
+ *
+ * A thread is joinable if it can be waited upon. A thread is not joinable
+ * if it has already been joined or detached.
+ *
+ * When a thread is created, it is joinable by default. It can be made
+ * unjoinable by calling pthread_detach. It can be made joinable again by
+ * calling pthread_join.
+ */
 bool CGL_thread_joinable(CGL_thread* thread)
 {
     return true; // Temporary
 }
 
 
+/*
+ * Create a new mutex. If set is true, the mutex is created set. Otherwise, it
+ * is created unset.
+ */
 CGL_mutex* CGL_mutex_create(bool set)
 {
     CGL_mutex* mutex = (CGL_mutex*)malloc(sizeof(CGL_mutex));
@@ -1541,17 +1613,24 @@ CGL_mutex* CGL_mutex_create(bool set)
     return mutex;
 }
 
+/* Destroy a mutex. */
 void CGL_mutex_destroy(CGL_mutex* mutex)
 {
     if(mutex->handle) CloseHandle(mutex->handle);
     CGL_free(mutex);
 }
 
+// This function locks a mutex, and returns 1 if it was successful, and 0 otherwise.
+// If timeout is 0, it will wait forever for the lock to be acquired.
+// If timeout is non-zero, it will wait for at most timeout microseconds for the lock to be acquired.
+// If the lock is acquired within the timeout period, this function returns 1. Otherwise, it returns 0.
 int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout)
 {
     return (int)WaitForSingleObject(mutex->handle, (DWORD)timeout);
 }
 
+// CGL_mutex_release: Releases a mutex.
+//    mutex: The mutex to release.
 void CGL_mutex_release(CGL_mutex* mutex)
 {
     ReleaseMutex(mutex->handle);
@@ -2669,6 +2748,16 @@ void CGL_utils_get_timestamp(char* buffer)
     time_t ltime = time(NULL);
     sprintf(buffer, "%s", asctime( localtime(&ltime)));
     buffer[strlen(buffer) - 2] = '\0';
+}
+
+// algorithm from https://stackoverflow.com/a/23186198/14911094
+bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 p0, CGL_vec2 p1, CGL_vec2 p2)
+{
+    float s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y);
+    float t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y);
+    if (s <= 0 || t <= 0) return false;
+    float A = (-p1.y * p2.x + p0.y * (-p1.x + p2.x) + p0.x * (p1.y - p2.y) + p1.x * p2.y);
+    return (s + t) < A;
 }
 
 /*
@@ -6944,18 +7033,20 @@ struct CGL_widgets_context
     CGL_vec4 scale;
     CGL_vec4 offset;
     CGL_mesh_vertex* vertices;
+    CGL_shader* shader;    
     uint32_t* indices;
     size_t max_vertices;
     size_t vertices_count;
     size_t max_indices;
     size_t indices_count;
     float stroke_thickness;
+    float aspect_ratio;
     GLuint vertex_array;
     GLuint vertex_buffer;
     GLuint index_buffer;
     bool flushed;
     bool is_fill;
-    CGL_shader* shader;    
+    bool adjust_for_aspect_ratio;
 };
 
 static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
@@ -7013,6 +7104,10 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     context->vertices_count = 0;
     context->indices_count = 0;
     context->flushed = true;
+    context->adjust_for_aspect_ratio = false;
+    context->aspect_ratio = 1.0f;
+    context->offset = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    context->scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
     glGenVertexArrays(1, &context->vertex_array);
     glBindVertexArray(context->vertex_array);
     glGenBuffers(1, &context->vertex_buffer);
@@ -7038,6 +7133,17 @@ void CGL_widgets_context_destory(CGL_widgets_context* context)
     if(context->indices) CGL_free(context->indices);
     if(context->vertices) CGL_free(context->vertices);
     CGL_free(context);
+}
+
+void CGL_widgets_adjust_for_aspect_ratio(float aspect_ratio)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->aspect_ratio = aspect_ratio;
+    __CGL_WIDGETS_CURRENT_CONTEXT->adjust_for_aspect_ratio = true;
+}
+
+void CGL_widgets_do_not_adjust_for_aspect_ratio()
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->adjust_for_aspect_ratio = false;
 }
 
 CGL_widgets_context* CGL_window_get_current_context()
@@ -7126,8 +7232,17 @@ bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, ui
 void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
 {
     CGL_widgets_flush_if_required();
-    vertex->position.x = vertex->position.x * __CGL_WIDGETS_CURRENT_CONTEXT->scale.x + __CGL_WIDGETS_CURRENT_CONTEXT->offset.x;
-    vertex->position.y = vertex->position.y * __CGL_WIDGETS_CURRENT_CONTEXT->scale.y + __CGL_WIDGETS_CURRENT_CONTEXT->offset.y;
+    CGL_vec4 scale = __CGL_WIDGETS_CURRENT_CONTEXT->scale;
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->adjust_for_aspect_ratio)
+    {
+        // for now only works for 2D
+        if(scale.x > scale.y) scale.x = scale.y / __CGL_WIDGETS_CURRENT_CONTEXT->aspect_ratio;
+        else scale.y = scale.x * __CGL_WIDGETS_CURRENT_CONTEXT->aspect_ratio;
+    }
+    vertex->position.x = vertex->position.x * scale.x + __CGL_WIDGETS_CURRENT_CONTEXT->offset.x;
+    vertex->position.y = vertex->position.y * scale.y + __CGL_WIDGETS_CURRENT_CONTEXT->offset.y;
+    vertex->position.z = vertex->position.z * scale.z + __CGL_WIDGETS_CURRENT_CONTEXT->offset.z; // for future
+    
 
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count++] = *vertex;
     __CGL_WIDGETS_CURRENT_CONTEXT->indices[__CGL_WIDGETS_CURRENT_CONTEXT->indices_count++] = (uint32_t)(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1);
@@ -8085,6 +8200,259 @@ CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bo
     pin->color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
     return pin;
 }
+
+#endif
+
+
+#ifndef CGL_EXCLUDE_RAY_CASTER
+
+struct CGL_ray_caster
+{
+    CGL_shape_triangle triangles[CGL_RAY_CASTER_MAX_TRIANGLES];
+    CGL_vec4 walls[CGL_RAY_CASTER_MAX_WALLS];
+    int wall_count;
+    int triangle_count;
+    float theta_min;
+    float theta_max;
+    float max_dist;
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+    CGL_mesh_gpu* mesh;
+#endif
+};
+
+CGL_ray_caster* CGL_ray_caster_create()
+{
+    CGL_ray_caster* caster = (CGL_ray_caster*)CGL_malloc(sizeof(CGL_ray_caster));
+    if(!caster) return NULL;
+    caster->theta_max = 3.141f;
+    caster->theta_min = 0.0f;
+    caster->max_dist = 1.0f;
+    caster->triangle_count = 0;
+    caster->wall_count = 0;
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+    caster->mesh = CGL_mesh_gpu_create();
+#endif
+    return caster;
+}
+
+void CGL_ray_caster_destroy(CGL_ray_caster* caster)
+{
+#ifndef CGL_EXCLUDE_GRAPHICS_API
+    if(caster->mesh) CGL_mesh_gpu_destroy(caster->mesh);
+#endif
+    CGL_free(caster);
+}
+
+void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, int walls_count)
+{
+    if((caster->wall_count + walls_count) >= CGL_RAY_CASTER_MAX_WALLS) CGL_warn("Max Ray Caster walls exceeded");
+    walls_count = CGL_utils_min(walls_count, CGL_RAY_CASTER_MAX_WALLS - caster->wall_count - 1);
+    memcpy(caster->walls + caster->wall_count, walls, sizeof(CGL_vec4) * walls_count);
+    caster->wall_count += walls_count;
+}
+
+void CGL_ray_caster_add_wall(CGL_ray_caster* caster, CGL_vec4 wall)
+{
+    CGL_ray_caster_add_walls(caster, &wall, 1);
+}
+
+void CGL_ray_caster_clear_walls(CGL_ray_caster* caster)
+{
+    caster->wall_count = 0;
+}
+
+// algorithm from http://www.gamers.org/dEngine/rsc/usenet/comp.graphics.algorithms.faq
+float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4 wall, CGL_vec2* intersection_point, float* angle, float max_dist)
+{
+    const float infinity = max_dist;
+    CGL_vec2 A = pos;
+    CGL_vec2 B = CGL_vec2_init(pos.x + infinity * dir.x, pos.y + infinity * dir.y);
+    CGL_vec2 C = CGL_vec2_init(wall.x, wall.y);
+    CGL_vec2 D = CGL_vec2_init(wall.z, wall.w);
+    float n = 0.0f, d = 0.0f;
+    // calculate r
+    n = (A.y - C.y) * (D.x - C.x) - (A.x - C.x) * (D.y - C.y);
+    d = (B.x - A.x) * (D.y - C.y) - (B.y - A.y) * (D.x - C.x);
+    if(d == 0.0f) return -1.0f; // they are parallel
+    float r = n / d;
+    // calculate s
+    n = (A.y - C.y) * (B.x - A.x) - (A.x - C.x) * (B.y - A.y);
+    d = (B.x - A.x) * (D.y - C.y) - (B.y - A.y) * (D.x - C.x);
+    if(d == 0.0f) return -1.0f; // they are parallel
+    float s = n / d;
+    // check if they intersect
+    if(r < 0.0f || r > 1.0f || s < 0.0f || s > 1.0f) return -1.0f;
+    // calculate intersection point
+    if(intersection_point)
+    {
+        intersection_point->x = A.x + r * (B.x - A.x);
+        intersection_point->y = A.y + r * (B.y - A.y);
+    }
+    if(angle) *angle = atan2f(dir.y, dir.x);
+    return r * infinity;
+}
+
+float CGL_ray_caster_get_intersection_point_for_walls(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4* walls, int wall_count, CGL_vec2* intersection_point, float* angle, float max_dist)
+{
+    float t = max_dist;
+    float tmp = 0.0f;
+    for(int i = 0 ; i < wall_count ; i++)
+    {
+        tmp = CGL_ray_caster_get_intersection_point_for_wall(pos, dir, walls[i], NULL, NULL, max_dist);
+        if(tmp > 0.0001f) t = CGL_utils_min(t, tmp);
+    }
+    float a = pos.x;
+    float b = pos.y;
+    float d = dir.x;
+    float e = dir.y;
+    if(intersection_point) *intersection_point = CGL_vec2_init(a + t * d, b + t * e);
+    if(angle) *angle = atan2f(dir.y, dir.x);
+    return t;
+}
+
+struct __CGL_ray_caster_ray
+{
+    CGL_vec2 target;
+    CGL_vec2 dir;
+    float angle;
+    float dist;
+};
+typedef struct __CGL_ray_caster_ray __CGL_ray_caster_ray;
+
+static void __CGL_ray_caster_calc_ray(CGL_ray_caster* caster, CGL_vec2* pos, float theta, __CGL_ray_caster_ray* ray)
+{
+    ray->dir = CGL_vec2_init(cosf(theta), sinf(theta));
+    float t = CGL_ray_caster_get_intersection_point_for_walls(*pos, ray->dir, caster->walls, caster->wall_count, &ray->target, &ray->angle, caster->max_dist);
+    ray->dist = t;
+}
+
+static int __CGL_ray_caster_ray_compare(const void *a, const void *b) {
+    float c = ((__CGL_ray_caster_ray *) a)->angle;
+    float d = ((__CGL_ray_caster_ray *) b)->angle;
+    if(c > d) return -1;
+    if(c < d) return 1;
+    return 0;
+}
+
+float __CGL_ray_caster_calculate_angle_in_range(float ang)
+{
+    int n = (int)(fabsf(ang) / 3.141f);
+    float th = fmodf(fabsf(ang), 3.141f);
+    if(ang > 3.141f) ang =  th -((n % 2 == 0) ? 0.0f : 3.141f);
+    else if(ang < -3.141f) ang =  ((n % 2 == 0) ? 0.0f : 3.141f) - th;
+    return ang;
+}
+
+void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotation, bool visualise_rays)
+{
+    static __CGL_ray_caster_ray rays[CGL_RAY_CASTER_MAX_WALLS * 2];
+    int ray_count = 0;
+    
+    float angmn = __CGL_ray_caster_calculate_angle_in_range(caster->theta_min + rotation);        
+    float angmx = __CGL_ray_caster_calculate_angle_in_range(caster->theta_max + rotation);
+    float cdelta_half = cosf(fabsf(angmx - angmn) * 0.5f);
+    CGL_vec2 min_border = CGL_vec2_init(cosf(angmn), sinf(angmn));
+    CGL_vec2 max_border = CGL_vec2_init(cosf(angmx), sinf(angmx));
+    CGL_vec2 dir = CGL_vec2_add(min_border, max_border);
+    CGL_vec2_normalize(dir);
+
+    
+    //__CGL_ray_caster_calc_ray(caster, &pos, caster->theta_min + rotation, &rays[ray_count++]);
+    //__CGL_ray_caster_calc_ray(caster, &pos, caster->theta_max + rotation, &rays[ray_count++]);
+    for(float st = -3.141f ; st < 3.141f ; st += 0.5f)
+        __CGL_ray_caster_calc_ray(caster, &pos, st, &rays[ray_count++]); 
+    const float epsilon = 0.0001f;
+    for(int i = 0 ; i < caster->wall_count ; i++)
+    {
+        CGL_vec4 wall = caster->walls[i];
+        float theta = 0.0f;
+
+        // calculate theta for wall start
+        theta = atan2f(wall.y - pos.y, wall.x - pos.x);
+        __CGL_ray_caster_calc_ray(caster, &pos, theta, &rays[ray_count++]);
+        // calculate theta for wall start +- 0.0001f theta
+        __CGL_ray_caster_calc_ray(caster, &pos, theta + epsilon, &rays[ray_count++]);
+        __CGL_ray_caster_calc_ray(caster, &pos, theta - epsilon, &rays[ray_count++]);
+
+        // calculate theta for wall end
+        theta = atan2f(wall.w - pos.y, wall.z - pos.x);
+        __CGL_ray_caster_calc_ray(caster, &pos, theta, &rays[ray_count++]);
+        // calculate theta for wall end +- 0.0001f theta
+        __CGL_ray_caster_calc_ray(caster, &pos, theta + epsilon, &rays[ray_count++]);
+        __CGL_ray_caster_calc_ray(caster, &pos, theta - epsilon, &rays[ray_count++]);
+    }
+
+    // sort rays by angle using quicksort
+    qsort(rays, ray_count, sizeof(__CGL_ray_caster_ray), __CGL_ray_caster_ray_compare);
+
+    // create tiangle fans
+    caster->triangle_count = 0;
+    for(int i = 0 ; i < ray_count - 1 ; i++)
+    {
+        //CGL_widgets_set_fill_color(CGL_utils_random_color());
+        caster->triangles[caster->triangle_count].a = CGL_vec3_init(pos.x, pos.y, 0.0f);
+        caster->triangles[caster->triangle_count].b = CGL_vec3_init(rays[i + 1].target.x, rays[i + 1].target.y, 0.0f);
+        caster->triangles[caster->triangle_count].c = CGL_vec3_init(rays[i].target.x, rays[i].target.y, 0.0f);        
+#ifndef CGL_EXCLUDE_WIDGETS
+        if(visualise_rays) CGL_widgets_add_triangle(caster->triangles[caster->triangle_count].a, caster->triangles[caster->triangle_count].b, caster->triangles[caster->triangle_count].c);
+#endif
+        caster->triangle_count++;
+    }
+    if(ray_count > 1)
+    {
+        caster->triangles[caster->triangle_count].a = CGL_vec3_init(pos.x, pos.y, 0.0f);
+        caster->triangles[caster->triangle_count].b = CGL_vec3_init(rays[0].target.x, rays[0].target.y, 0.0f);
+        caster->triangles[caster->triangle_count].c = CGL_vec3_init(rays[ray_count - 1].target.x, rays[ray_count - 1].target.y, 0.0f);        
+#ifndef CGL_EXCLUDE_WIDGETS
+        if(visualise_rays) CGL_widgets_add_triangle(caster->triangles[caster->triangle_count].a, caster->triangles[caster->triangle_count].b, caster->triangles[caster->triangle_count].c);
+#endif
+        caster->triangle_count++;
+    }
+
+
+#ifndef CGL_EXCLUDE_WIDGETS
+    // visualize rays
+    if(visualise_rays)
+    {     
+        CGL_widgets_set_stroke_colorf(0.2f, 0.3f, 0.7f, 1.0f);
+        CGL_widgets_set_stroke_thicnkess(0.01f);
+        for(int i = 0 ; i < ray_count ; i++)
+        {
+            //if( ((rays[i].angle) >= (angmn - 0.1f) && (rays[i].angle) <= (angmx + 0.1f)) || ( (angmn >= 3.141f / 2 && angmx <= -3.141f/2) && (rays[i].angle >= (angmx - 0.1f) || (rays[i].angle) <= (angmn + 0.1f)) ) )
+            // if( CGL_vec2_dot(dir, rays[i].dir) >= cdelta_half - 0.01f) // for future
+                CGL_widgets_add_line(
+                    CGL_vec3_init(pos.x, pos.y, 0.0f),
+                    CGL_vec3_init(rays[i].target.x, rays[i].target.y, 0.0f)
+                );
+        }
+    }
+#endif
+}
+
+bool CGL_ray_caster_is_in_view(CGL_ray_caster* caster, CGL_vec2 point)
+{
+    for(int i = 0 ; i < caster->triangle_count ; i++)
+        if(CGL_utils_is_point_in_triangle(point, CGL_vec2_init(caster->triangles[i].a.x, caster->triangles[i].a.y), CGL_vec2_init(caster->triangles[i].b.x, caster->triangles[i].b.y), CGL_vec2_init(caster->triangles[i].c.x, caster->triangles[i].c.y))) return true;
+    return false;
+}
+
+void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, float min_angle, float max_angle)
+{
+    caster->theta_min = min_angle;
+    caster->theta_max = max_angle;
+}
+
+void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, float val)
+{
+    caster->max_dist = val;
+}
+
+CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, int* count)
+{
+    if(count) *count = caster->triangle_count;
+    return caster->triangles;
+}
+
 
 #endif
 
