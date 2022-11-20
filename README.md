@@ -80,6 +80,12 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Custom downsample/upsample passes
   - Entirely done in Compute Shaders
 
+* CGL Ray Cast
+  - Fast 2D Ray Cast
+  - Custom Walls 
+  - Bake to Triangle Mesh
+  - Public ray cast functions
+
 * CGL Node Editor
   - Very fast as its powered by CGL Widgets
   - Custom nodes, pins, links
