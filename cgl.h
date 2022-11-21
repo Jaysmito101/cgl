@@ -2870,8 +2870,10 @@ bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, float* overlap_amount)
     static CGL_vec2 sat_axes_b[CGL_SAT_COLLISION_MAX_COLLISIONS];
     CGL_sat_collision_calculate_axes(a, sat_axes_a, NULL);    
     CGL_sat_collision_calculate_axes(b, sat_axes_b, NULL);
-    for(size_t i = 0; i < a->vertices_count; i++) if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_a[i], overlap_amount)) return false;
-    for(size_t i = 0; i < b->vertices_count; i++) if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_b[i], overlap_amount)) return false;
+    float overlap = FLT_MAX, ov = FLT_MAX;
+    for(size_t i = 0; i < a->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_a[i], &ov)) return false; overlap = CGL_utils_min(overlap, ov); }
+    for(size_t i = 0; i < b->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_b[i], &ov)) return false; overlap = CGL_utils_min(overlap, ov); }
+    if(overlap_amount) *overlap_amount = overlap;
     return true;
 }
 
