@@ -429,6 +429,14 @@ typedef struct CGL_quat CGL_quat;
 
 // math functions with macros
 
+#define CGL_PI (3.14159265358979323846f)
+#define CGL_2PI (6.28318530717958647692f)
+#define CGL_PI_2 (1.57079632679489661923f)
+#define CGL_E (2.71828182845904523536f)
+#define CGL_deg_to_rad(deg) ((deg) * (CGL_PI / 180.0f))
+#define CGL_rad_to_deg(rad) ((rad) * (180.0f / CGL_PI))
+
+
 #define CGL_vec2_init(x, y) ((CGL_vec2){x, y})
 #define CGL_vec2_add(a, b) (CGL_vec2){a.x + b.x, a.y + b.y}
 #define CGL_vec2_sub(a, b) (CGL_vec2){a.x - b.x, a.y - b.y}
@@ -459,9 +467,9 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_vec3_min(a, b) (CGL_vec3){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z}
 #define CGL_vec3_max(a, b) (CGL_vec3){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z}
 #define CGL_vec3_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z)
-#define CGL_vec3_rotate_x(v, theta) (CGL_vec3){v.x * cosf(theta) - v.y * sinf(theta), v.x * sinf(theta) + v.y * cosf(theta), v.z}
-#define CGL_vec3_rotate_y(v, theta) (CGL_vec3){v.x * cosf(theta) + v.z * sinf(theta), v.y, -1.0f * v.x * sinf(theta) + v.z * cosf(theta)}
-#define CGL_vec3_rotate_z(v, theta) (CGL_vec3){v.x, v.y * cosf(theta) - v.z * sinf(theta), v.y * sinf(theta) + v.z * cosf(theta)}
+#define CGL_vec3_rotate_x(a, theta) CGL_vec3_init(a.x, a.y * cosf(theta) - a.z * sinf(theta), a.y * sinf(theta) + a.z * cosf(theta))
+#define CGL_vec3_rotate_y(v, theta) CGL_vec3_init(v.x * cosf(theta) + v.z * sinf(theta), v.y, -v.x * sinf(theta) + v.z * cosf(theta))
+#define CGL_vec3_rotate_z(v, theta) CGL_vec3_init(v.x * cosf(theta) - v.y * sinf(theta), v.x * sinf(theta) + v.y * cosf(theta), v.z)
 #define CGL_vec3_centroid_of_triangle(a, b, c) CGL_vec3_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f, (a.z + b.z + c.z) / 3.0f)
 
 #define CGL_vec4_init(x, y, z, w) ((CGL_vec4){x, y, z, w})
@@ -528,6 +536,8 @@ void CGL_quat_to_euler_zyx(CGL_quat quat, float* z, float* y, float* x);
 CGL_quat CGL_quat_multiply(CGL_quat a, CGL_quat b);
 void CGL_quat_rotate(CGL_quat q, float x, float y, float z, float* ox, float* oy, float* oz);
 
+CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale);
+CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const float* rotation, const CGL_vec2* scale);
 
 
 #endif
@@ -539,6 +549,36 @@ struct CGL_shape_triangle
     CGL_vec3 c;
 };
 typedef struct CGL_shape_triangle CGL_shape_triangle;
+
+struct CGL_shape_quad
+{
+    CGL_vec3 a;
+    CGL_vec3 b;
+    CGL_vec3 c;
+    CGL_vec3 d;
+};
+typedef struct CGL_shape_quad CGL_shape_quad;
+
+struct CGL_shape
+{
+    CGL_vec3* vertices;
+    CGL_vec3 position;
+    CGL_vec3 rotation;
+    CGL_vec3 scale;
+    size_t vertices_count;
+};
+typedef struct CGL_shape CGL_shape;
+
+void CGL_shape_init(CGL_shape* shape, size_t vertices_count);
+void CGL_shape_destroy(CGL_shape* shape);
+
+#ifndef CGL_SAT_COLLISION_MAX_COLLISIONS
+#define CGL_SAT_COLLISION_MAX_COLLISIONS 4096
+#endif
+
+bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount);
+bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, float* overlap_amount);
+void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, int* axes_count);
 
 bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 
@@ -1234,7 +1274,7 @@ void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
 void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radius_y);
 bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy);
 bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy);
-
+void CGL_widgets_add_shape_out_line(CGL_shape* shape);
 
 #endif
 #endif
@@ -2750,6 +2790,104 @@ void CGL_utils_get_timestamp(char* buffer)
     buffer[strlen(buffer) - 2] = '\0';
 }
 
+void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
+{
+    shape->vertices_count = vertices_count;
+    shape->vertices = (CGL_vec3*)CGL_malloc(sizeof(CGL_vec3) * vertices_count);
+    shape->position = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    shape->rotation = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    shape->scale = CGL_vec3_init(1.0f, 1.0f, 1.0f);
+    if(shape->vertices == NULL) return;
+}
+
+void CGL_shape_destroy(CGL_shape* shape)
+{
+    CGL_free(shape->vertices);
+}
+
+bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount)
+{
+    float a_max = -FLT_MAX;
+    float a_min = FLT_MAX;
+
+    float b_max = -FLT_MAX;
+    float b_min = FLT_MAX;
+
+    CGL_vec2_normalize(axis);
+
+    const CGL_vec2 a_translation = CGL_vec2_init(a->position.x, a->position.y);
+    const CGL_vec2 a_scale = CGL_vec2_init(a->scale.x, a->scale.y);
+    const float a_rotation = a->rotation.x;
+    
+    const CGL_vec2 b_translation = CGL_vec2_init(b->position.x, b->position.y);
+    const CGL_vec2 b_scale = CGL_vec2_init(b->scale.x, b->scale.y);
+    const float b_rotation = b->rotation.x;
+
+    
+    for(size_t i = 0; i < a->vertices_count; i++)
+    {
+        CGL_vec2 vertex = CGL_vec2_init(a->vertices[i].x, a->vertices[i].y);
+        vertex = CGL_vec2_apply_transformations(vertex, &a_translation, &a_rotation, &a_scale);
+        float projection = CGL_vec2_dot(vertex, axis);
+        a_max = CGL_utils_max(a_max, projection);
+        a_min = CGL_utils_min(a_min, projection);        
+    }
+
+    for(size_t i = 0; i < b->vertices_count; i++)
+    {
+        CGL_vec2 vertex = CGL_vec2_init(b->vertices[i].x, b->vertices[i].y);
+        vertex = CGL_vec2_apply_transformations(vertex, &b_translation, &b_rotation, &b_scale);
+        float projection = CGL_vec2_dot(vertex, axis);
+        b_max = CGL_utils_max(b_max, projection);
+        b_min = CGL_utils_min(b_min, projection);        
+    }
+
+    if
+    (
+        (a_max >= b_min && a_max <= b_max) ||
+        (a_min >= b_min && a_min <= b_max) ||
+        (b_max >= a_min && b_max <= a_max) ||
+        (b_min >= a_min && b_min <= a_max)
+
+    )
+    {
+        float a_range = a_max - a_min;
+        float b_range = b_max - b_min;
+        float a_middle = a_min + a_range / 2.0f;
+        float b_middle = b_min + b_range / 2.0f;
+        float middle_distance = fabsf(a_middle - b_middle);
+        float overlap = CGL_utils_min(a_range, b_range) / 2.0f - middle_distance;
+        if(overlap_amount) *overlap_amount = overlap;
+        return true;
+    }
+
+    return false;    
+}
+
+bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, float* overlap_amount)
+{
+    static CGL_vec2 sat_axes_a[CGL_SAT_COLLISION_MAX_COLLISIONS];
+    static CGL_vec2 sat_axes_b[CGL_SAT_COLLISION_MAX_COLLISIONS];
+    CGL_sat_collision_calculate_axes(a, sat_axes_a, NULL);    
+    CGL_sat_collision_calculate_axes(b, sat_axes_b, NULL);
+    for(size_t i = 0; i < a->vertices_count; i++) if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_a[i], overlap_amount)) return false;
+    for(size_t i = 0; i < b->vertices_count; i++) if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_b[i], overlap_amount)) return false;
+    return true;
+}
+
+void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, int* axes_count)
+{
+    for(size_t i = 0; i < shape->vertices_count; i++)
+    {
+        CGL_vec2 a = CGL_vec2_init(shape->vertices[i].x, shape->vertices[i].y);
+        CGL_vec2 b = CGL_vec2_init(shape->vertices[(i + 1) % shape->vertices_count].x, shape->vertices[(i + 1) % shape->vertices_count].y);
+        CGL_vec2 edge = CGL_vec2_sub(b, a);
+        CGL_vec2 normal = CGL_vec2_init(edge.y, -edge.x);
+        axes[i] = normal;
+    }
+    if(axes_count) *axes_count = (int)shape->vertices_count;
+}
+
 // algorithm from https://stackoverflow.com/a/23186198/14911094
 bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 p0, CGL_vec2 p1, CGL_vec2 p2)
 {
@@ -3183,6 +3321,28 @@ CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
     mat.m[14] = 0.0f;
     mat.m[15] = 1.0f;
     return mat;
+}
+
+CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale)
+{
+    if(rotation)
+    {
+        original = CGL_vec3_rotate_x(original, rotation->x);
+        original = CGL_vec3_rotate_y(original, rotation->y);
+        original = CGL_vec3_rotate_z(original, rotation->z);                
+    }
+    if(scale) original = CGL_vec3_mul(original, (*scale));
+    if(translation) original = CGL_vec3_sub(original, (*translation));
+    return original;
+}
+
+CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const float* rotation, const CGL_vec2* scale)
+{
+    CGL_vec2 zero = CGL_vec2_init(0.0f, 0.0f);
+    if(rotation) CGL_vec2_rotate_about_point(original, zero, (*rotation));
+    if(scale) original = CGL_vec2_mul(original, (*scale));
+    if(translation) original = CGL_vec2_sub(original, (*translation));
+    return original;
 }
 
 struct CGL_context
@@ -7885,6 +8045,17 @@ bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float s
     return true;
 }
 
+
+void CGL_widgets_add_shape_out_line(CGL_shape* shape)
+{
+    for(int i = 0 ; i < shape->vertices_count ; i++)
+    {
+        CGL_vec3 p0 = CGL_vec3_apply_transformations(shape->vertices[i], &shape->position, &shape->rotation, &shape->scale);
+        CGL_vec3 p1 = CGL_vec3_apply_transformations(shape->vertices[(i + 1) % shape->vertices_count], &shape->position, &shape->rotation, &shape->scale);
+        CGL_widgets_add_line(p0, p1);
+    }
+}
+
 #endif
 #endif
 
@@ -8387,17 +8558,18 @@ void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotati
 
     // create tiangle fans
     caster->triangle_count = 0;
-    for(int i = 0 ; i < ray_count - 1 ; i++)
+    for(int i = 0 ; i < ray_count ; i++)
     {
         //CGL_widgets_set_fill_color(CGL_utils_random_color());
         caster->triangles[caster->triangle_count].a = CGL_vec3_init(pos.x, pos.y, 0.0f);
-        caster->triangles[caster->triangle_count].b = CGL_vec3_init(rays[i + 1].target.x, rays[i + 1].target.y, 0.0f);
+        caster->triangles[caster->triangle_count].b = CGL_vec3_init(rays[(i + 1) % ray_count].target.x, rays[(i + 1) % ray_count].target.y, 0.0f);
         caster->triangles[caster->triangle_count].c = CGL_vec3_init(rays[i].target.x, rays[i].target.y, 0.0f);        
 #ifndef CGL_EXCLUDE_WIDGETS
         if(visualise_rays) CGL_widgets_add_triangle(caster->triangles[caster->triangle_count].a, caster->triangles[caster->triangle_count].b, caster->triangles[caster->triangle_count].c);
 #endif
         caster->triangle_count++;
     }
+    /*
     if(ray_count > 1)
     {
         caster->triangles[caster->triangle_count].a = CGL_vec3_init(pos.x, pos.y, 0.0f);
@@ -8408,6 +8580,7 @@ void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotati
 #endif
         caster->triangle_count++;
     }
+    */
 
 
 #ifndef CGL_EXCLUDE_WIDGETS
