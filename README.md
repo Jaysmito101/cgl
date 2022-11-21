@@ -42,6 +42,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - ROT13 encryption
   - General Purpose Hashing Functions [refer here]( http://www.azillionmonkeys.com/qed/hash.html)
   - Colored printf (red, green, blue, gray/yellow)
+  - Point/Triangle intersection check
   - TODO: [ MD5 / SHA 256 / SHA 128 / AES ]
 
 * Data structures
@@ -79,6 +80,11 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Custom thresholding
   - Custom downsample/upsample passes
   - Entirely done in Compute Shaders
+  
+* 2D Collision Detection
+  - Detect collisions between 2D polygons
+  - Generate Seperating Axes for polygons
+  - Get Overlap distance
 
 * CGL Ray Cast
   - Fast 2D Ray Cast
