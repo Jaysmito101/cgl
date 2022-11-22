@@ -68,6 +68,21 @@ SOFTWARE.
 #include <errno.h>
 #include <time.h>
 
+typedef unsigned char CGL_ubyte;
+typedef unsigned short CGL_ushort;
+typedef unsigned int CGL_uint;
+typedef unsigned long CGL_ulong;
+typedef unsigned long long CGL_ulonglong;
+typedef char CGL_byte;
+typedef short CGL_short;
+typedef int CGL_int;
+typedef long CGL_long;
+typedef long long CGL_longlong;
+typedef float CGL_float;
+typedef double CGL_double;
+typedef long double CGL_longdouble;
+typedef bool CGL_bool;
+
 #ifdef CGL_LOGGING_ENABLED
 #define CGL_LOG(...) CGL_log_internal(__VA_ARGS__)
 #else
@@ -1266,6 +1281,7 @@ void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
 void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
 void CGL_widgets_add_quad_8f(float ax, float ay, float bx, float by, float cx, float cy, float dx, float dy);
 void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end);
+void CGL_widgets_add_line2f(float start_x, float start_y, float end_x, float end_y);
 void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size);
 void CGL_widgets_add_rect2f(float start_x, float start_y, float size_x, float size_y);
 void CGL_widgets_add_circle(CGL_vec3 position, float radius);
@@ -1385,6 +1401,22 @@ CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, int* co
 
 #endif
 
+
+#ifndef CGL_EXCLUDE_SQUARE_MARCHER
+
+struct CGL_square_marcher;
+typedef struct CGL_square_marcher CGL_square_marcher;
+
+typedef bool(*CGL_square_marcher_distance_function)(CGL_vec2, float*, void*);
+
+CGL_square_marcher* CGL_square_marcher_create();
+void CGL_square_marcher_destroy(CGL_square_marcher* marcher);
+void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data);
+void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher);
+void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bool enable);
+CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, int resolution_x, int resolution_y);
+
+#endif
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -7576,6 +7608,14 @@ void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = was_fill;
 }
 
+void CGL_widgets_add_line2f(float start_x, float start_y, float end_x, float end_y)
+{
+    CGL_widgets_add_line(
+        CGL_vec3_init(start_x, start_y, 0.0f),
+        CGL_vec3_init(end_x, end_y, 0.0f)
+        );
+}
+
 void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size)
 {
     CGL_widgets_add_quad(
@@ -8630,6 +8670,192 @@ CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, int* co
 
 
 #endif
+
+#ifndef CGL_EXCLUDE_SQUARE_MARCHER
+
+struct CGL_square_marcher
+{
+    void* user_data;
+    bool interpolate;
+};
+
+CGL_square_marcher* CGL_square_marcher_create()
+{
+    CGL_square_marcher* marcher = (CGL_square_marcher*)CGL_malloc(sizeof(CGL_square_marcher));
+    if(!marcher) return NULL;
+    marcher->user_data = NULL;
+    marcher->interpolate = false;
+    return marcher;
+}
+
+void CGL_square_marcher_destroy(CGL_square_marcher* marcher)
+{
+    CGL_free(marcher);
+}
+
+void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data)
+{
+    marcher->user_data = user_data;
+}
+
+void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher)
+{
+    return marcher->user_data;
+}   
+
+void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bool enable)
+{
+    marcher->interpolate = enable;
+}
+
+void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
+{
+    CGL_mesh_vertex v;
+    v.normal = CGL_vec4_init(0.0f, 0.0f, 1.0f, 1.0f);
+    v.position = CGL_vec4_init(a.x, a.y, 0.0f, 0.0f);
+    CGL_list_push(list, &v);
+    v.position = CGL_vec4_init(b.x, b.y, 0.0f, 0.0f);
+    CGL_list_push(list, &v);
+    v.position = CGL_vec4_init(c.x, c.y, 0.0f, 0.0f);
+    CGL_list_push(list, &v);
+}
+
+CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, int resolution_x, int resolution_y)
+{
+    CGL_vec2 step_size = CGL_vec2_init((end.x - start.x) / (float)resolution_x, (end.y - start.y) / (float)resolution_y);
+    CGL_vec2 pos[4], mpts[4];
+    CGL_bool smpb[4];
+    CGL_float smpv[4], intr[4];
+    CGL_list* mesh_list = CGL_list_create(sizeof(CGL_mesh_vertex), 1000);
+    for(int xi = -1 ; xi < resolution_x ; xi ++)
+    {
+        for(int yi = -1 ; yi < resolution_y ; yi ++)
+        {
+            pos[0] = CGL_vec2_init(start.x + xi * step_size.x, start.y + (yi + 1) * step_size.y);
+            pos[1] = CGL_vec2_init(start.x + (xi + 1) * step_size.x, start.y + (yi + 1) * step_size.y);
+            pos[2] = CGL_vec2_init(start.x + (xi + 1) * step_size.x, start.y + yi * step_size.y);
+            pos[3] = CGL_vec2_init(start.x + xi * step_size.x, start.y + yi * step_size.y);
+            for (int i = 0 ; i < 4 ; i++) intr[i] = 0.5f;
+            /*
+            *  A Possible Optimization
+            *
+            * We could have a cache of say CGL_float cache[10 * 10];
+            * Now we loop from x = 0 to x = resolution_x / 10 and y = 0 to y = resolution_y / 10 in the outer loops
+            * And have 2 inner loops from 1 - 10 each there e could cache the vlaue of the distance function
+            * And then use the cached values in the inner loop saving a lot of calls to the distance function
+            */
+            for (int i = 0 ; i < 4 ; i++) smpb[i] = sampler(pos[i], &smpv[i], marcher->user_data);
+            if(marcher->interpolate) for (int i = 0 ; i < 4 ; i++) intr[i] = smpv[i] / ( smpv[i] + smpv[(i + 1) % 4]);
+            for (int i = 0 ; i < 4 ; i++) mpts[i] = CGL_vec2_init(CGL_utils_mix(pos[i].x, pos[(i + 1) % 4].x, intr[i]), CGL_utils_mix(pos[i].y, pos[(i + 1) % 4].y, intr[i]));
+            if(!smpb[0] && !smpb[1] && !smpb[2] && !smpb[3]) // 0000
+            {
+
+            }
+            else if(!smpb[0] && !smpb[1] && !smpb[2] && smpb[3]) // 0001
+            {
+                //CGL_widgets_add_line2f(mpts[2].x, mpts[2].y, mpts[3].x, mpts[3].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], mpts[2], mpts[3]);
+            }
+            else if(!smpb[0] && !smpb[1] && smpb[2] && !smpb[3]) // 0010
+            {
+                //CGL_widgets_add_line2f(mpts[1].x, mpts[1].y, mpts[2].x, mpts[2].y); 
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[2], mpts[1], mpts[2]);
+            }
+            else if(!smpb[0] && !smpb[1] && smpb[2] && smpb[3]) // 0011
+            {
+                //CGL_widgets_add_line2f(mpts[3].x, mpts[3].y, mpts[1].x, mpts[1].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], pos[2], mpts[1]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], mpts[1], mpts[3]);
+            }
+            else if(!smpb[0] && smpb[1] && smpb[2] && smpb[3]) // 0111
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[3].x, mpts[3].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], pos[2], pos[1]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], pos[1], mpts[0]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], mpts[0], mpts[3]);
+            }
+            else if(!smpb[0] && smpb[1] && smpb[2] && !smpb[3]) // 0110
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[2].x, mpts[2].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[2], pos[1], mpts[0]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[2], mpts[0], mpts[2]);
+            }
+            else if(!smpb[0] && smpb[1] && !smpb[2] && smpb[3]) // 0101
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[1].x, mpts[1].y);
+                //CGL_widgets_add_line2f(mpts[2].x, mpts[2].y, mpts[3].x, mpts[3].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], mpts[2], mpts[3]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[1], mpts[1], mpts[0]);
+            }
+            else if(!smpb[0] && smpb[1] && !smpb[2] && !smpb[3]) // 0100
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[1].x, mpts[1].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[1], mpts[1], mpts[0]);
+            }
+            else if(smpb[0] && !smpb[1] && !smpb[2] && !smpb[3]) // 1000
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[3].x, mpts[3].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], mpts[0], mpts[3]);
+            }
+            else if(smpb[0] && !smpb[1] && smpb[2] && !smpb[3]) // 1010
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[3].x, mpts[3].y);
+                //CGL_widgets_add_line2f(mpts[1].x, mpts[1].y, mpts[2].x, mpts[2].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], mpts[0], mpts[3]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[2], mpts[1], mpts[2]);
+            }
+            else if(smpb[0] && !smpb[1] && smpb[2] && smpb[3]) // 1011
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[1].x, mpts[1].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[3], pos[2]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[2], mpts[1]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], mpts[1], mpts[0]);
+            }
+            else if(smpb[0] && smpb[1] && !smpb[2] && smpb[3]) // 1101
+            {
+                //CGL_widgets_add_line2f(mpts[1].x, mpts[1].y, mpts[2].x, mpts[2].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[1], pos[3]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[1], mpts[2], pos[3]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[1], mpts[1], mpts[2]);
+            }
+            else if(smpb[0] && smpb[1] && smpb[2] && !smpb[3]) // 1110
+            {
+                //CGL_widgets_add_line2f(mpts[2].x, mpts[2].y, mpts[3].x, mpts[3].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[1], pos[2]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[2], mpts[2]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], mpts[2], mpts[3]);
+            }
+            else if(smpb[0] && smpb[1] && !smpb[2] && !smpb[3]) // 1100
+            {
+                //CGL_widgets_add_line2f(mpts[3].x, mpts[3].y, mpts[1].x, mpts[1].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[1], mpts[1]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], mpts[1], mpts[3]);
+            }
+            else if(smpb[0] && !smpb[1] && !smpb[2] && smpb[3]) // 1001
+            {
+                //CGL_widgets_add_line2f(mpts[0].x, mpts[0].y, mpts[2].x, mpts[2].y);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[3], mpts[2], pos[0]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, mpts[2], mpts[0], pos[0]);
+            }
+            else if(smpb[0] && smpb[1] && smpb[2] && smpb[3]) // 1111
+            {
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[2], pos[1]);
+                __CGL_square_marcher_generate_mesh_add_triangle(mesh_list, pos[0], pos[3], pos[2]);
+            }
+
+        }
+
+    }
+    size_t vt_ct = CGL_list_get_size(mesh_list);
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(vt_ct, vt_ct);
+    memcpy(mesh->vertices, mesh_list->data, sizeof(CGL_mesh_vertex) * vt_ct);
+    for(size_t i = 0; i < vt_ct; i++) mesh->indices[i] = (CGL_uint)i;
+    CGL_list_destroy(mesh_list);
+    return mesh;
+}
+
+#endif
+
 
 #endif // CGL_IMPLEMENTATION
 
