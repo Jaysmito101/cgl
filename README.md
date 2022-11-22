@@ -67,7 +67,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Train/Generate with 3 - 4 lines of code
   - Trainer implemented for text generation (n-gram based)
   - Custom trainer API for custom scenarios
-  
+
 * Cross Platform Threading
   - Threads
   - Mutex
@@ -85,6 +85,11 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Detect collisions between 2D polygons
   - Generate Seperating Axes for polygons
   - Get Overlap distance
+
+* MArching Square
+  - Fully Customizablt Marcher
+  - Linear Interpolation supported
+  - Generates 2D Mesh (Triangles) for CGL
 
 * CGL Ray Cast
   - Fast 2D Ray Cast
