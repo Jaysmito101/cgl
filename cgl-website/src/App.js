@@ -1,10 +1,18 @@
-const App = () => {
+import Container from 'react-bootstrap/Container';
+// import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+// Custom component imports
+import Header from './components/Header';
+import Content from './components/Content';
+import Footer from './components/Footer';
+
+export default function App() {
   return (
-    <div className="App">
-      <h1>This is a title</h1>
-      <p>This is a header.</p>
-    </div>
+    <Container fluid className="App">
+      <Header />
+      <Content />
+      <Footer />
+    </Container>
   );
 }
 
-export default App;
