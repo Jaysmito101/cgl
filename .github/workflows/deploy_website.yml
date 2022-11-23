@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'website'
       - name: Setup NPM
         run: npm install
       - name: Setup NPM
