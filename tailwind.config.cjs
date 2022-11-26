@@ -5,7 +5,11 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      backgroundImage: {
+        'landing-banner': "url('assets/cgl-site-background-wallpaper.png')",
+      }
+    },
   },
   plugins: [],
 }
