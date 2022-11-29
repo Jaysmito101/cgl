@@ -451,6 +451,10 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_deg_to_rad(deg) ((deg) * (CGL_PI / 180.0f))
 #define CGL_rad_to_deg(rad) ((rad) * (180.0f / CGL_PI))
 
+#define CGL_float_lerp(a, b, t) (((a) * (1.0f - (t))) + ((b) * (t)))
+CGL_float CGL_float_quadratic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float t);
+CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float d, CGL_float t);
+
 
 #define CGL_vec2_init(x, y) ((CGL_vec2){(x), (y)})
 #define CGL_vec2_add(a, b) (CGL_vec2){a.x + b.x, a.y + b.y}
@@ -533,7 +537,7 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, float theta);
     { \
         m00, m10, m20, \
         m01, m11, m21, \
-        m02, m12, m22
+        m02, m12, m22  \
     } \
 }
 
@@ -546,26 +550,24 @@ CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
 #define CGL_mat3_zero() CGL_mat3_init( \
     0.0f, 0.0f, 0.0f, \
     0.0f, 0.0f, 0.0f, \
-    0.0f, 0.0f, 0.0f
+    0.0f, 0.0f, 0.0f  \
 )
 
 #define CGL_mat3_identity() CGL_mat3_init( \
     1.0f, 0.0f, 0.0f, \
     0.0f, 1.0f, 0.0f, \
-    0.0f, 0.0f, 1.0f
+    0.0f, 0.0f, 1.0f  \
 )
 
 #define CGL_mat3_log(a) CGL_info( \
     "\n{\n" \
-    "    {\n"
-    "        %f, %f, %f,\n" \
-    "        %f, %f, %f,\n" \
-    "        %f, %f, %f\n" \
-    "    }\n" \
+    "    {%f, %f, %f}\n" \
+    "    {%f, %f, %f}\n" \
+    "    {%f, %f, %f}\n" \
     "}\n", \
     a.m[0], a.m[3], a.m[6], \
     a.m[1], a.m[4], a.m[7], \
-    a.m[2], a.m[5], a.m[8]
+    a.m[2], a.m[5], a.m[8]  \
 )
 
 
@@ -603,6 +605,8 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
 
 #define CGL_mat4_elem_get(mat, row, col) ((mat).m[row + col * 4])
 #define CGL_mat4_elem_set(mat, row, col, value) ((mat).m[row + col * 4] = value)
+#define CGL_mat3_elem_get(mat, row, col) ((mat).m[row + col * 3])
+#define CGL_mat3_elem_set(mat, row, col, value) ((mat).m[row + col * 3] = value)
 
 #define CGL_mat4_zero() CGL_mat4_init(\
     0.0f, 0.0f, 0.0f, 0.0f, \
@@ -681,27 +685,35 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
 )
 
 
-typedef CGL_vec3(*CGL_parametric_function)(float, float);
+typedef CGL_vec3(*CGL_parametric_function)(CGL_float, CGL_float);
 
 
 #define CGL_quat_init(x, y, z, w) (CGL_quat){{x, y, z}, w}
 #define CGL_quat_identity() CGL_quat_init(0.0f, 0.0f, 0.0f, 1.0f)
 #define CGL_quat_equal(a, b) (CGL_vec3_equal(a.vec, b.vec) && (a.w == b.w))
 #define CGL_quat_from_axis_angle(x, y, z, angle) CGL_quat_init(sinf(angle / 2.0f) * x, sinf(angle / 2.0f) * y, sinf(angle / 2.0f) * z, cosf(angle / 2.0f))
-float CGL_quat_to_axis_angle(CGL_quat quat, float* x, float* y, float* z);
 #define CGL_quat_from_x_rotation(angle) CGL_quat_from_axis_angle(1.0f, 0.0f, 0.0f, angle)
 #define CGL_quat_from_y_rotation(angle) CGL_quat_from_axis_angle(0.0f, 1.0f, 0.0f, angle)
 #define CGL_quat_from_z_rotation(angle) CGL_quat_from_axis_angle(0.0f, 0.0f, 1.0f, angle)
 #define CGL_quat_from_euler_zyx(z, y, x) CGL_quat_init(cosf(x * 0.5f) * sinf(z * 0.5f) * cosf(y * 0.5f) - sinf(x * 0.5f) * cosf(z * 0.5f) * sinf(y * 0.5f), cosf(x * 0.5f) * cosf(z * 0.5f) * sinf(y * 0.5f) + sinf(x * 0.5f) * sinf(z * 0.5f) * cosf(y * 0.5f), sinf(x * 0.5f) * cosf(z * 0.5f) * cosf(y * 0.5f) - cosf(x * 0.5f) * sinf(z * 0.5f) * sinf(y * 0.5f), cosf(x * 0.5f) * cosf(z * 0.5f) * cosf(y * 0.5f) + sinf(x * 0.5f) * sinf(z * 0.5f) * sinf(y * 0.5f))
-void CGL_quat_to_euler_zyx(CGL_quat quat, float* z, float* y, float* x);
 #define CGL_quat_conjuigate(q) CGL_quat_init(-q.vec.x, -q.vec.y, -q.vec.z, q.w)
 #define CGL_quat_length(q) sqrtf(q.w * q.w + q.vec.x * q.vec.x + q.vec.y * q.vec.y + q.vec.z * q.vec.z)
-#define CGL_quat_normalize(q) {float __CGL_quat_length##__LINE__ = 1.0f / CGL_quat_length(q); q.w *= __CGL_quat_length##__LINE__; q.vec.x *= __CGL_quat_length##__LINE__; q.vec.y *= __CGL_quat_length##__LINE__; q.vec.z *= __CGL_quat_length##__LINE__; }
-CGL_quat CGL_quat_multiply(CGL_quat a, CGL_quat b);
-void CGL_quat_rotate(CGL_quat q, float x, float y, float z, float* ox, float* oy, float* oz);
-
+#define CGL_quat_norm(q) CGL_quat_length(q)
+#define CGL_quat_normalize(q) {CGL_float __CGL_quat_length##__LINE__ = 1.0f / CGL_quat_length(q); q.w *= __CGL_quat_length##__LINE__; q.vec.x *= __CGL_quat_length##__LINE__; q.vec.y *= __CGL_quat_length##__LINE__; q.vec.z *= __CGL_quat_length##__LINE__; }
+#define CGL_quat_add(a, b) CGL_quat_init(a.vec.x + b.vec.x, a.vec.y + b.vec.y, a.vec.z + b.vec.z, a.w + b.w)
+#define CGL_quat_sub(a, b) CGL_quat_init(a.vec.x - b.vec.x, a.vec.y - b.vec.y, a.vec.z - b.vec.z, a.w - b.w)
+#define CGL_quat_conjugate(q) CGL_quat_init(-q.vec.x, -q.vec.y, -q.vec.z, q.w)
+#define CGL_quat_mul_scalar(q, s) CGL_quat_init(q.vec.x * (s), q.vec.y * (s), q.vec.z * (s), q.w * (s))
+void CGL_quat_to_euler_zyx(CGL_quat quat, CGL_float* z, CGL_float* y, CGL_float* x);
+CGL_quat CGL_quat_slerp(CGL_quat a, CGL_quat b, CGL_float t);
+CGL_quat CGL_quat_squad(CGL_quat a, CGL_quat b, CGL_quat c, CGL_quat d, CGL_float t);
+CGL_float CGL_quat_to_axis_angle(CGL_quat quat, CGL_float* x, CGL_float* y, CGL_float* z);
+CGL_quat CGL_quat_inverse(CGL_quat quat);
+CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b);
+void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, CGL_float* ox, CGL_float* oy, CGL_float* oz);
+CGL_mat4 CGL_quat_to_mat4(CGL_quat quat);
 CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale);
-CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const float* rotation, const CGL_vec2* scale);
+CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const CGL_float* rotation, const CGL_vec2* scale);
 
 
 #endif
@@ -1391,11 +1403,11 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 #ifndef CGL_GRAPHICS_API
 
 #ifndef CGL_WIDGETS_MAX_VERTICES
-#define CGL_WIDGETS_MAX_VERTICES 1024 * 4
+#define CGL_WIDGETS_MAX_VERTICES 1024 * 128
 #endif
 
 #ifndef CGL_WIDGETS_MAX_INDICES
-#define CGL_WIDGETS_MAX_INDICES 1024 * 6
+#define CGL_WIDGETS_MAX_INDICES 1024 * 128
 #endif
 
 struct CGL_widgets_context;
@@ -1437,9 +1449,17 @@ void CGL_widgets_add_circle(CGL_vec3 position, float radius);
 void CGL_widgets_add_circle2f(float pos_x, float pos_y, float radius);
 void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
 void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radius_y);
-bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy);
-bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy);
+CGL_bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy);
+CGL_bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy);
 void CGL_widgets_add_shape_out_line(CGL_shape* shape);
+void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
+void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
+void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
+void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
+void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
+void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
+
+
 
 #endif
 #endif
@@ -3411,6 +3431,25 @@ uint32_t CGL_utils_super_fast_hash(const void* dat, size_t len)
 // common lib and mat
 #if 1 // Just to use code folding
 
+CGL_float CGL_float_quadratic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float t)
+{
+    CGL_float t2 = t * t;
+    CGL_float a0 = c - a;
+    CGL_float a1 = a - b * 2.0f + c;
+    CGL_float a2 = b - a;
+    return (a0 + a1 * t + a2 * t2);
+}
+
+CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float d, CGL_float t)
+{
+    CGL_float p0 = CGL_float_lerp(a, c, t);
+    CGL_float p1 = CGL_float_lerp(c, d, t);
+    CGL_float p2 = CGL_float_lerp(d, b, t);
+    CGL_float q0 = CGL_float_lerp(p0, p1, t);
+    CGL_float q1 = CGL_float_lerp(p1, p2, t);
+    return CGL_float_lerp(q0, q1, t);
+}
+
 // Uses Rodrigues' rotation formula to rotate a vector about an axis
 CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, float theta)
 {
@@ -3600,9 +3639,21 @@ CGL_mat4 CGL_mat4_from_mat3(CGL_mat3 m)
     );
 }
 
+// Golfman's method for matrix rotation
 CGL_mat4 CGL_mat4_rotate_about_axis(CGL_vec3 axis, CGL_float angle)
 {
-    // TODO: implement
+    CGL_float cos_theta = cosf(angle);
+    CGL_float sin_theta = sinf(angle);
+    CGL_float one_minus_cos_theta = 1.0f - cos_theta;
+    CGL_float x = axis.x;
+    CGL_float y = axis.y;
+    CGL_float z = axis.z;
+    return CGL_mat4_init(
+        cos_theta + x * x * one_minus_cos_theta, x * y * one_minus_cos_theta - z * sin_theta, x * z * one_minus_cos_theta + y * sin_theta, 0.0f,
+        y * x * one_minus_cos_theta + z * sin_theta, cos_theta + y * y * one_minus_cos_theta, y * z * one_minus_cos_theta - x * sin_theta, 0.0f,
+        z * x * one_minus_cos_theta - y * sin_theta, z * y * one_minus_cos_theta + x * sin_theta, cos_theta + z * z * one_minus_cos_theta, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
 }
 
 CGL_float CGL_mat3_det(CGL_mat3 a)
@@ -3668,7 +3719,7 @@ void CGL_quat_to_euler_zyx(CGL_quat q, float* z, float* y, float* x)
     }
 }
 
-CGL_quat CGL_quat_multiply(CGL_quat a, CGL_quat b)
+CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b)
 {
     CGL_quat result;
     CGL_vec3 temp1, temp2, temp3;
@@ -3697,6 +3748,47 @@ void CGL_quat_rotate(CGL_quat q, float x, float y, float z, float* ox, float* oy
     if(ox) *ox = ww * x + 2.0f * wy * z - 2.0f * wz * y + xx * x + 2.0f * xy * y + 2.0f * xz * z - zz * x - yy * x;
     if(oy) *oy = 2.0f * xy * x + yy * y + 2.0f * yz * z + 2.0f * wz * x - zz * y + ww * y - 2.0f * wx * z - xx * y;
     if(oz) *oz = 2.0f * xz * x + 2.0f * yz * y + zz * z - 2.0f * wy * x - yy * z + 2.0f * wx * y - xx * z + ww * z;
+}
+
+CGL_quat CGL_quat_inverse(CGL_quat quat)
+{
+    CGL_float normal = CGL_quat_norm(quat);
+    normal = 1.0f / normal * normal;
+    quat = CGL_quat_conjugate(quat);
+    quat = CGL_quat_mul_scalar(quat, normal);
+    return quat;
+}
+
+CGL_mat4 CGL_quat_to_mat4(CGL_quat quat)
+{
+    CGL_float s = CGL_quat_norm(quat);
+    s = 2.0f / s * s;
+    return CGL_mat4_init(
+        1.0f - s * (quat.vec.y * quat.vec.y + quat.vec.z * quat.vec.z), s * (quat.vec.x * quat.vec.y - quat.vec.z * quat.w), s * (quat.vec.x * quat.vec.z + quat.vec.y * quat.w), 0.0f,
+        s * (quat.vec.x * quat.vec.y + quat.vec.z * quat.w), 1.0f - s * (quat.vec.x * quat.vec.x + quat.vec.z * quat.vec.z), s * (quat.vec.y * quat.vec.z - quat.vec.x * quat.w), 0.0f,
+        s * (quat.vec.x * quat.vec.z - quat.vec.y * quat.w), s * (quat.vec.y * quat.vec.z + quat.vec.x * quat.w), 1.0f - s * (quat.vec.x * quat.vec.x + quat.vec.y * quat.vec.y), 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+}
+
+CGL_quat CGL_quat_slerp(CGL_quat q, CGL_quat r, CGL_float t)
+{
+    CGL_float cos_theta = q.w * r.w + q.vec.x * r.vec.x + q.vec.y * r.vec.y + q.vec.z * r.vec.z;
+    CGL_float theta = acosf(cos_theta);
+    CGL_float sin_theta = sinf(theta);
+    CGL_float s0 = sinf((1.0f - t) * theta) / sin_theta;
+    CGL_float s1 = sinf(t * theta) / sin_theta;
+    CGL_quat result = CGL_quat_mul_scalar(q, s0);
+    CGL_quat temp = CGL_quat_mul_scalar(r, s1);
+    result = CGL_quat_add(result, temp);
+    return result;
+}
+
+CGL_quat CGL_quat_squad(CGL_quat q0, CGL_quat q1, CGL_quat a0, CGL_quat a1, CGL_float t)
+{
+    CGL_quat qr0 = CGL_quat_slerp(q0, q1, t);
+    CGL_quat qr1 = CGL_quat_slerp(a0, a1, t);
+    return CGL_quat_slerp(qr0, qr1, 2.0f * t * (1.0f - t));
 }
 
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
@@ -8423,13 +8515,20 @@ bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy)
             CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y, sx * 0.25f, sy * 0.25f);
             return true;
         }
+        case ':':
+        {
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y + 0.1f * sy , sx * 0.25f, sy * 0.25f);
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y + (0.1f + 0.25f + 0.1f) * sy , sx * 0.25f, sy * 0.25f);
+            return true;
+        }
         case ' ':
         {
             return true;
         }
     }
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = was_fill;
-    return false;
+    // return false;
+    return true;
 }
 
 bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy)
@@ -8478,6 +8577,80 @@ void CGL_widgets_add_shape_out_line(CGL_shape* shape)
         CGL_vec3 p1 = CGL_vec3_apply_transformations(shape->vertices[(i + 1) % shape->vertices_count], &shape->position, &shape->rotation, &shape->scale);
         CGL_widgets_add_line(p0, p1);
     }
+}
+
+void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
+{
+    CGL_float step_size = 1.0f / (CGL_float)resolution;
+    CGL_float t = 0.0f;
+    CGL_vec2 p = CGL_vec2_init(0.0f, 0.0f);
+    CGL_vec2 p_old = CGL_vec2_init(0.0f, 0.0f);
+    for(CGL_int i = 0 ; i <= resolution; i++)
+    {
+        p.x = CGL_float_cubic_lerp(start.x, end.x, control_1.x, control_2.x, t);
+        p.y = CGL_float_cubic_lerp(start.y, end.y, control_1.y, control_2.y, t);
+        if(i > 0) CGL_widgets_add_line2f(p_old.x, p_old.y, p.x, p.y);
+        p_old = p;
+        t += step_size;
+    }
+}
+
+void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
+{
+    CGL_widgets_add_cubic_bazier(
+        CGL_vec3_init(start.x, start.y, 0.0f),
+        CGL_vec3_init(end.x, end.y, 0.0f),
+        CGL_vec3_init(control_1.x, control_1.y, 0.0f),
+        CGL_vec3_init(control_2.x, control_2.y, 0.0f),
+        resolution
+    );
+}
+
+void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
+{
+    CGL_widgets_add_cubic_bazier(
+        CGL_vec3_init(start_x, start_y, 0.0f),
+        CGL_vec3_init(end_x, end_y, 0.0f),
+        CGL_vec3_init(control_1_x, control_1_y, 0.0f),
+        CGL_vec3_init(control_2_x, control_2_y, 0.0f),
+        resolution
+    );
+}
+
+void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
+{
+    CGL_float step_size = 1.0f / (CGL_float)resolution;
+    CGL_float t = 0.0f;
+    CGL_vec2 p = CGL_vec2_init(0.0f, 0.0f);
+    for(CGL_int i = 0 ; i <= resolution; i++)
+    {
+        p.x = CGL_float_cubic_lerp(start.x, end.x, control_1.x, control_2.x, t);
+        p.y = CGL_float_cubic_lerp(start.y, end.y, control_1.y, control_2.y, t);
+        CGL_widgets_add_circle2f(p.x, p.y, 0.02f);
+        t += step_size;
+    }
+}
+
+void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
+{
+    CGL_widgets_add_cubic_bazier_points(
+        CGL_vec3_init(start.x, start.y, 0.0f),
+        CGL_vec3_init(end.x, end.y, 0.0f),
+        CGL_vec3_init(control_1.x, control_1.y, 0.0f),
+        CGL_vec3_init(control_2.x, control_2.y, 0.0f),
+        resolution
+    );
+}
+
+void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
+{
+    CGL_widgets_add_cubic_bazier_points(
+        CGL_vec3_init(start_x, start_y, 0.0f),
+        CGL_vec3_init(end_x, end_y, 0.0f),
+        CGL_vec3_init(control_1_x, control_1_y, 0.0f),
+        CGL_vec3_init(control_2_x, control_2_y, 0.0f),
+        resolution
+    );
 }
 
 #endif
