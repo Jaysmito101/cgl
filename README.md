@@ -117,6 +117,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
     - line [`CGL_widgets_add_line`]
     - circle [`CGL_widgets_add_circle` `CGL_widgets_add_circle2f`]
     - oval [`CGL_widgets_add_oval`, `CGL_widgets_add_oval2f`]
+  - Advanced Bezier Curve( lines or dotted) widget
   - Add individual vertices
   - Adjust stroke color/thickness
   - Customize Batch renderer max vertices capacity (for low memory systems)
@@ -129,6 +130,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - scale/translate/rotate_x/rotate_y/rotate_z/add/sub/mul for mat4
   - perspective for mat4
   - transpose for mat4/(mat3 TODO)
+  - Rotation Matrices using Goldman's Method
   - look_at matrix 
   - Quaternion math
   - NOTE: Most of math functions are implemented via macros so will be totally inclined and quite fast without any unnecessary function calls
