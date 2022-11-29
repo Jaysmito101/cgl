@@ -425,7 +425,7 @@ typedef struct CGL_ivec4 CGL_ivec4;
 
 struct CGL_mat3
 {
-    float m[3][3];
+    float m[9];
 };
 typedef struct CGL_mat3 CGL_mat3;
 
@@ -452,12 +452,13 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_rad_to_deg(rad) ((rad) * (180.0f / CGL_PI))
 
 
-#define CGL_vec2_init(x, y) ((CGL_vec2){x, y})
+#define CGL_vec2_init(x, y) ((CGL_vec2){(x), (y)})
 #define CGL_vec2_add(a, b) (CGL_vec2){a.x + b.x, a.y + b.y}
+#define CGL_vec2_add_scaled(a, b, scale) (CGL_vec2){(a).x + (b).x * (scale), (a).y + (b).y * (scale)}
 #define CGL_vec2_sub(a, b) (CGL_vec2){a.x - b.x, a.y - b.y}
 #define CGL_vec2_mul(a, b) (CGL_vec2){a.x * b.x, a.y * b.y}
 #define CGL_vec2_div(a, b) (CGL_vec2){a.x / b.x, a.y / b.y}
-#define CGL_vec2_scale(a, s) (CGL_vec2){a.x * s, a.y * s}
+#define CGL_vec2_scale(a, s) (CGL_vec2){a.x * (s), a.y * (s)}
 #define CGL_vec2_dot(a, b) (a.x * b.x + a.y * b.y)
 #define CGL_vec2_length(a) sqrtf(a.x * a.x + a.y * a.y)
 #define CGL_vec2_normalize(a) { float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec2_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; }
@@ -467,13 +468,24 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_vec2_equal(a, b) (a.x == b.x && a.y == b.y)
 #define CGL_vec2_rotate_about_point(a, p, theta) CGL_vec2_init(((a.x - p.x) * cosf(theta) - (a.y - p.y) * sinf(theta) ), ((a.x - p.x) * sinf(theta) + (a.y - p.y) * cosf(theta)))
 #define CGL_vec2_centroid_of_triangle(a, b, c) CGL_vec2_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f)
+#define CGL_vec2_from_angle(theta) CGL_vec2_init(cosf(theta), sinf(theta))
+#define CGL_vec2_angle_between(a, b) acosf(CGL_vec2_dot(a, b) / (CGL_vec2_length(a) * CGL_vec2_length(b)))
+#define CGL_vec2_angle(a) atan2f(a.y, a.x)
+#define CGL_vec2_angle_from_to(a, b) atan2f(b.y - a.y, b.x - a.x)
+#define CGL_vec2_reflect(a, n) CGL_vec2_sub(a, CGL_vec2_scale(n, 2.0f * CGL_vec2_dot(a, n)))
+#define CGL_vec2_perpendicular(a) CGL_vec2_init(-a.y, a.x)
+#define CGL_vec2_create_from_higher_dimension(a) CGL_vec2_init(a.x, a.y)
+#define CGL_vec2_elem_get(a, i) ((float*)&a)[i]
+#define CGL_vec2_elem_set(a, i, v) (((float*)&a)[i] = v)
+
 
 #define CGL_vec3_init(x, y, z) ((CGL_vec3){x, y, z})
 #define CGL_vec3_add(a, b) (CGL_vec3){a.x + b.x, a.y + b.y, a.z + b.z}
+#define CGL_vec3_add_scaled(a, b, scale) (CGL_vec3){(a).x + (b).x * (scale), (a).y + (b).y * (scale), (a).z + (b).z * (scale)}
 #define CGL_vec3_sub(a, b) (CGL_vec3){a.x - b.x, a.y - b.y, a.z - b.z}
 #define CGL_vec3_mul(a, b) (CGL_vec3){a.x * b.x, a.y * b.y, a.z * b.z}
 #define CGL_vec3_div(a, b) (CGL_vec3){a.x / b.x, a.y / b.y, a.z / b.z}
-#define CGL_vec3_scale(a, s) (CGL_vec3){a.x * s, a.y * s, a.z * s}
+#define CGL_vec3_scale(a, s) (CGL_vec3){a.x * (s), a.y * (s), a.z * (s)}
 #define CGL_vec3_dot(a, b) (a.x * b.x + a.y * b.y + a.z * b.z)
 #define CGL_vec3_cross(a, b) (CGL_vec3){a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}
 #define CGL_vec3_length(a) sqrtf(a.x * a.x + a.y * a.y + a.z * a.z)
@@ -486,6 +498,18 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_vec3_rotate_y(v, theta) CGL_vec3_init(v.x * cosf(theta) + v.z * sinf(theta), v.y, -v.x * sinf(theta) + v.z * cosf(theta))
 #define CGL_vec3_rotate_z(v, theta) CGL_vec3_init(v.x * cosf(theta) - v.y * sinf(theta), v.x * sinf(theta) + v.y * cosf(theta), v.z)
 #define CGL_vec3_centroid_of_triangle(a, b, c) CGL_vec3_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f, (a.z + b.z + c.z) / 3.0f)
+#define CGL_vec3_from_angle(theta) CGL_vec3_init(cosf(theta), sinf(theta), 0.0f)
+#define CGL_vec3_angle_between(a, b) acosf(CGL_vec3_dot(a, b) / (CGL_vec3_length(a) * CGL_vec3_length(b)))
+#define CGL_vec3_from_spherical_coordinates(r, theta, phi) CGL_vec3_init(r * sinf(theta) * cosf(phi), r * sinf(theta) * sinf(phi), r * cosf(theta))
+#define CGL_vec3_to_spherical_coordinates(a) (CGL_vec3){sqrtf(a.x * a.x + a.y * a.y + a.z * a.z), acosf(a.z / sqrtf(a.x * a.x + a.y * a.y + a.z * a.z)), atan2f(a.y, a.x)}
+#define CGL_vec3_from_higher_dimension(a) CGL_vec3_init(a.x, a.y, a.z)
+#define CGL_vec3_from_vec2(a, z) CGL_vec3_init(a.x, a.y, z)
+#define CGL_vec3_elem_get(a, i) ((float*)&a)[i]
+#define CGL_vec3_elem_set(a, i, v) (((float*)&a)[i] = v)
+CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n);
+CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, float theta);
+
+
 
 #define CGL_vec4_init(x, y, z, w) ((CGL_vec4){x, y, z, w})
 #define CGL_vec4_add(a, b) (CGL_vec4){a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w}
@@ -498,39 +522,164 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_vec4_min(a, b) (CGL_vec4){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w}
 #define CGL_vec4_max(a, b) (CGL_vec4){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w}
 #define CGL_vec4_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w)
+#define CGL_vec4_centroid_of_triangle(a, b, c) CGL_vec4_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f, (a.z + b.z + c.z) / 3.0f, (a.w + b.w + c.w) / 3.0f)
+#define CGL_vec4_from_vec3(a, w) CGL_vec4_init(a.x, a.y, a.z, w)
+#define CGL_vec4_from_vec2(a, z, w) CGL_vec4_init(a.x, a.y, z, w)
+#define CGL_vec4_elem_get(a, i) ((float*)&a)[i]
+#define CGL_vec4_elem_set(a, i, v) (((float*)&a)[i] = v)
 
-#define CGL_mat4_identity() (CGL_mat4){{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
-#define CGL_mat4_scale(x, y, z) (CGL_mat4){{x, 0.0f, 0.0f, 0.0f, 0.0f, y, 0.0f, 0.0f, 0.0f, 0.0f, z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
-#define CGL_mat4_translate(x, y, z) (CGL_mat4){{1.0f, 0.0f, 0.0f, x, 0.0f, 1.0f, 0.0f, y, 0.0f, 0.0f, 1.0f, z, 0.0f, 0.0f, 0.0f, 1.0f}}
-#define CGL_mat4_rotate_x(x) (CGL_mat4){{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
-#define CGL_mat4_rotate_y(x) (CGL_mat4){{cosf(x), 0.0f, -sinf(x), 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, sinf(x), 0.0f, cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
-#define CGL_mat4_rotate_z(x) (CGL_mat4){{cosf(x), sinf(x), 0.0f, 0.0f, -sinf(x), cosf(x), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}
-#define CGL_mat4_add(a, b) (CGL_mat4){{a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8], a.m[9] + b.m[9], a.m[10] + b.m[10], a.m[11] + b.m[11], a.m[12] + b.m[12], a.m[13] + b.m[13], a.m[14] + b.m[14], a.m[15] + b.m[15]}}
-#define CGL_mat4_sub(a, b) (CGL_mat4){{a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8], a.m[9] - b.m[9], a.m[10] - b.m[10], a.m[11] - b.m[11], a.m[12] - b.m[12], a.m[13] - b.m[13], a.m[14] - b.m[14], a.m[15] - b.m[15]}}
-#define CGL_mat4_mul(a, b) (CGL_mat4){{ \
-    a.m[0] * b.m[0] + a.m[4] * b.m[1] + a.m[8] * b.m[2] + a.m[12] * b.m[3], \
-    a.m[1] * b.m[0] + a.m[5] * b.m[1] + a.m[9] * b.m[2] + a.m[13] * b.m[3], \
-    a.m[2] * b.m[0] + a.m[6] * b.m[1] + a.m[10] * b.m[2] + a.m[14] * b.m[3], \
-    a.m[3] * b.m[0] + a.m[7] * b.m[1] + a.m[11] * b.m[2] + a.m[15] * b.m[3], \
-\
-    a.m[0] * b.m[4] + a.m[4] * b.m[5] + a.m[8] * b.m[6] + a.m[12] * b.m[7], \
-    a.m[1] * b.m[4] + a.m[5] * b.m[5] + a.m[9] * b.m[6] + a.m[13] * b.m[7], \
-    a.m[2] * b.m[4] + a.m[6] * b.m[5] + a.m[10] * b.m[6] + a.m[14] * b.m[7], \
-    a.m[3] * b.m[4] + a.m[7] * b.m[5] + a.m[11] * b.m[6] + a.m[15] * b.m[7], \
-\
-    a.m[0] * b.m[8] + a.m[4] * b.m[9] + a.m[8] * b.m[10] + a.m[12] * b.m[11], \
-    a.m[1] * b.m[8] + a.m[5] * b.m[9] + a.m[9] * b.m[10] + a.m[13] * b.m[11], \
-    a.m[2] * b.m[8] + a.m[6] * b.m[9] + a.m[10] * b.m[10] + a.m[14] * b.m[11], \
-    a.m[3] * b.m[8] + a.m[7] * b.m[9] + a.m[11] * b.m[10] + a.m[15] * b.m[11], \
-\
-    a.m[0] * b.m[12] + a.m[4] * b.m[13] + a.m[8] * b.m[14] + a.m[12] * b.m[15], \
-    a.m[1] * b.m[12] + a.m[5] * b.m[13] + a.m[9] * b.m[14] + a.m[13] * b.m[15], \
-    a.m[2] * b.m[12] + a.m[6] * b.m[13] + a.m[10] * b.m[14] + a.m[14] * b.m[15], \
-    a.m[3] * b.m[12] + a.m[7] * b.m[13] + a.m[11] * b.m[14] + a.m[15] * b.m[15] \
-}}
-#define CGL_mat4_perspective(aspect, fov, znear, zfar) (CGL_mat4){{1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, 0.0f, 0.0f, -1.0f * ( (zfar + znear) / (zfar - znear) ), -1.0f, 0.0f, 0.0f, -2.0f * znear * zfar / (zfar - znear), 1.0f}}
-#define CGL_mat4_transpose(a) (CGL_mat4){{a.m[0], a.m[4], a.m[12], a.m[1], a.m[5], a.m[9], a.m[13], a.m[2], a.m[6], a.m[10], a.m[14], a.m[3], a.m[7], a.m[11], a.m[15]}}
+#define CGL_mat3_init(m00, m01, m02, m10, m11, m12, m20, m21, m22) (CGL_mat3) \
+{ \
+    { \
+        m00, m10, m20, \
+        m01, m11, m21, \
+        m02, m12, m22
+    } \
+}
+
+#define CGL_mat3_add(a, b) (CGL_mat3){a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8]}
+#define CGL_mat3_sub(a, b) (CGL_mat3){a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8]}
+CGL_float CGL_mat3_det(CGL_mat3 a);
+CGL_float CGL_mat3_trace(CGL_mat3 a);
+CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
+
+#define CGL_mat3_zero() CGL_mat3_init( \
+    0.0f, 0.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f
+)
+
+#define CGL_mat3_identity() CGL_mat3_init( \
+    1.0f, 0.0f, 0.0f, \
+    0.0f, 1.0f, 0.0f, \
+    0.0f, 0.0f, 1.0f
+)
+
+#define CGL_mat3_log(a) CGL_info( \
+    "\n{\n" \
+    "    {\n"
+    "        %f, %f, %f,\n" \
+    "        %f, %f, %f,\n" \
+    "        %f, %f, %f\n" \
+    "    }\n" \
+    "}\n", \
+    a.m[0], a.m[3], a.m[6], \
+    a.m[1], a.m[4], a.m[7], \
+    a.m[2], a.m[5], a.m[8]
+)
+
+
+#define CGL_mat4_init(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) (CGL_mat4) \
+{ \
+    { \
+        m00, m10, m20, m30, \
+        m01, m11, m21, m31, \
+        m02, m12, m22, m32, \
+        m03, m13, m23, m33 \
+    } \
+}
+
+#define CGL_mat4_add(a, b) (CGL_mat4){a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8], a.m[9] + b.m[9], a.m[10] + b.m[10], a.m[11] + b.m[11], a.m[12] + b.m[12], a.m[13] + b.m[13], a.m[14] + b.m[14], a.m[15] + b.m[15]}
+#define CGL_mat4_sub(a, b) (CGL_mat4){a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8], a.m[9] - b.m[9], a.m[10] - b.m[10], a.m[11] - b.m[11], a.m[12] - b.m[12], a.m[13] - b.m[13], a.m[14] - b.m[14], a.m[15] - b.m[15]}
+#define CGL_mat4_mul_scalar(a, s) (CGL_mat4){a.m[0] * s, a.m[1] * s, a.m[2] * s, a.m[3] * s, a.m[4] * s, a.m[5] * s, a.m[6] * s, a.m[7] * s, a.m[8] * s, a.m[9] * s, a.m[10] * s, a.m[11] * s, a.m[12] * s, a.m[13] * s, a.m[14] * s, a.m[15] * s}
+CGL_mat4 CGL_mat4_mul(CGL_mat4 a, CGL_mat4 b);
+CGL_float CGL_mat4_det(CGL_mat4 m);
+CGL_float CGL_mat4_det_by_lu(CGL_mat4 m);
+CGL_float CGL_mat4_det_by_gauss(CGL_mat4 m);
+CGL_vec4 CGL_mat4_mul_vec4(CGL_mat4 m, CGL_vec4 v);
+CGL_mat4 CGL_mat4_inverse(CGL_mat4 m);
+CGL_mat4 CGL_mat4_transpose(CGL_mat4 m);
+CGL_mat4 CGL_mat4_adjoint(CGL_mat4 m);
+CGL_mat4 CGL_mat4_gauss_elim(CGL_mat4 m);
+CGL_int CGL_mat4_rank(CGL_mat4 m);
+CGL_float CGL_mat4_trace(CGL_mat4 m);
+CGL_mat3 CGL_mat4_to_mat3(CGL_mat4 m);
+CGL_mat4 CGL_mat4_from_mat3(CGL_mat3 m);
+CGL_mat4 CGL_mat4_rotate_about_axis(CGL_vec3 axis, CGL_float angle);
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
+void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
+
+#define CGL_mat4_is_invertible(m) (CGL_mat4_det(m) != 0.0f)
+
+#define CGL_mat4_elem_get(mat, row, col) ((mat).m[row + col * 4])
+#define CGL_mat4_elem_set(mat, row, col, value) ((mat).m[row + col * 4] = value)
+
+#define CGL_mat4_zero() CGL_mat4_init(\
+    0.0f, 0.0f, 0.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f, 0.0f \
+)
+
+#define CGL_mat4_identity() CGL_mat4_init(\
+    1.0f, 0.0f, 0.0f, 0.0f, \
+    0.0f, 1.0f, 0.0f, 0.0f, \
+    0.0f, 0.0f, 1.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f, 1.0f \
+)
+
+#define CGL_mat4_scale(x, y, z) CGL_mat4_init(\
+    x, 0.0f, 0.0f, 0.0f, \
+    0.0f, y, 0.0f, 0.0f, \
+    0.0f, 0.0f, z, 0.0f, \
+    0.0f, 0.0f, 0.0f, 1.0f \
+)
+
+#define CGL_mat4_translate(x, y, z) CGL_mat4_init(\
+    1.0f, 0.0f, 0.0f, x, \
+    0.0f, 1.0f, 0.0f, y, \
+    0.0f, 0.0f, 1.0f, z, \
+    0.0f, 0.0f, 0.0f, 1.0f \
+)
+
+#define CGL_mat4_rotate_x(angle) CGL_mat4_init(\
+    1.0f, 0.0f, 0.0f, 0.0f, \
+    0.0f, cosf(angle), -sinf(angle), 0.0f, \
+    0.0f, sinf(angle), cosf(angle), 0.0f, \
+    0.0f, 0.0f, 0.0f, 1.0f \
+)
+
+#define CGL_mat4_rotate_y(angle) CGL_mat4_init(\
+    cosf(angle), 0.0f, sinf(angle), 0.0f, \
+    0.0f, 1.0f, 0.0f, 0.0f, \
+    -sinf(angle), 0.0f, cosf(angle), 0.0f, \
+    0.0f, 0.0f, 0.0f, 1.0f \
+)
+
+#define CGL_mat4_rotate_z(angle) CGL_mat4_init(\
+    cosf(angle), -sinf(angle), 0.0f, 0.0f, \
+    sinf(angle), cosf(angle), 0.0f, 0.0f, \
+    0.0f, 0.0f, 1.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f, 1.0f \
+)
+
+#define CGL_mat4_perspective(fov, aspect, fnear, ffar) CGL_mat4_init(\
+    1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, \
+    0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, \
+    0.0f, 0.0f, (ffar + fnear) / (fnear - ffar), -1.0f, \
+    0.0f, 0.0f, (2.0f * ffar * fnear) / (fnear - ffar), 0.0f \
+)
+
+#define CGL_mat4_orthographic(left, right, bottom, top, fnear, ffar) CGL_mat4_init( \
+    2.0f / (right - left), 0.0f, 0.0f, -(right + left) / (right - left), \
+    0.0f, 2.0f / (top - bottom), 0.0f, -(top + bottom) / (top - bottom), \
+    0.0f, 0.0f, -2.0f / (ffar - fnear), -(ffar + fnear) / (ffar - fnear), \
+    0.0f, 0.0f, 0.0f, 1.0f \
+)
+
+#define CGL_mat4_log(m) CGL_info( \
+    "\n{\n" \
+    "    { %f, %f, %f, %f },\n" \
+    "    { %f, %f, %f, %f },\n" \
+    "    { %f, %f, %f, %f },\n" \
+    "    { %f, %f, %f, %f }\n" \
+    "}\n", \
+    CGL_mat4_elem_get(m, 0, 0), CGL_mat4_elem_get(m, 0, 1), CGL_mat4_elem_get(m, 0, 2), CGL_mat4_elem_get(m, 0, 3), \
+    CGL_mat4_elem_get(m, 1, 0), CGL_mat4_elem_get(m, 1, 1), CGL_mat4_elem_get(m, 1, 2), CGL_mat4_elem_get(m, 1, 3), \
+    CGL_mat4_elem_get(m, 2, 0), CGL_mat4_elem_get(m, 2, 1), CGL_mat4_elem_get(m, 2, 2), CGL_mat4_elem_get(m, 2, 3), \
+    CGL_mat4_elem_get(m, 3, 0), CGL_mat4_elem_get(m, 3, 1), CGL_mat4_elem_get(m, 3, 2), CGL_mat4_elem_get(m, 3, 3) \
+)
+
 
 typedef CGL_vec3(*CGL_parametric_function)(float, float);
 
@@ -3262,11 +3411,231 @@ uint32_t CGL_utils_super_fast_hash(const void* dat, size_t len)
 // common lib and mat
 #if 1 // Just to use code folding
 
+// Uses Rodrigues' rotation formula to rotate a vector about an axis
+CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, float theta)
+{
+    CGL_float cos_theta = cosf(theta);
+    CGL_float sin_theta = sinf(theta);
+    CGL_float dot = CGL_vec3_dot(axis, v);
+    CGL_vec3 cross = CGL_vec3_cross(axis, v);
+    CGL_vec3 result = CGL_vec3_scale(v, cos_theta);
+    CGL_vec3 temp = CGL_vec3_scale(axis, dot * (1 - cos_theta));
+    result = CGL_vec3_add(result, temp);
+    temp = CGL_vec3_scale(cross, sin_theta);
+    result = CGL_vec3_add(result, temp);
+    return result;
+}
+
+CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n)
+{
+    CGL_float dot = CGL_vec3_dot(a, n);
+    CGL_vec3 result = CGL_vec3_scale(n, 2.0f * dot);
+    result = CGL_vec3_sub(a, result);
+    return result;
+}
+
+
+CGL_mat4 CGL_mat4_mul(CGL_mat4 a, CGL_mat4 b)
+{
+    CGL_mat4 result = CGL_mat4_zero();
+    for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++)
+    {
+        for (int k = 0; k < 4; k++)
+            CGL_mat4_elem_set(result, i, j, CGL_mat4_elem_get(result, i, j) + CGL_mat4_elem_get(a, i, k) * CGL_mat4_elem_get(b, k, j));
+    }
+    return result;
+}
+
+// LU decomposition using Kraut's algorithm
+void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u)
+{
+    CGL_mat4 L = CGL_mat4_identity();
+    CGL_mat4 U = CGL_mat4_identity();    
+    for(int j = 0 ; j < 4 ; j++)
+    {
+        for(int i = 0 ; i <= j ; i++)
+        {
+            float sum = CGL_mat4_elem_get(m, i, j);
+            for(int k = 0 ; k < i ; k++)
+                sum -= CGL_mat4_elem_get(L, i, k) * CGL_mat4_elem_get(U, k, j);
+            CGL_mat4_elem_set(U, i, j, sum);
+        }
+        for(int i = j + 1 ; i < 4 ; i++)
+        {
+            float sum = CGL_mat4_elem_get(m, i, j);
+            for(int k = 0 ; k < j ; k++)
+                sum -= CGL_mat4_elem_get(L, i, k) * CGL_mat4_elem_get(U, k, j);
+            CGL_mat4_elem_set(L, i, j, sum / CGL_mat4_elem_get(U, j, j));
+        }
+    }
+    if (l) *l = L;
+    if (u) *u = U;
+}
+
+CGL_float CGL_mat4_det(CGL_mat4 m)
+{
+    return CGL_mat4_det_by_gauss(m);
+}
+
+CGL_float CGL_mat4_det_by_lu(CGL_mat4 m)
+{
+    CGL_mat4 U = CGL_mat4_identity();
+    CGL_mat4_decompose_lu(m, NULL, &U);
+    CGL_float det = 1.0f;
+    for (CGL_int i = 0; i < 4; i++) det *= CGL_mat4_elem_get(U, i, i);
+    return det;
+}
+
+CGL_float CGL_mat4_det_by_gauss(CGL_mat4 m)
+{
+    m = CGL_mat4_gauss_elim(m);
+    CGL_float det = 1.0f;
+    for (int i = 0; i < 4; i++) det *= CGL_mat4_elem_get(m, i, i);
+    return det;
+}
+
+CGL_vec4 CGL_mat4_mul_vec4(CGL_mat4 m, CGL_vec4 v)
+{
+    CGL_vec4 result = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    for (CGL_int i = 0; i < 4; i++)
+    {
+        CGL_float temp = 0.0f;
+        for (CGL_int j = 0; j < 4; j++)
+            temp += CGL_mat4_elem_get(m, i, j) * CGL_vec4_elem_get(v, j);
+        CGL_vec4_elem_set(result, i, temp);
+    }
+    return result;
+}
+
+CGL_mat4 CGL_mat4_adjoint(CGL_mat4 m)
+{
+    CGL_mat4 result = CGL_mat4_zero();
+    for (CGL_int i = 0; i < 4; i++) for (CGL_int j = 0; j < 4; j++)
+    {
+        CGL_mat4 temp = CGL_mat4_zero();
+        for (CGL_int k = 0; k < 4; k++) for (CGL_int l = 0; l < 4; l++)
+        {
+            if (k != i && l != j)
+                CGL_mat4_elem_set(temp, k < i ? k : k - 1, l < j ? l : l - 1, CGL_mat4_elem_get(m, k, l));
+        }
+        CGL_mat4_elem_set(result, i, j, CGL_mat4_det(temp) * ((i + j) % 2 == 0 ? 1.0f : -1.0f));
+    }
+    return result;
+}
+
+CGL_mat4 CGL_mat4_inverse(CGL_mat4 m)
+{
+    CGL_mat4 result = CGL_mat4_adjoint(m);
+    CGL_float det = CGL_mat4_det(m);
+    det = 1.0f / det;
+    result = CGL_mat4_mul_scalar(result, det);
+    return result;
+}
+
+CGL_mat4 CGL_mat4_transpose(CGL_mat4 m)
+{
+    return CGL_mat4_init(
+        CGL_mat4_elem_get(m, 0, 0), CGL_mat4_elem_get(m, 1, 0), CGL_mat4_elem_get(m, 2, 0), CGL_mat4_elem_get(m, 3, 0),
+        CGL_mat4_elem_get(m, 0, 1), CGL_mat4_elem_get(m, 1, 1), CGL_mat4_elem_get(m, 2, 1), CGL_mat4_elem_get(m, 3, 1),
+        CGL_mat4_elem_get(m, 0, 2), CGL_mat4_elem_get(m, 1, 2), CGL_mat4_elem_get(m, 2, 2), CGL_mat4_elem_get(m, 3, 2),
+        CGL_mat4_elem_get(m, 0, 3), CGL_mat4_elem_get(m, 1, 3), CGL_mat4_elem_get(m, 2, 3), CGL_mat4_elem_get(m, 3, 3)
+    );
+}
+
+CGL_mat4 CGL_mat4_gauss_elim(CGL_mat4 m)
+{
+    CGL_float ratio = 0.0f;
+    for(int i = 0 ; i < 4 ; i++) for(int j = 0 ; j < 4 ; j++)
+    {
+        if(j > i)
+        {
+            // cannot divide by zero
+            if(CGL_mat4_elem_get(m, i, i) == 0.0f) CGL_mat4_elem_set(m, i, i, powf(2.2204f, -16));
+            ratio = CGL_mat4_elem_get(m, j, i) / CGL_mat4_elem_get(m, i, i);
+            for(CGL_int k = 0 ; k < 4 ; k++) CGL_mat4_elem_set(m, j, k, CGL_mat4_elem_get(m, j, k) - ratio * CGL_mat4_elem_get(m, i, k));
+        }
+    }
+    return m;
+}
+
+CGL_int CGL_mat4_rank(CGL_mat4 m)
+{
+    m = CGL_mat4_gauss_elim(m);
+    CGL_int rank = 0;
+    CGL_float eps = powf(2.2204f, -16);
+    CGL_float sum = 0.0f;
+    for (CGL_int i = 0; i < 4; i++)
+    {
+        sum = 0.0f;
+        for (CGL_int j = 0; j < 4; j++) sum += CGL_mat4_elem_get(m, i, j);
+        if(fabsf(sum) > eps) rank++;
+        else break;
+    }
+    return rank;
+}
+
+CGL_float CGL_mat4_trace(CGL_mat4 m)
+{
+    CGL_float trace = 0.0f;
+    for (CGL_int i = 0; i < 4; i++) trace += CGL_mat4_elem_get(m, i, i);
+    return trace;
+}
+
+CGL_mat3 CGL_mat4_to_mat3(CGL_mat4 m)
+{
+    return CGL_mat3_init(
+        CGL_mat4_elem_get(m, 0, 0), CGL_mat4_elem_get(m, 0, 1), CGL_mat4_elem_get(m, 0, 2),
+        CGL_mat4_elem_get(m, 1, 0), CGL_mat4_elem_get(m, 1, 1), CGL_mat4_elem_get(m, 1, 2),
+        CGL_mat4_elem_get(m, 2, 0), CGL_mat4_elem_get(m, 2, 1), CGL_mat4_elem_get(m, 2, 2)
+    );
+}
+
+CGL_mat4 CGL_mat4_from_mat3(CGL_mat3 m)
+{
+    return CGL_mat4_init(
+        CGL_mat3_elem_get(m, 0, 0), CGL_mat3_elem_get(m, 0, 1), CGL_mat3_elem_get(m, 0, 2), 0.0f,
+        CGL_mat3_elem_get(m, 1, 0), CGL_mat3_elem_get(m, 1, 1), CGL_mat3_elem_get(m, 1, 2), 0.0f,
+        CGL_mat3_elem_get(m, 2, 0), CGL_mat3_elem_get(m, 2, 1), CGL_mat3_elem_get(m, 2, 2), 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+}
+
+CGL_mat4 CGL_mat4_rotate_about_axis(CGL_vec3 axis, CGL_float angle)
+{
+    // TODO: implement
+}
+
+CGL_float CGL_mat3_det(CGL_mat3 a)
+{
+    CGL_float result = 0.0f;
+    result += CGL_mat3_elem_get(a, 0, 0) * (CGL_mat3_elem_get(a, 1, 1) * CGL_mat3_elem_get(a, 2, 2) - CGL_mat3_elem_get(a, 1, 2) * CGL_mat3_elem_get(a, 2, 1));
+    result -= CGL_mat3_elem_get(a, 0, 1) * (CGL_mat3_elem_get(a, 1, 0) * CGL_mat3_elem_get(a, 2, 2) - CGL_mat3_elem_get(a, 1, 2) * CGL_mat3_elem_get(a, 2, 0));
+    result += CGL_mat3_elem_get(a, 0, 2) * (CGL_mat3_elem_get(a, 1, 0) * CGL_mat3_elem_get(a, 2, 1) - CGL_mat3_elem_get(a, 1, 1) * CGL_mat3_elem_get(a, 2, 0));
+    return result;
+}
+
+CGL_float CGL_mat3_trace(CGL_mat3 a)
+{
+    CGL_float result = 0.0f;
+    for (CGL_int i = 0; i < 3; i++) result += CGL_mat3_elem_get(a, i, i);
+    return result;
+}
+
+CGL_mat3 CGL_mat3_transpose(CGL_mat3 a)
+{
+    return CGL_mat3_init(
+        CGL_mat3_elem_get(a, 0, 0), CGL_mat3_elem_get(a, 1, 0), CGL_mat3_elem_get(a, 2, 0),
+        CGL_mat3_elem_get(a, 0, 1), CGL_mat3_elem_get(a, 1, 1), CGL_mat3_elem_get(a, 2, 1),
+        CGL_mat3_elem_get(a, 0, 2), CGL_mat3_elem_get(a, 1, 2), CGL_mat3_elem_get(a, 2, 2)
+    );
+}
+
+
 float CGL_quat_to_axis_angle(CGL_quat quat, float* x, float* y, float* z)
 {
-    float angle = 2.0f * acosf(quat.w);
-    // float divider = sqrtf(1.0f - quat.w * quat.w);
-    float divider = sinf(angle / 2.0f);
+    CGL_float angle = 2.0f * acosf(quat.w);
+    // CGL_float divider = sqrtf(1.0f - quat.w * quat.w);
+    CGL_float divider = sinf(angle / 2.0f);
     if(divider == 0.0f) return angle;
     if(x) *x = quat.vec.x / divider;
     if(y) *y = quat.vec.y / divider;
@@ -3845,7 +4214,7 @@ CGL_texture* CGL_texture_create(CGL_image* image)
     else if(image->channels == 4)
         format = internal_format = GL_RGBA;
     else
-    {printf("Invalid channel count for image\n");return NULL;}
+    {CGL_error("Invalid channel count for image\n");return NULL;}
     if(image->bytes_per_channel == 8)
         type = GL_UNSIGNED_BYTE;
     else if(image->bytes_per_channel == 16)
@@ -3853,7 +4222,7 @@ CGL_texture* CGL_texture_create(CGL_image* image)
     else if(image->bytes_per_channel == 32)
         type = GL_FLOAT;
     else
-    {printf("Invalid bit depth for image\n");return NULL;}        
+    {CGL_error("Invalid bit depth for image\n");return NULL;}        
     CGL_texture* texture = malloc(sizeof(CGL_texture));
     texture->width = image->width;
     texture->height = image->height;
@@ -5355,8 +5724,8 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "        ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);\n"
 "        ivec2 pixel_coords2 = ivec2(gl_GlobalInvocationID.xy) + u_offset;\n"
 "        pixel += imageLoad(tex_dst, pixel_coords); \n"
-"        pixel = vec4(aces_tonemap(pixel.xyz), clamp(pixel.w, 0.0f, 1.0f));\n"
 "        pixel += imageLoad(tex_src, pixel_coords2); \n"
+"        pixel = vec4(aces_tonemap(pixel.xyz), clamp(pixel.w, 0.0f, 1.0f));\n"
 "        imageStore(tex_dst, pixel_coords, pixel);        \n"
 "    }\n"
 "    else\n"
@@ -5845,7 +6214,7 @@ static const char* __CGL_PHONG_VERTEX_SHADER =
 "\n"
 "void main()\n"
 "{\n"
-"	gl_Position = u_projection * transpose(u_view * u_model_matrix) * vec4(position.xyz, 1.0f);\n"
+"	gl_Position = u_projection * transpose(u_view) * (u_model_matrix) * vec4(position.xyz, 1.0f);\n"
 "	Position = (transpose(u_model_matrix) * position).xyz;\n"
 "	Normal = normal.xyz;\n"
 "	TexCoord = texcoord.xy;		\n"
@@ -5910,15 +6279,25 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "vec4 get_material_diffuse_color()\n"
 "{\n"
 "    if(u_use_diffuse_texture)\n"
-"        return texture(u_diffuse_texture, TexCoord);\n"
+"        return vec4(pow(texture(u_diffuse_texture, TexCoord).xyz, vec3(2.2f)), 1.0f);\n"
 "    return vec4(u_diffuse_color, 1.0f);\n"
 "}\n"
 "\n"
 "vec4 get_material_specular_color()\n"
 "{\n"
 "    if(u_use_specular_texture)\n"
-"        return texture(u_specular_texture, TexCoord);\n"
+"        return vec4(pow(texture(u_specular_texture, TexCoord).xyz, vec3(2.2f)), 1.0f);\n"
 "    return vec4(u_specular_color, 1.0f);\n"
+"}\n"
+"\n"
+"\n"
+"vec3 aces_tonemap(vec3 x){	\n"
+"	const float a = 2.51f;\n"
+"    const float b = 0.03f;\n"
+"    const float c = 2.43f;\n"
+"    const float d = 0.59f;\n"
+"    const float e = 0.14f;\n"
+"    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
 "}\n"
 "\n"
 "vec4 calculate_directional_light(int index)\n"
@@ -5927,16 +6306,17 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    // diffuse shading\n"
 "    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
 "    // specular shading\n"
+"    vec3 view_dir = normalize(u_camera_position - Position);\n"
 "    float spec = 0.0f;\n"
 "    if(u_use_blinn)\n"
 "    {\n"
-"        vec3 halfway_direction = normalize(light_direcion + u_camera_position);\n"
-"        spec = pow(max(dot(u_camera_position, halfway_direction), 0.0f), u_shininess);\n"
+"        vec3 halfway_direction = normalize(light_direcion + view_dir);\n"
+"        spec = pow(max(dot(view_dir, halfway_direction), 0.0f), u_shininess);\n"
 "    }\n"
 "    else\n"
 "    {\n"
 "        vec3 reflect_direction = reflect(-light_direcion, Normal);\n"
-"        spec = pow(max(dot(u_camera_position, reflect_direction), 0.0f), u_shininess);\n"
+"        spec = pow(max(dot(view_dir, reflect_direction), 0.0f), u_shininess);\n"
 "    }\n"
 "    vec4 material_diffuse = get_material_diffuse_color();\n"
 "    vec4 material_specular = get_material_specular_color();\n"
@@ -5952,16 +6332,17 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    // diffuse shading\n"
 "    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
 "    // specular shading\n"
+"    vec3 view_dir = normalize(u_camera_position - Position);\n"
 "    float spec = 0.0f;\n"
 "    if(u_use_blinn)\n"
 "    {\n"
-"        vec3 halfway_direction = normalize(light_direcion + u_camera_position);\n"
-"        spec = pow(max(dot(u_camera_position, halfway_direction), 0.0f), u_shininess);\n"
+"        vec3 halfway_direction = normalize(light_direcion + view_dir);\n"
+"        spec = pow(max(dot(view_dir, halfway_direction), 0.0f), u_shininess);\n"
 "    }\n"
 "    else\n"
 "    {\n"
 "        vec3 reflect_direction = reflect(-light_direcion, Normal);\n"
-"        spec = pow(max(dot(u_camera_position, reflect_direction), 0.0f), u_shininess);\n"
+"        spec = pow(max(dot(view_dir, reflect_direction), 0.0f), u_shininess);\n"
 "    }\n"
 "\n"
 "    vec4 material_diffuse = get_material_diffuse_color();\n"
@@ -5995,6 +6376,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "            light_output += calculate_spot_light(i);\n"
 "    }\n"
 "\n"
+"    light_output.xyz = aces_tonemap(light_output.xyz);\n"
 "    if(u_use_gamma_correction)\n"
 "        color = vec4(pow(light_output.xyz, vec3(0.4545f)), light_output.w);\n"
 "    else\n"
@@ -6380,8 +6762,8 @@ void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat*
     CGL_shader_set_uniform_vec3v(pipeline->shader, pipeline->u_diffuse_color, material->diffuse_color.x, material->diffuse_color.y, material->diffuse_color.z);
     if(material->use_diffuse_texture)
     {
-        CGL_texture_bind(material->diffuse_texture, 0);
-        CGL_shader_set_uniform_int(pipeline->shader, pipeline->u_diffuse_texture, 0);
+        CGL_texture_bind(material->diffuse_texture, 4);
+        CGL_shader_set_uniform_int(pipeline->shader, pipeline->u_diffuse_texture, 4);
     }
     CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_specular_texture, material->use_specular_texture);
     CGL_shader_set_uniform_vec3v(pipeline->shader, pipeline->u_specular_color, material->specular_color.x, material->specular_color.y, material->specular_color.z);
