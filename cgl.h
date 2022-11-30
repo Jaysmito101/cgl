@@ -1527,22 +1527,24 @@ CGL_node_editor* CGL_node_editor_create();
 void CGL_node_editor_destroy(CGL_node_editor* editor);
 void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* input);
 void CGL_node_editor_set_on_connect(CGL_node_editor* editor, void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*));
-void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(float, float, CGL_node_editor_pin*));
+void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(CGL_float, CGL_float, CGL_node_editor_pin*));
 void CGL_node_editor_render_begin(CGL_node_editor* editor);
 void CGL_node_editor_clear_focused_pins(CGL_node_editor* editor);
 void CGL_node_editor_render_end(CGL_node_editor* editor);
-void CGL_node_editor_set_offset(CGL_node_editor* editor, float x, float y);
-void CGL_node_editor_get_offset(CGL_node_editor* editor, float* x, float* y);
+void CGL_node_editor_set_offset(CGL_node_editor* editor, CGL_float x, CGL_float y);
+void CGL_node_editor_get_offset(CGL_node_editor* editor, CGL_float* x, CGL_float* y);
 void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pin** x, CGL_node_editor_pin** y);
-void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, float midper);
-void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, float cr, float cg, float cb, float ca, float midper);
+void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float midper);
+void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float midper);
+void CGL_node_editor_render_link_curved(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float x_dist, CGL_float y_dist, CGL_int resolution);
+void CGL_node_editor_render_link_curvedf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float x_dist, CGL_float y_dist, CGL_int resolution);
 
 void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node);
 void CGL_node_editor_node_update(CGL_node_editor_node* node);
 void CGL_node_editor_node_render(CGL_node_editor_node* node);
-void CGL_node_editor_node_set_position(CGL_node_editor_node* node, float x, float y);
-void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const char* title);
-CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bool left, int index);
+void CGL_node_editor_node_set_position(CGL_node_editor_node* node, CGL_float x, CGL_float y);
+void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const CGL_byte* title);
+CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bool left, CGL_int index);
 
 #endif
 
@@ -8756,13 +8758,13 @@ void CGL_node_editor_render_end(CGL_node_editor* editor)
     CGL_widgets_end();
 }
 
-void CGL_node_editor_set_offset(CGL_node_editor* editor, float x, float y)
+void CGL_node_editor_set_offset(CGL_node_editor* editor, CGL_float x, CGL_float y)
 {
     editor->offset_x = x;
     editor->offset_y = y;
 }
 
-void CGL_node_editor_get_offset(CGL_node_editor* editor, float* x, float* y)
+void CGL_node_editor_get_offset(CGL_node_editor* editor, CGL_float* x, CGL_float* y)
 {
     if(x) *x = editor->offset_x;
     if(y) *y = editor->offset_y;
@@ -8774,15 +8776,15 @@ void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pi
     if(y) *y = editor->end_pin;
 }
 
-void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, float midper)
+void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float midper)
 {
     if(!left || !right) return;
     CGL_widgets_set_stroke_color(color);
-    float mx = CGL_utils_mix(left->pos_x, right->pos_x, midper);
+    
+    CGL_float mx = CGL_utils_mix(left->pos_x, right->pos_x, midper);
 
-
-    float ofx = right->parent->editor->offset_x;
-    float ofy = right->parent->editor->offset_y;
+    CGL_float ofx = right->parent->editor->offset_x;
+    CGL_float ofy = right->parent->editor->offset_y;
 
     CGL_widgets_add_line(
         CGL_vec3_init(ofx + left->pos_x, ofy + left->pos_y, 0.0f),
@@ -8800,9 +8802,41 @@ void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin*
     );
 }
 
-void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, float cr, float cg, float cb, float ca, float midper)
+void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float midper)
 {
     CGL_node_editor_render_link(left, right, CGL_vec4_init(cr, cg, cb, ca), midper);
+}
+
+void CGL_node_editor_render_link_curved(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float x_dist, CGL_float y_dist, CGL_int resolution)
+{
+    if(!left || !right) return;
+    
+    
+    CGL_float y_length = fabsf(right->pos_y - left->pos_y);
+    
+    CGL_float ofx = right->parent->editor->offset_x;
+    CGL_float ofy = right->parent->editor->offset_y;
+
+    CGL_float mx0 = CGL_utils_mix(left->pos_x, right->pos_x, x_dist);
+    CGL_float my0 = CGL_utils_clamp(y_length * y_dist, 0.0f, 0.1f);
+
+    CGL_float mx1 = CGL_utils_mix(left->pos_x, right->pos_x, (1.0f - x_dist));
+    CGL_float my1 = CGL_utils_clamp(y_length * (1.0f - y_dist), 0.0f, 0.1f);
+
+
+
+    CGL_vec2 end = CGL_vec2_init(ofx + right->pos_x, ofy + right->pos_y);
+    CGL_vec2 start = CGL_vec2_init(ofx + left->pos_x, ofy + left->pos_y);
+    CGL_vec2 control0 = CGL_vec2_init(ofx + mx0, ofy + left->pos_y + my0);
+    CGL_vec2 control1 = CGL_vec2_init(ofx + mx1, ofy + right->pos_y - my1);
+
+    CGL_widgets_set_stroke_color(color);
+    CGL_widgets_add_cubic_bazier2v(start, end, control0, control1, resolution);
+}
+
+void CGL_node_editor_render_link_curvedf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float x_dist, CGL_float y_dist, CGL_int resolution)
+{
+    CGL_node_editor_render_link_curved(left, right, CGL_vec4_init(cr, cg, cb, ca), x_dist, y_dist, resolution);
 }
 
 void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node)
