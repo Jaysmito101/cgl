@@ -105,14 +105,15 @@ int main(int argc, char** argv, char** envp)
                     links[i][0]->user_data = links[i][1]->user_data = NULL;
                     links[i][0] = links[i][1] = NULL;
                 }
-                CGL_node_editor_render_linkf(links[i][0], links[i][1], 0.8f, 0.6f, 0.2f, 1.0f, 0.1f);
+                // CGL_node_editor_render_linkf(links[i][0], links[i][1], 0.8f, 0.6f, 0.2f, 1.0f, 0.1f); // for rendering straight line links
+                CGL_node_editor_render_link_curvedf(links[i][0], links[i][1], 0.8f, 0.6f, 0.2f, 1.0f, 0.4f, 0.1f, 8); // for rendering links based on bazier curves
                 j++;
             }
         }
 
         // render nodes
-        for (int i = 1 ; i < node_count ; i++)
-            if(nodes[i].user_data == NULL) CGL_node_editor_node_render(&nodes[i]);
+        for (int i = 1 ; i < node_count ; i++) if(nodes[i].user_data == NULL) CGL_node_editor_node_render(&nodes[i]);
+
         CGL_node_editor_render_end(editor);
 
         if(CGL_window_get_key(window, CGL_KEY_A) == CGL_PRESS && node_count < sizeof(nodes) / sizeof(nodes[0]))
@@ -125,7 +126,7 @@ int main(int argc, char** argv, char** envp)
                 CGL_node_editor_node_set_position(&nodes[node_count - 1], inpt.mouse_pos_x, inpt.mouse_pos_y);
                 char buffer[256];
                 static int count = 0;
-                sprintf(buffer, "Node #%d", count++);
+                sprintf(buffer, "Node :%d", count++);
                 CGL_node_editor_node_set_title(&nodes[node_count - 1], buffer);
                 int r = CGL_utils_random_int(2, 5);
                 for(int i = 0 ; i < r ; i++) CGL_node_editor_node_get_pin(&nodes[node_count - 1], true, i)->is_set = true;
