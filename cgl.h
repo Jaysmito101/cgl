@@ -224,7 +224,7 @@ bool CGL_logger_detach_log_file(const char* path);
 void CGL_logger_flush();
 void CGL_logger_disable_console_logging();
 void CGL_logger_enable_console_logging();
-void CGL_logger_log(int level, const char* log_format, ...);
+void CGL_logger_log(CGL_int level, const char* log_format, ...);
 
 #define CGL_trace(...)        CGL_logger_log(CGL_LOG_LEVEL_TRACE, __VA_ARGS__)
 #define CGL_info(...)         CGL_logger_log(CGL_LOG_LEVEL_INFO, __VA_ARGS__)
@@ -262,7 +262,7 @@ typedef struct CGL_list CGL_list;
 
 CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity);
 void CGL_list_destroy(CGL_list* list);
-void CGL_list_set_increase_factor(CGL_list* list, float increase_factor);
+void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor);
 float CGL_list_get_increase_factor(CGL_list* list);
 size_t CGL_list_get_item_size(CGL_list* list);
 size_t CGL_list_get_size(CGL_list* list);
@@ -298,7 +298,7 @@ typedef uint32_t(*CGL_hash_function)(const void*, size_t);
 
 // set key size to 0 if it is a string (it will be auto calculated using strlen)
 CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t initial_capacity);
-void CGL_hashtable_set_growth_rate(CGL_hashtable* table, float rate);
+void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate);
 size_t CGL_hashtable_get_size(CGL_hashtable* table);
 void CGL_hashtable_destroy(CGL_hashtable* table);
 void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size);
@@ -391,54 +391,54 @@ void CGL_mutex_release(CGL_mutex* mutex);
 
 struct CGL_vec2
 {
-    float x;
-    float y;
+    CGL_float x;
+    CGL_float y;
 };
 typedef struct CGL_vec2 CGL_vec2;
 
 struct CGL_vec3
 {
-    float x;
-    float y;
-    float z;
+    CGL_float x;
+    CGL_float y;
+    CGL_float z;
 };
 typedef struct CGL_vec3 CGL_vec3;
 
 struct CGL_vec4
 {
-    float x;
-    float y;
-    float z;
-    float w;
+    CGL_float x;
+    CGL_float y;
+    CGL_float z;
+    CGL_float w;
 };
 typedef struct CGL_vec4 CGL_vec4;
 typedef struct CGL_vec4 CGL_color;
 
 struct CGL_ivec4
 {
-    int x;
-    int y;
-    int z;
-    int w;
+    CGL_int x;
+    CGL_int y;
+    CGL_int z;
+    CGL_int w;
 };
 typedef struct CGL_ivec4 CGL_ivec4;
 
 struct CGL_mat3
 {
-    float m[9];
+    CGL_float m[9];
 };
 typedef struct CGL_mat3 CGL_mat3;
 
 struct CGL_mat4
 {
-    float m[16];
+    CGL_float m[16];
 };
 typedef struct CGL_mat4 CGL_mat4;
 
 struct CGL_quat
 {
     CGL_vec3 vec;
-    float w;
+    CGL_float w;
 };
 typedef struct CGL_quat CGL_quat;
 
@@ -465,7 +465,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec2_scale(a, s) (CGL_vec2){a.x * (s), a.y * (s)}
 #define CGL_vec2_dot(a, b) (a.x * b.x + a.y * b.y)
 #define CGL_vec2_length(a) sqrtf(a.x * a.x + a.y * a.y)
-#define CGL_vec2_normalize(a) { float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec2_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; }
+#define CGL_vec2_normalize(a) { CGL_float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec2_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; }
 #define CGL_vec2_lerp(a, b, t) (CGL_vec2){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t}
 #define CGL_vec2_min(a, b) (CGL_vec2){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y}
 #define CGL_vec2_max(a, b) (CGL_vec2){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y}
@@ -493,7 +493,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec3_dot(a, b) (a.x * b.x + a.y * b.y + a.z * b.z)
 #define CGL_vec3_cross(a, b) (CGL_vec3){a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}
 #define CGL_vec3_length(a) sqrtf(a.x * a.x + a.y * a.y + a.z * a.z)
-#define CGL_vec3_normalize(a) { float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec3_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; a.z *= __CGL_vector_length##__LINE__; }
+#define CGL_vec3_normalize(a) { CGL_float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec3_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; a.z *= __CGL_vector_length##__LINE__; }
 #define CGL_vec3_lerp(a, b, t) (CGL_vec3){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t}
 #define CGL_vec3_min(a, b) (CGL_vec3){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z}
 #define CGL_vec3_max(a, b) (CGL_vec3){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z}
@@ -511,7 +511,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec3_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec3_elem_set(a, i, v) (((float*)&a)[i] = v)
 CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n);
-CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, float theta);
+CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
 
 
 
@@ -754,7 +754,7 @@ void CGL_shape_destroy(CGL_shape* shape);
 
 bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount);
 bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, float* overlap_amount);
-void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, int* axes_count);
+void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count);
 
 bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 
@@ -926,27 +926,27 @@ typedef struct CGL_window CGL_window;
 struct GLFWwindow;
 typedef struct GLFWwindow GLFWwindow;
 
-typedef void(*CGL_window_key_callback)(CGL_window* window, int key, int scancode, int action, int mods);
-typedef void(*CGL_window_mouse_button_callback)(CGL_window* window, int button, int action, int mods);
+typedef void(*CGL_window_key_callback)(CGL_window* window, CGL_int key, CGL_int scancode, CGL_int action, CGL_int mods);
+typedef void(*CGL_window_mouse_button_callback)(CGL_window* window, CGL_int button, CGL_int action, CGL_int mods);
 typedef void(*CGL_window_mouse_position_callback)(CGL_window* window, double xpos, double ypos);
 typedef void(*CGL_window_mouse_scroll_callback)(CGL_window* window, double xoffset, double yoffset);
-typedef void(*CGL_window_framebuffer_size_callback)(CGL_window* window, int width, int height);
+typedef void(*CGL_window_framebuffer_size_callback)(CGL_window* window, CGL_int width, CGL_int height);
 typedef void(*CGL_window_close_callback)(CGL_window* window);
 
-CGL_window* CGL_window_create(int width, int height, const char* title); // create window and initialize GLFW
+CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title); // create window and initialize GLFW
 void CGL_window_destroy(CGL_window* window); // destroy window and terminate GLFW
 void CGL_window_poll_events(CGL_window* window); // poll events from GLFW
 void CGL_window_swap_buffers(CGL_window* window); // swap buffers
 bool CGL_window_should_close(CGL_window* window); // check if window should close
 void CGL_window_set_title(CGL_window* window, const char* title); // set window title
-void CGL_window_set_size(CGL_window* window, int width, int height); // set window size
-void CGL_window_set_position(CGL_window* window, int x, int y); // set window position
+void CGL_window_set_size(CGL_window* window, CGL_int width, CGL_int height); // set window size
+void CGL_window_set_position(CGL_window* window, CGL_int x, CGL_int y); // set window position
 void CGL_window_set_hidden(CGL_window* window, bool hidden); // set window hidden
 void CGL_window_set_user_data(CGL_window* window, void* user_data); // set window user data
 void* CGL_window_get_user_data(CGL_window* window); // get window user data
-void CGL_window_get_size(CGL_window* window, int* width, int* height); // get window size
-void CGL_window_get_position(CGL_window* window, int* x, int* y); // get window position
-void CGL_window_get_framebuffer_size(CGL_window* window, int* width, int* height); // get window framebuffer size
+void CGL_window_get_size(CGL_window* window, CGL_int* width, CGL_int* height); // get window size
+void CGL_window_get_position(CGL_window* window, CGL_int* x, CGL_int* y); // get window position
+void CGL_window_get_framebuffer_size(CGL_window* window, CGL_int* width, CGL_int* height); // get window framebuffer size
 void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback callback); // set key callback
 void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_button_callback callback); // set mouse button callback
 void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse_position_callback callback); // set mouse position callback
@@ -958,8 +958,8 @@ void CGL_window_make_context_current(CGL_window* window); // make opengl context
 GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window);
 
 // inputs
-int CGL_window_get_key(CGL_window* window, int key); // get key state
-int CGL_window_get_mouse_button(CGL_window* window, int button); // get mouse button state
+int CGL_window_get_key(CGL_window* window, CGL_int key); // get key state
+int CGL_window_get_mouse_button(CGL_window* window, CGL_int button); // get mouse button state
 void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypos); // get mouse position
 
 #endif
@@ -1041,18 +1041,18 @@ typedef struct CGL_ssbo CGL_ssbo;
 
 // texture
 CGL_texture* CGL_texture_create(CGL_image* image);
-CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLenum internal_format, GLenum type); // create texture
-CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type);
+CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum format, GLenum internal_format, GLenum type); // create texture
+CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int layers, GLenum format, GLenum internal_format, GLenum type);
 CGL_texture* CGL_texture_create_cubemap();
-void CGL_texture_cubemap_set_face(CGL_texture* texture, int face, CGL_image* image);
-void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* data);
+void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image);
+void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data);
 void CGL_texture_destroy(CGL_texture* texture); // destroy texture
-void CGL_texture_bind(CGL_texture* texture, int unit); // bind texture to unit
+void CGL_texture_bind(CGL_texture* texture, CGL_int unit); // bind texture to unit
 void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
 void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data); // set texture data
 void CGL_texture_set_user_data(CGL_texture* texture, void* user_data); // set texture user data
 void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
-void CGL_texture_get_size(CGL_texture* texture, int* width, int* height); // get texture size
+void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height); // get texture size
 void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method);
 void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
 
@@ -1060,22 +1060,25 @@ void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
 #ifndef CGL_EXCLUDE_WINDOW_API
 CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window); // create framebuffer from default framebuffer
 #endif
-CGL_framebuffer* CGL_framebuffer_create(int width, int height); // create framebuffer (32 bit)
+CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height); // create framebuffer (32 bit)
+CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height);
+void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture); // add color attachment to framebuffer
 void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer); // destroy framebuffer
 void CGL_framebuffer_bind(CGL_framebuffer* framebuffer); // bind framebuffer
-void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, int* width, int* height); // get framebuffer size
+void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height); // get framebuffer size
 void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data); // set framebuffer user data
 void* CGL_framebuffer_get_user_data(CGL_framebuffer* framebuffer); // get framebuffer user data
-void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, int x, int y, int width, int height, void* pixels); // read pixels from framebuffer
-int CGL_framebuffer_get_mouse_pick_id(CGL_framebuffer* framebuffer, int x, int y, int index); // get mouse pick id
+void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int width, CGL_int height, void* pixels); // read pixels from framebuffer
+CGL_int CGL_framebuffer_get_mouse_pick_id(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int index); // get mouse pick id
 CGL_texture* CGL_framebuffer_get_color_texture(CGL_framebuffer* framebuffer); // get color texture
 CGL_texture* CGL_framebuffer_get_depth_texture(CGL_framebuffer* framebuffer); // get depth texture
 
 // gl
 
-void CGL_gl_clear(float r, float g, float b, float a); // clear framebuffer
+void CGL_gl_clear(CGL_float r, CGL_float g, CGL_float b, CGL_float a); // clear framebuffer
 bool CGL_gl_init(); // load opengl functions
 void CGL_gl_shutdown(); // clean up
+void CGL_gl_render_screen_quad();
 
 // mesh
 
@@ -1095,8 +1098,8 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords);
-CGL_mesh_cpu* CGL_mesh_cpu_sphere(int res_u, int res_v);
-CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(int res_u, int res_v, float start_u, float start_v, float end_u, float end_v, CGL_parametric_function function);
+CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v);
+CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name);
 void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
 
@@ -1109,22 +1112,22 @@ CGL_shader* CGL_shader_compute_create_from_files(const char* compute_shader_file
 void CGL_shader_destroy(CGL_shader* shader); // destroy shader
 void CGL_shader_bind(CGL_shader* shader); // bind shader
 int CGL_shader_get_uniform_location(CGL_shader* shader, const char* name); // get uniform location
-void CGL_shader_set_uniform_mat4(CGL_shader* shader, int location, CGL_mat4* matrix); // set uniform matrix
-void CGL_shader_set_uniform_vec4(CGL_shader* shader, int location, CGL_vec4* vector); // set uniform vector
-void CGL_shader_set_uniform_vec3(CGL_shader* shader, int location, CGL_vec3* vector); // set uniform vector
-void CGL_shader_set_uniform_vec2(CGL_shader* shader, int location, CGL_vec2* vector); // set uniform vector
-void CGL_shader_set_uniform_int(CGL_shader* shader, int location, int value); // set uniform int
-void CGL_shader_set_uniform_bool(CGL_shader* shader, int location, bool value); // set uniform bool
-void CGL_shader_set_uniform_float(CGL_shader* shader, int location, float value); // set uniform float
-void CGL_shader_set_uniform_vec2v(CGL_shader* shader, int location, float x, float y); // set uniform vector
-void CGL_shader_set_uniform_vec3v(CGL_shader* shader, int location, float x, float y, float z); // set uniform vector
-void CGL_shader_set_uniform_vec4v(CGL_shader* shader, int location, float x, float y, float z, float w); // set uniform vector
-void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, int location, int x, int y); // set uniform vector
-void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, int location, int x, int y, int z); // set uniform vector
-void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, int location, int x, int y, int z, int w); // set uniform vector
+void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix); // set uniform matrix
+void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector); // set uniform vector
+void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector); // set uniform vector
+void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector); // set uniform vector
+void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value); // set uniform int
+void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value); // set uniform bool
+void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value); // set uniform float
+void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y); // set uniform vector
+void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z); // set uniform vector
+void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w); // set uniform vector
+void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y); // set uniform vector
+void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z); // set uniform vector
+void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w); // set uniform vector
 void CGL_shader_set_user_data(CGL_shader* shader, void* user_data); // set shader user data
 void* CGL_shader_get_user_data(CGL_shader* shader); // get shader user data
-void CGL_shader_compute_dispatch(CGL_shader* shader, int x, int y, int z); // dispatch compute shader
+void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_int z); // dispatch compute shader
 
 // ssbo
 CGL_ssbo* CGL_ssbo_create(uint32_t binding); // create ssbo
@@ -1159,16 +1162,16 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 struct CGL_bloom;
 typedef struct CGL_bloom CGL_bloom;
 
-CGL_bloom* CGL_bloom_create(int width, int height, int iterations);
+CGL_bloom* CGL_bloom_create(CGL_int width, CGL_int height, CGL_int iterations);
 void CGL_bloom_destroy(CGL_bloom* bloom);
-void CGL_bloom_set_threshold(CGL_bloom* bloom, float val);
+void CGL_bloom_set_threshold(CGL_bloom* bloom, CGL_float val);
 float CGL_bloom_get_threshold(CGL_bloom* bloom);
-void CGL_bloom_set_knee(CGL_bloom* bloom, float val);
+void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val);
 float CGL_bloom_get_knee(CGL_bloom* bloom);
-void CGL_bloom_set_offset(CGL_bloom* bloom, float x, float y);
+void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y);
 void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex);
 int CGL_bloom_get_iterations(CGL_bloom* bloom);
-CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, int index);
+CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, CGL_int index);
 CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom);
 
 #endif
@@ -1189,10 +1192,10 @@ float CGL_camera_get_aspect_ratio(CGL_camera* camera);
 float CGL_camera_get_z_near(CGL_camera* camera);
 float CGL_camera_get_z_far(CGL_camera* camera);
 CGL_vec4 CGL_camera_get_orthographic_limits(CGL_camera* camera);
-void CGL_camera_set_fov(CGL_camera* camera, float fov);
-void CGL_camera_set_aspect_ratio(CGL_camera* camera, float aspect_ratio);
-void CGL_camera_set_z_near(CGL_camera* camera, float z_near);
-void CGL_camera_set_z_far(CGL_camera* camera, float z_far);
+void CGL_camera_set_fov(CGL_camera* camera, CGL_float fov);
+void CGL_camera_set_aspect_ratio(CGL_camera* camera, CGL_float aspect_ratio);
+void CGL_camera_set_z_near(CGL_camera* camera, CGL_float z_near);
+void CGL_camera_set_z_far(CGL_camera* camera, CGL_float z_far);
 void CGL_camera_set_orthographic_limits(CGL_camera* camera, CGL_vec4 ortho_limits);
 void CGL_camera_set_perspective(CGL_camera* camera);
 void CGL_camera_set_orthographic(CGL_camera* camera);
@@ -1248,7 +1251,7 @@ void CGL_phong_pipeline_enable_gamma_correction(CGL_phong_pipeline* pipeline);
 void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline);
 void CGL_phong_pipeline_set_ambient_light_color(CGL_phong_pipeline* pipeline, CGL_vec3 color);
 CGL_vec3 CGL_phong_pipeline_get_ambient_light_color(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, float strength);
+void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, CGL_float strength);
 float CGL_phong_pipeline_get_ambient_light_strength(CGL_phong_pipeline* pipeline);
 uint32_t CGL_phong_pipeline_add_light(CGL_phong_pipeline* pipeline, CGL_phong_light* light);
 CGL_phong_light* CGL_phong_pipeline_remove_light(CGL_phong_pipeline* pipeline, uint32_t light_id);
@@ -1260,7 +1263,7 @@ void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image);
 void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color);
 void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image);
 void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image);
-void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, float shininess);
+void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, CGL_float shininess);
 void CGL_phong_mat_set_user_data(CGL_phong_mat* mat, void* data);
 void* CGL_phong_mat_get_user_data(CGL_phong_mat* mat);
 void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat);
@@ -1268,10 +1271,10 @@ void CGL_phong_mat_enable_wireframe(CGL_phong_mat* mat);
 void CGL_phong_mat_disable_wireframe(CGL_phong_mat* mat);
 float CGL_phong_mat_get_shininess(CGL_phong_mat* mat);
 
-CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color, float itensity);
-CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, float itensity, float constant, float linear, float quadratic);
+CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color, CGL_float itensity);
+CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, CGL_float itensity, CGL_float constant, CGL_float linear, CGL_float quadratic);
 void CGL_phong_light_destroy(CGL_phong_light* light);
-void CGL_phong_light_set_intensity(CGL_phong_light* light, float intensity);
+void CGL_phong_light_set_intensity(CGL_phong_light* light, CGL_float intensity);
 void CGL_phong_light_set_color(CGL_phong_light* light, CGL_vec3 color);
 float CGL_phong_light_get_intensity(CGL_phong_light* light);
 CGL_vec3 CGL_phong_light_get_color(CGL_phong_light* light);
@@ -1306,11 +1309,11 @@ void CGL_tilemap_destroy(CGL_tilemap* tilemap);
 void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value);
 bool CGL_tilemap_get_auto_upload(CGL_tilemap* tilemap);
 bool CGL_tilemap_upload(CGL_tilemap* tilemap);
-void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float r, float g, float b);
+void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b);
 void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index);
-void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float texture_x_min, float texture_y_min, float texture_x_max, float texture_y_max);
+void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max);
 void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y);
-void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, float offset_x, float offset_y, CGL_texture* texture);
+void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture);
 void CGL_tilemap_reset(CGL_tilemap* tilemap);
 
 #endif
@@ -1332,9 +1335,9 @@ void CGL_sky_use_skybox(CGL_sky* sky);
 void CGL_sky_use_skysphere(CGL_sky* sky);
 void CGL_sky_use_cubemap(CGL_sky* sky);
 void CGL_sky_use_procedural(CGL_sky* sky);
-void CGL_sky_cubemap_set_face(CGL_sky* sky, int face, CGL_image* image);
-void CGL_sky_procedural_set_options(CGL_sky* sky, float cirrus, float cumulus, float upf);
-void CGL_sky_procedural_set_time(CGL_sky* sky, float time);
+void CGL_sky_cubemap_set_face(CGL_sky* sky, CGL_int face, CGL_image* image);
+void CGL_sky_procedural_set_options(CGL_sky* sky, CGL_float cirrus, CGL_float cumulus, CGL_float upf);
+void CGL_sky_procedural_set_time(CGL_sky* sky, CGL_float time);
 void CGL_sky_procedural_set_sun_position(CGL_sky* sky, CGL_vec3 position);
 void CGL_sky_render(CGL_sky* sky, CGL_camera* camera);
 
@@ -1420,37 +1423,37 @@ bool CGL_widgets_init();
 void CGL_widgets_shutdown();
 void CGL_window_set_current_context(CGL_widgets_context* context);
 bool CGL_widgets_begin();
-bool CGL_widgets_begin_int(float scale_x, float scale_y, float offset_x, float offset_y);
+bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
 bool CGL_widgets_end();
 bool CGL_widgets_flush();
 bool CGL_widgets_flush_if_required();
 bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, uint32_t* indices, size_t index_count);
 void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex);
 void CGL_widgets_add_vertex_p(CGL_vec3 position);
-void CGL_widgets_add_vertex_p3f(float pos_x, float pos_y, float pos_z);
+void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z);
 void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord);
-void CGL_widgets_add_vertex_p3ft(float pos_x, float pos_y, float pos_z, CGL_vec2 tex_coord);
-void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, float tex_x, float tex_y);
-void CGL_widgets_add_vertex_p3ft2f(float pos_x, float pos_y, float pos_z, float tex_x, float tex_y);
+void CGL_widgets_add_vertex_p3ft(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_vec2 tex_coord);
+void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float tex_y);
+void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y);
 void CGL_widgets_set_stroke_color(CGL_color color);
-void CGL_widgets_set_stroke_colorf(float r, float g, float b, float a);
-void CGL_widgets_set_stroke_thicnkess(float thickness);
+void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
+void CGL_widgets_set_stroke_thicnkess(CGL_float thickness);
 void CGL_widgets_set_fill_color(CGL_color color);
-void CGL_widgets_set_fill_colorf(float r, float g, float b, float a);
+void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
 void CGL_widgets_set_fill_mode(bool is_enabled);
 void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
 void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
-void CGL_widgets_add_quad_8f(float ax, float ay, float bx, float by, float cx, float cy, float dx, float dy);
+void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy);
 void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end);
-void CGL_widgets_add_line2f(float start_x, float start_y, float end_x, float end_y);
+void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y);
 void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size);
-void CGL_widgets_add_rect2f(float start_x, float start_y, float size_x, float size_y);
-void CGL_widgets_add_circle(CGL_vec3 position, float radius);
-void CGL_widgets_add_circle2f(float pos_x, float pos_y, float radius);
+void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y);
+void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius);
+void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius);
 void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
-void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radius_y);
-CGL_bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy);
-CGL_bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy);
+void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y);
+CGL_bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
+CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 void CGL_widgets_add_shape_out_line(CGL_shape* shape);
 void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
 void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
@@ -1483,9 +1486,9 @@ struct CGL_node_editor_pin
     CGL_color color;
     CGL_node_editor_node* parent;
     void* user_data;
-    float pos_x;
-    float pos_y;
-    int index;
+    CGL_float pos_x;
+    CGL_float pos_y;
+    CGL_int index;
     bool left;
     bool is_set;
 };
@@ -1497,23 +1500,23 @@ struct CGL_node_editor_node
     CGL_node_editor_pin right_pins[CGL_NODE_EDITOR_NODE_MAX_PINS];
     char title[256];
     CGL_color color;
-    int pins_count[2];
+    CGL_int pins_count[2];
     CGL_node_editor* editor;
     void* user_data;
-    float pos_x;
-    float pos_y;
-    float size_x;
-    float size_y;
+    CGL_float pos_x;
+    CGL_float pos_y;
+    CGL_float size_x;
+    CGL_float size_y;
     bool selected;
     bool render_title;
 };
 
 struct CGL_node_editor_input
 {
-    float mouse_pos_x;
-    float mouse_pos_y;
-    float aspect_ratio;
-    float scale;
+    CGL_float mouse_pos_x;
+    CGL_float mouse_pos_y;
+    CGL_float aspect_ratio;
+    CGL_float scale;
     bool mouse_button_left;    
     bool mouse_button_right;    
     bool mouse_button_middle;   
@@ -1559,16 +1562,16 @@ typedef struct CGL_ray_caster CGL_ray_caster;
 
 CGL_ray_caster* CGL_ray_caster_create();
 void CGL_ray_caster_destroy(CGL_ray_caster* caster);
-void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, int walls_count);
+void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, CGL_int walls_count);
 void CGL_ray_caster_add_wall(CGL_ray_caster* caster, CGL_vec4 wall);
 void CGL_ray_caster_clear_walls(CGL_ray_caster* caster);
-float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4 wall, CGL_vec2* intersection_point, float* angle, float max_dist);
-float CGL_ray_caster_get_intersection_point_for_walls(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4* walls, int wall_count, CGL_vec2* intersection_point, float* angle, float max_dist);
-void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotation, bool visualise_rays);
+float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4 wall, CGL_vec2* intersection_point, float* angle, CGL_float max_dist);
+float CGL_ray_caster_get_intersection_point_for_walls(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4* walls, CGL_int wall_count, CGL_vec2* intersection_point, float* angle, CGL_float max_dist);
+void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, CGL_float rotation, bool visualise_rays);
 bool CGL_ray_caster_is_in_view(CGL_ray_caster* caster, CGL_vec2 point);
-void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, float min_angle, float max_angle);
-void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, float val);
-CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, int* count);
+void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, CGL_float min_angle, CGL_float max_angle);
+void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, CGL_float val);
+CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, CGL_int* count);
 
 #endif
 
@@ -1585,9 +1588,27 @@ void CGL_square_marcher_destroy(CGL_square_marcher* marcher);
 void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data);
 void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher);
 void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bool enable);
-CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, int resolution_x, int resolution_y);
+CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, CGL_int resolution_x, CGL_int resolution_y);
 
 #endif
+
+
+
+#ifdef CGL_INCLUDE_PASCAL_TYPES
+typedef CGL_int Integer;
+typedef CGL_float Real;
+typedef CGL_byte Byte;
+typedef CGL_bool Boolean;
+typedef CGL_vec2 Vector2;
+typedef CGL_vec3 Vector3;
+typedef CGL_vec4 Vector4;
+typedef CGL_mat2 Matrix2x2;
+typedef CGL_mat3 Matrix3x3;
+typedef CGL_mat4 Matrix4x4;
+typedef CGL_quat Quaternion;
+typedef CGL_color Color;
+#endif
+
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1620,7 +1641,7 @@ struct CGL_list
     size_t size;
     size_t capacity;
     size_t item_size;
-    float increase_factor;
+    CGL_float increase_factor;
     void* data;
 };
 
@@ -1641,7 +1662,7 @@ void CGL_list_destroy(CGL_list* list)
     free(list);
 }
 
-void CGL_list_set_increase_factor(CGL_list* list, float increase_factor)
+void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor)
 {
     list->increase_factor = increase_factor;
 }
@@ -1696,7 +1717,7 @@ void* CGL_list_get(CGL_list* list, size_t index, void* data)
 
 void* CGL_list_get_random(CGL_list* list, void* data)
 {
-    int index = CGL_utils_random_int(0, list->size-1);
+    CGL_int index = CGL_utils_random_int(0, list->size-1);
     return CGL_list_get(list, index, data);
 }
 
@@ -2006,7 +2027,7 @@ struct CGL_hashtable
     size_t table_size;
     size_t key_size;
     size_t count;
-    float growth_rate;
+    CGL_float growth_rate;
 };
 
 struct CGL_hashtable_iterator
@@ -2200,7 +2221,7 @@ bool CGL_hashtable_remove(CGL_hashtable* table, const void* key)
     return true;
 }
 
-void CGL_hashtable_set_growth_rate(CGL_hashtable* table, float rate)
+void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate)
 {
     table->growth_rate = rate;
 }
@@ -2300,10 +2321,10 @@ void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
 
 struct CGL_net_addrinfo
 {
-    int ai_flags;
-    int ai_family;
-    int ai_socktype;
-    int ai_protocol;
+    CGL_int ai_flags;
+    CGL_int ai_family;
+    CGL_int ai_socktype;
+    CGL_int ai_protocol;
     size_t ai_addrlen;
     struct sockaddr ai_addr;
 };
@@ -2343,7 +2364,7 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
     hints.ai_family = AF_INET; // supports both ipv4
     hints.ai_socktype = SOCK_STREAM; // supports only streaming socketss
     hints.ai_protocol = IPPROTO_TCP; // supports only TCP
-    int iresult = getaddrinfo(name, port, &hints, &result);
+    CGL_int iresult = getaddrinfo(name, port, &hints, &result);
     if(iresult != 0) return NULL;
     size_t addr_count = 0;
     for(ptr = result; ptr != NULL; ptr = ptr->ai_next) addr_count++;
@@ -2384,19 +2405,19 @@ CGL_net_socket* CGL_net_socket_create()
 
 bool CGL_net_socket_connect(CGL_net_socket* soc, CGL_net_addrinfo* target)
 {
-    int result = connect(soc->socket, &target->ai_addr, (int)target->ai_addrlen);
+    CGL_int result = connect(soc->socket, &target->ai_addr, (int)target->ai_addrlen);
     return result != SOCKET_ERROR;
 }
 
 bool CGL_net_socket_bind(CGL_net_socket* soc, CGL_net_addrinfo* target)
 {
-    int result = bind(soc->socket, &target->ai_addr, (int)target->ai_addrlen);
+    CGL_int result = bind(soc->socket, &target->ai_addr, (int)target->ai_addrlen);
     return result != SOCKET_ERROR;
 }
 
 bool CGL_net_socket_listen(CGL_net_socket* soc, size_t max_connections)
 {
-    int result = listen(soc->socket, (int_fast16_t)max_connections);
+    CGL_int result = listen(soc->socket, (int_fast16_t)max_connections);
     return result != SOCKET_ERROR;
 }
 
@@ -2404,7 +2425,7 @@ CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* add
 {
     CGL_net_socket* cli_soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
     if(!cli_soc) return NULL;
-    int addr_len = 0;
+    CGL_int addr_len = 0;
     if(addrinfo)
     {
         cli_soc->socket = accept(soc->socket, &addrinfo->ai_addr, &addr_len);
@@ -2427,14 +2448,14 @@ void CGL_net_socket_close(CGL_net_socket* soc)
 
 bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent)
 {
-    int result = send(soc->socket, buffer, (int)size, 0);
+    CGL_int result = send(soc->socket, buffer, (int)size, 0);
     if(size_sent) *size_sent = result;
     return result != SOCKET_ERROR;
 }
 
 bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_recieved)
 {
-    int result = recv(soc->socket, buffer, (int)size, 0);
+    CGL_int result = recv(soc->socket, buffer, (int)size, 0);
     if(result > 0 && size_recieved) *size_recieved = (size_t)result;
     return result > 0;
 }
@@ -2469,7 +2490,7 @@ struct CGL_net_addrinfo
 
 struct CGL_net_socket
 {
-    int socket;
+    CGL_int socket;
 };
 
 bool CGL_net_init()
@@ -2499,7 +2520,7 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
     if(!addr_info) return NULL;
     memset(&addr_info->ai_addr, 0, sizeof(addr_info->ai_addr));
     addr_info->ai_addr.sin_family = AF_UNSPEC;
-    int iport = atoi(port);
+    CGL_int iport = atoi(port);
     addr_info->ai_addr.sin_port = htons(iport);
     addr_info->ai_addr.sin_addr = *((struct in_addr *)server->h_addr_list[0]);
     if(count) *count = 1;
@@ -2526,13 +2547,13 @@ CGL_net_socket* CGL_net_socket_create()
 
 bool CGL_net_socket_connect(CGL_net_socket* soc, CGL_net_addrinfo* target)
 {
-    int result = connect(soc->socket, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
+    CGL_int result = connect(soc->socket, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
     return result >= 0;
 }
 
 bool CGL_net_socket_bind(CGL_net_socket* soc, CGL_net_addrinfo* target)
 {
-    int result = bind(soc->socket, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
+    CGL_int result = bind(soc->socket, (struct sockaddr*)&target->ai_addr, sizeof(target->ai_addr));
     return result > 0;
 }
 
@@ -2546,7 +2567,7 @@ CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* add
 {
     CGL_net_socket* cli_soc = (CGL_net_socket*)CGL_malloc(sizeof(CGL_net_socket));
     if(!cli_soc) return NULL;
-    int length = 0;
+    CGL_int length = 0;
     if(addrinfo) cli_soc->socket = accept(soc->socket, (struct sockaddr*)&addrinfo->ai_addr, &length);
     else cli_soc->socket = accept(soc->socket, NULL, NULL);
     if(cli_soc->socket < 0)
@@ -2564,7 +2585,7 @@ void CGL_net_socket_close(CGL_net_socket* soc)
 
 bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent)
 {
-    int result = send(soc->socket, buffer, size, 0);
+    CGL_int result = send(soc->socket, buffer, size, 0);
     if(result < 0) return false;
     if(size_sent) *size_sent = result;
     return result;
@@ -2572,7 +2593,7 @@ bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t*
 
 bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_recieved)
 {
-    int result = recv(soc->socket, buffer, size, 0);
+    CGL_int result = recv(soc->socket, buffer, size, 0);
     if(result < 0) return false;
     if(size_recieved) *size_recieved = result;
     return result;
@@ -2612,7 +2633,7 @@ void __CGL_net_http_prepare_request(char* buffer, const char* method, const char
 
 int __CGL_net_http_parse_response(const char* response, const size_t recieved_length, size_t* body_size, char* body)
 {
-    int response_code = atoi(response + 9);
+    CGL_int response_code = atoi(response + 9);
     char* start_pt = response + 2;
     while(*start_pt != '\0')
     {
@@ -2691,7 +2712,7 @@ struct CGL_net_ssl_socket
     SSL* ssl;
     SSL_CTX* ctx;
     const SSL_METHOD* meth;
-    int sock;
+    CGL_int sock;
 };
 
 CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* soc)
@@ -2711,7 +2732,7 @@ CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* soc)
     }
     sock->sock = SSL_get_fd(sock->ssl);
     SSL_set_fd(sock->ssl, soc->socket);
-    int err = SSL_connect(sock->ssl);
+    CGL_int err = SSL_connect(sock->ssl);
     if(err <= 0)
     {
         CGL_log_internal("Error in creating SSL connection (%d)\n", err);
@@ -2724,7 +2745,7 @@ CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* soc)
 
 bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* soc, void* buffer, size_t size, size_t* size_sent)
 {
-    int result = SSL_write(soc->ssl, buffer, (int)size);
+    CGL_int result = SSL_write(soc->ssl, buffer, (int)size);
     if(result < 0) return false;
     if(size_sent) *size_sent = result;
     return true;
@@ -2732,7 +2753,7 @@ bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* soc, void* buffer, size_t size,
 
 bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* soc, void* buffer, size_t size, size_t* size_recieved)
 {
-    int result = SSL_read(soc->ssl, buffer, (int)size);
+    CGL_int result = SSL_read(soc->ssl, buffer, (int)size);
     if(result < 0) return false;
     if(size_recieved) *size_recieved = result;
     return true;
@@ -2748,7 +2769,7 @@ void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc)
 
 void CGL_net_ssl_log_errors()
 {
-    int err = 0;
+    CGL_int err = 0;
     while(err = ERR_get_error())
     {
         char* str = ERR_error_string(err, 0);
@@ -2774,7 +2795,7 @@ struct CGL_logger_context
 {
     char log_file_paths[CGL_LOGGER_MAX_LOG_FILES][4096];
     char log_buffer[CGL_LOGGER_LOG_BUFFER_SIZE];
-    int log_buffer_length;
+    CGL_int log_buffer_length;
     bool console_logging_enabled;
     bool flush_on_log;
 };
@@ -2811,7 +2832,7 @@ void CGL_logger_set_context(CGL_logger_context* context)
 
 bool CGL_logger_attach_log_file(const char* path)
 {
-    for(int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++) if(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] == '\0')
+    for(CGL_int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++) if(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] == '\0')
     {
         strcpy(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i], path);
         CGL_log_internal("Attached Log File : %s", path);
@@ -2822,7 +2843,7 @@ bool CGL_logger_attach_log_file(const char* path)
 
 bool CGL_logger_detach_log_file(const char* path)
 {
-    for(int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++) if(strcmp(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i], path) == 0)
+    for(CGL_int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++) if(strcmp(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i], path) == 0)
     {
         __CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] = '\0';
         CGL_log_internal("Detached Log File : %s", path);
@@ -2833,7 +2854,7 @@ bool CGL_logger_detach_log_file(const char* path)
 
 void CGL_logger_flush()
 {
-    for(int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++)
+    for(CGL_int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++)
         if(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] != '\0')
             CGL_utils_append_file(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i], __CGL_CURRENT_LOGGER_CONTEXT->log_buffer, __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length);
     __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length = 0;
@@ -2851,7 +2872,7 @@ void CGL_logger_enable_console_logging()
     __CGL_CURRENT_LOGGER_CONTEXT->console_logging_enabled = true;
 }
 
-void CGL_logger_log(int level, const char* log_format, ...)
+void CGL_logger_log(CGL_int level, const char* log_format, ...)
 {
     static char buffer1[1024 * 4];
     static char buffer2[256];
@@ -2869,7 +2890,7 @@ void CGL_logger_log(int level, const char* log_format, ...)
     va_end (args);
     CGL_utils_get_timestamp(buffer2);
     sprintf(buffer3, "[%s] [%s] : %s\n", LOG_LEVEL_STR[level], buffer2, buffer1);
-    int log_length = (int)strlen(buffer3);
+    CGL_int log_length = (int)strlen(buffer3);
     if(log_length + __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length >= CGL_LOGGER_LOG_BUFFER_SIZE) CGL_logger_flush();
     strcat(__CGL_CURRENT_LOGGER_CONTEXT->log_buffer, buffer3);
     __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length += log_length;
@@ -2970,7 +2991,7 @@ float CGL_utils_get_time()
     LARGE_INTEGER frequency, starting_time;
     QueryPerformanceFrequency(&frequency); 
     QueryPerformanceCounter(&starting_time);
-    float time = starting_time.QuadPart / (float)frequency.QuadPart;
+    CGL_float time = starting_time.QuadPart / (float)frequency.QuadPart;
     return time;
 #else // for POSIX
     struct timespec spec;
@@ -3010,28 +3031,28 @@ void CGL_shape_destroy(CGL_shape* shape)
 
 bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount)
 {
-    float a_max = -FLT_MAX;
-    float a_min = FLT_MAX;
+    CGL_float a_max = -FLT_MAX;
+    CGL_float a_min = FLT_MAX;
 
-    float b_max = -FLT_MAX;
-    float b_min = FLT_MAX;
+    CGL_float b_max = -FLT_MAX;
+    CGL_float b_min = FLT_MAX;
 
     CGL_vec2_normalize(axis);
 
     const CGL_vec2 a_translation = CGL_vec2_init(a->position.x, a->position.y);
     const CGL_vec2 a_scale = CGL_vec2_init(a->scale.x, a->scale.y);
-    const float a_rotation = a->rotation.x;
+    const CGL_float a_rotation = a->rotation.x;
     
     const CGL_vec2 b_translation = CGL_vec2_init(b->position.x, b->position.y);
     const CGL_vec2 b_scale = CGL_vec2_init(b->scale.x, b->scale.y);
-    const float b_rotation = b->rotation.x;
+    const CGL_float b_rotation = b->rotation.x;
 
     
     for(size_t i = 0; i < a->vertices_count; i++)
     {
         CGL_vec2 vertex = CGL_vec2_init(a->vertices[i].x, a->vertices[i].y);
         vertex = CGL_vec2_apply_transformations(vertex, &a_translation, &a_rotation, &a_scale);
-        float projection = CGL_vec2_dot(vertex, axis);
+        CGL_float projection = CGL_vec2_dot(vertex, axis);
         a_max = CGL_utils_max(a_max, projection);
         a_min = CGL_utils_min(a_min, projection);        
     }
@@ -3040,7 +3061,7 @@ bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis
     {
         CGL_vec2 vertex = CGL_vec2_init(b->vertices[i].x, b->vertices[i].y);
         vertex = CGL_vec2_apply_transformations(vertex, &b_translation, &b_rotation, &b_scale);
-        float projection = CGL_vec2_dot(vertex, axis);
+        CGL_float projection = CGL_vec2_dot(vertex, axis);
         b_max = CGL_utils_max(b_max, projection);
         b_min = CGL_utils_min(b_min, projection);        
     }
@@ -3054,12 +3075,12 @@ bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis
 
     )
     {
-        float a_range = a_max - a_min;
-        float b_range = b_max - b_min;
-        float a_middle = a_min + a_range / 2.0f;
-        float b_middle = b_min + b_range / 2.0f;
-        float middle_distance = fabsf(a_middle - b_middle);
-        float overlap = CGL_utils_min(a_range, b_range) / 2.0f - middle_distance;
+        CGL_float a_range = a_max - a_min;
+        CGL_float b_range = b_max - b_min;
+        CGL_float a_middle = a_min + a_range / 2.0f;
+        CGL_float b_middle = b_min + b_range / 2.0f;
+        CGL_float middle_distance = fabsf(a_middle - b_middle);
+        CGL_float overlap = CGL_utils_min(a_range, b_range) / 2.0f - middle_distance;
         if(overlap_amount) *overlap_amount = overlap;
         return true;
     }
@@ -3073,14 +3094,14 @@ bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, float* overlap_amount)
     static CGL_vec2 sat_axes_b[CGL_SAT_COLLISION_MAX_COLLISIONS];
     CGL_sat_collision_calculate_axes(a, sat_axes_a, NULL);    
     CGL_sat_collision_calculate_axes(b, sat_axes_b, NULL);
-    float overlap = FLT_MAX, ov = FLT_MAX;
+    CGL_float overlap = FLT_MAX, ov = FLT_MAX;
     for(size_t i = 0; i < a->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_a[i], &ov)) return false; overlap = CGL_utils_min(overlap, ov); }
     for(size_t i = 0; i < b->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_b[i], &ov)) return false; overlap = CGL_utils_min(overlap, ov); }
     if(overlap_amount) *overlap_amount = overlap;
     return true;
 }
 
-void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, int* axes_count)
+void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count)
 {
     for(size_t i = 0; i < shape->vertices_count; i++)
     {
@@ -3096,10 +3117,10 @@ void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, int* axe
 // algorithm from https://stackoverflow.com/a/23186198/14911094
 bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 p0, CGL_vec2 p1, CGL_vec2 p2)
 {
-    float s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y);
-    float t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y);
+    CGL_float s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y);
+    CGL_float t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y);
     if (s <= 0 || t <= 0) return false;
-    float A = (-p1.y * p2.x + p0.y * (-p1.x + p2.x) + p0.x * (p1.y - p2.y) + p1.x * p2.y);
+    CGL_float A = (-p1.y * p2.x + p0.y * (-p1.x + p2.x) + p0.x * (p1.y - p2.y) + p1.x * p2.y);
     return (s + t) < A;
 }
 
@@ -3348,7 +3369,7 @@ uint64_t CGL_utils_crc64(const void* data, size_t size)
 // From : https://github.com/B-Con/crypto-algorithms/blob/master/rot-13.c
 void CGL_utils_rot13(const char* data_in, char* str)
 {
-   int case_type, idx, len;
+   CGL_int case_type, idx, len;
    len = (int)strlen(data_in);
    strcpy(str, data_in);
    for (idx = 0; idx < len; idx++) {
@@ -3385,7 +3406,7 @@ uint32_t CGL_utils_super_fast_hash(const void* dat, size_t len)
     const uint8_t* data = (const uint8_t*)dat;
     uint32_t hash = (uint32_t)len;
     uint32_t tmp;
-    int rem;
+    CGL_int rem;
     
     if (len <= 0 || data == NULL) return 0;
 
@@ -3453,7 +3474,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 }
 
 // Uses Rodrigues' rotation formula to rotate a vector about an axis
-CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, float theta)
+CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta)
 {
     CGL_float cos_theta = cosf(theta);
     CGL_float sin_theta = sinf(theta);
@@ -3479,9 +3500,9 @@ CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n)
 CGL_mat4 CGL_mat4_mul(CGL_mat4 a, CGL_mat4 b)
 {
     CGL_mat4 result = CGL_mat4_zero();
-    for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++)
+    for (CGL_int i = 0; i < 4; i++) for (CGL_int j = 0; j < 4; j++)
     {
-        for (int k = 0; k < 4; k++)
+        for (CGL_int k = 0; k < 4; k++)
             CGL_mat4_elem_set(result, i, j, CGL_mat4_elem_get(result, i, j) + CGL_mat4_elem_get(a, i, k) * CGL_mat4_elem_get(b, k, j));
     }
     return result;
@@ -3492,19 +3513,19 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u)
 {
     CGL_mat4 L = CGL_mat4_identity();
     CGL_mat4 U = CGL_mat4_identity();    
-    for(int j = 0 ; j < 4 ; j++)
+    for(CGL_int j = 0 ; j < 4 ; j++)
     {
-        for(int i = 0 ; i <= j ; i++)
+        for(CGL_int i = 0 ; i <= j ; i++)
         {
-            float sum = CGL_mat4_elem_get(m, i, j);
-            for(int k = 0 ; k < i ; k++)
+            CGL_float sum = CGL_mat4_elem_get(m, i, j);
+            for(CGL_int k = 0 ; k < i ; k++)
                 sum -= CGL_mat4_elem_get(L, i, k) * CGL_mat4_elem_get(U, k, j);
             CGL_mat4_elem_set(U, i, j, sum);
         }
-        for(int i = j + 1 ; i < 4 ; i++)
+        for(CGL_int i = j + 1 ; i < 4 ; i++)
         {
-            float sum = CGL_mat4_elem_get(m, i, j);
-            for(int k = 0 ; k < j ; k++)
+            CGL_float sum = CGL_mat4_elem_get(m, i, j);
+            for(CGL_int k = 0 ; k < j ; k++)
                 sum -= CGL_mat4_elem_get(L, i, k) * CGL_mat4_elem_get(U, k, j);
             CGL_mat4_elem_set(L, i, j, sum / CGL_mat4_elem_get(U, j, j));
         }
@@ -3531,7 +3552,7 @@ CGL_float CGL_mat4_det_by_gauss(CGL_mat4 m)
 {
     m = CGL_mat4_gauss_elim(m);
     CGL_float det = 1.0f;
-    for (int i = 0; i < 4; i++) det *= CGL_mat4_elem_get(m, i, i);
+    for (CGL_int i = 0; i < 4; i++) det *= CGL_mat4_elem_get(m, i, i);
     return det;
 }
 
@@ -3586,7 +3607,7 @@ CGL_mat4 CGL_mat4_transpose(CGL_mat4 m)
 CGL_mat4 CGL_mat4_gauss_elim(CGL_mat4 m)
 {
     CGL_float ratio = 0.0f;
-    for(int i = 0 ; i < 4 ; i++) for(int j = 0 ; j < 4 ; j++)
+    for(CGL_int i = 0 ; i < 4 ; i++) for(CGL_int j = 0 ; j < 4 ; j++)
     {
         if(j > i)
         {
@@ -3701,22 +3722,22 @@ void CGL_quat_to_euler_zyx(CGL_quat q, float* z, float* y, float* x)
     // roll (x-axis rotation)
     if(z)
     {
-        float sinr_cosp = 2.0f * (q.w * q.vec.x + q.vec.y * q.vec.z);
-        float cosr_cosp = 1.0f - 2.0f * (q.vec.x * q.vec.x + q.vec.y * q.vec.y);
+        CGL_float sinr_cosp = 2.0f * (q.w * q.vec.x + q.vec.y * q.vec.z);
+        CGL_float cosr_cosp = 1.0f - 2.0f * (q.vec.x * q.vec.x + q.vec.y * q.vec.y);
         *z = atan2f(sinr_cosp, cosr_cosp);
     }
     // pitch (y-axis rotation)
     if(y)
     {
-        float sinp = 2.0f * (q.w * q.vec.y - q.vec.z * q.vec.x);
+        CGL_float sinp = 2.0f * (q.w * q.vec.y - q.vec.z * q.vec.x);
         if(fabs(sinp) >= 1) *y = copysignf(3.141f / 2.0f, sinp); // use 90 deg if out of range
         else *y = asinf(sinp);
     }
     // yaw (z-axis rotation)
     if(z)
     {
-        float siny_cosp = 2.0f * (q.w * q.vec.z + q.vec.x * q.vec.y);
-        float cosy_cosp = 1.0f - 2.0f * (q.vec.y * q.vec.y - q.vec.z * q.vec.z);
+        CGL_float siny_cosp = 2.0f * (q.w * q.vec.z + q.vec.x * q.vec.y);
+        CGL_float cosy_cosp = 1.0f - 2.0f * (q.vec.y * q.vec.y - q.vec.z * q.vec.z);
         *z = atan2f(siny_cosp, cosy_cosp);
     }
 }
@@ -3734,18 +3755,18 @@ CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b)
     return result;
 }
 
-void CGL_quat_rotate(CGL_quat q, float x, float y, float z, float* ox, float* oy, float* oz)
+void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, float* ox, float* oy, float* oz)
 {
-    float ww = q.w * q.w;
-    float xx = q.vec.x * q.vec.x;
-    float yy = q.vec.y * q.vec.y;
-    float zz = q.vec.z * q.vec.z;
-    float wx = q.w * q.vec.x;
-    float wy = q.w * q.vec.y;
-    float wz = q.w * q.vec.z;
-    float xy = q.vec.x * q.vec.y;
-    float xz = q.vec.x * q.vec.z;
-    float yz = q.vec.y * q.vec.z;
+    CGL_float ww = q.w * q.w;
+    CGL_float xx = q.vec.x * q.vec.x;
+    CGL_float yy = q.vec.y * q.vec.y;
+    CGL_float zz = q.vec.z * q.vec.z;
+    CGL_float wx = q.w * q.vec.x;
+    CGL_float wy = q.w * q.vec.y;
+    CGL_float wz = q.w * q.vec.z;
+    CGL_float xy = q.vec.x * q.vec.y;
+    CGL_float xz = q.vec.x * q.vec.z;
+    CGL_float yz = q.vec.y * q.vec.z;
 
     if(ox) *ox = ww * x + 2.0f * wy * z - 2.0f * wz * y + xx * x + 2.0f * xy * y + 2.0f * xz * z - zz * x - yy * x;
     if(oy) *oy = 2.0f * xy * x + yy * y + 2.0f * yz * z + 2.0f * wz * x - zz * y + ww * y - 2.0f * wx * z - xx * y;
@@ -3845,7 +3866,7 @@ CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* trans
 struct CGL_context
 {
     bool is_initialized;
-    int window_count;
+    CGL_int window_count;
     #ifndef CGL_EXCLUDE_WINDOW_API 
     CGL_window* window_table[CGL_WINDOW_TABLE_SIZE];
     #endif
@@ -3950,7 +3971,7 @@ struct CGL_window
 };
 
 // callbacks
-void __CGL_window_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void __CGL_window_key_callback(GLFWwindow* window, CGL_int key, CGL_int scancode, CGL_int action, CGL_int mods)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -3960,7 +3981,7 @@ void __CGL_window_key_callback(GLFWwindow* window, int key, int scancode, int ac
         cgl_window->previous_key_callback(window, key, scancode, action, mods);
 }
 
-void __CGL_window_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+void __CGL_window_mouse_button_callback(GLFWwindow* window, CGL_int button, CGL_int action, CGL_int mods)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -3990,7 +4011,7 @@ void __CGL_window_mouse_scroll_callback(GLFWwindow* window, double xoffset, doub
         cgl_window->previous_mouse_scroll_callback(window, xoffset, yoffset);
 }
 
-void __CGL_window_framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void __CGL_window_framebuffer_size_callback(GLFWwindow* window, CGL_int width, CGL_int height)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -4011,7 +4032,7 @@ void __CGL_window_close_callback(GLFWwindow* window)
 }
 
 // create window
-CGL_window* CGL_window_create(int width, int height, const char* title)
+CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
 {
     if (__CGL_context->window_count == 0)
     {
@@ -4108,13 +4129,13 @@ void CGL_window_set_title(CGL_window* window, const char* title)
 }
 
 // set window size
-void CGL_window_set_size(CGL_window* window, int width, int height)
+void CGL_window_set_size(CGL_window* window, CGL_int width, CGL_int height)
 {
     glfwSetWindowSize(window->handle, width, height);
 }
 
 // set window position
-void CGL_window_set_position(CGL_window* window, int x, int y)
+void CGL_window_set_position(CGL_window* window, CGL_int x, CGL_int y)
 {
     glfwSetWindowPos(window->handle, x, y);
 }
@@ -4142,19 +4163,19 @@ void* CGL_window_get_user_data(CGL_window* window)
 }
 
 // get window size
-void CGL_window_get_size(CGL_window* window, int* width, int* height)
+void CGL_window_get_size(CGL_window* window, CGL_int* width, CGL_int* height)
 {
     glfwGetWindowSize(window->handle, width, height);
 }
 
 // get window position
-void CGL_window_get_position(CGL_window* window, int* x, int* y)
+void CGL_window_get_position(CGL_window* window, CGL_int* x, CGL_int* y)
 {
     glfwGetWindowPos(window->handle, x, y);
 }
 
 // get window framebuffer size
-void CGL_window_get_framebuffer_size(CGL_window* window, int* width, int* height)
+void CGL_window_get_framebuffer_size(CGL_window* window, CGL_int* width, CGL_int* height)
 {
     glfwGetFramebufferSize(window->handle, width, height);
 }
@@ -4247,13 +4268,13 @@ void CGL_window_resecure_callbacks(CGL_window* window)
 }
 
 // get key state
-int CGL_window_get_key(CGL_window* window, int key)
+int CGL_window_get_key(CGL_window* window, CGL_int key)
 {
     return glfwGetKey(window->handle, key);
 }
 
 // get mouse button state
-int CGL_window_get_mouse_button(CGL_window* window, int button)
+int CGL_window_get_mouse_button(CGL_window* window, CGL_int button)
 {
     return glfwGetMouseButton(window->handle, button);
 }
@@ -4289,9 +4310,9 @@ GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window)
 struct CGL_texture
 {
     GLuint handle;
-    int width;
-    int height;
-    int depth;
+    CGL_int width;
+    CGL_int height;
+    CGL_int depth;
     GLenum format;
     GLenum internal_format;
     GLenum type;
@@ -4339,7 +4360,7 @@ CGL_texture* CGL_texture_create(CGL_image* image)
 }
 
 // create texture
-CGL_texture* CGL_texture_create_blank(int width, int height, GLenum format, GLenum internal_format, GLenum type)
+CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum format, GLenum internal_format, GLenum type)
 {
     CGL_texture* texture = malloc(sizeof(CGL_texture));
     texture->width = width;
@@ -4387,7 +4408,7 @@ CGL_texture* CGL_texture_create_cubemap()
     return texture;
 }
 
-CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum format, GLenum internal_format, GLenum type)
+CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int layers, GLenum format, GLenum internal_format, GLenum type)
 {
     CGL_texture* texture = malloc(sizeof(CGL_texture));
     texture->width = width;
@@ -4410,7 +4431,7 @@ CGL_texture* CGL_texture_create_array(int width, int height, int layers, GLenum 
     return texture;
 }
 
-void CGL_texture_cubemap_set_face(CGL_texture* texture, int face, CGL_image* image)
+void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image)
 {
     GLenum format, internal_format, type;
     if(image->channels == 3)
@@ -4434,7 +4455,7 @@ void CGL_texture_cubemap_set_face(CGL_texture* texture, int face, CGL_image* ima
 	glBindTexture(texture->target, 0);
 }
 
-void CGL_texture_array_set_layer_data(CGL_texture* texture, int layer, void* data)
+void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data)
 {
     glBindTexture(texture->target, texture->handle);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -4466,7 +4487,7 @@ void CGL_texture_destroy(CGL_texture* texture)
 }
 
 // bind texture to unit
-void CGL_texture_bind(CGL_texture* texture, int unit)
+void CGL_texture_bind(CGL_texture* texture, CGL_int unit)
 {
     glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(texture->target, texture->handle);
@@ -4504,7 +4525,7 @@ void* CGL_texture_get_user_data(CGL_texture* texture)
 }
 
 // get texture size
-void CGL_texture_get_size(CGL_texture* texture, int* width, int* height)
+void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height)
 {
     if(width)   *width = texture->width;
     if(height)  *height = texture->height;
@@ -4513,22 +4534,25 @@ void CGL_texture_get_size(CGL_texture* texture, int* width, int* height)
 // framebuffer
 struct CGL_framebuffer
 {
-    GLuint handle;
+    CGL_texture* mousepick_texture[3];
+    CGL_texture* color_attachments[4];
     CGL_texture* color_texture;
     CGL_texture* depth_texture;
-    CGL_texture* mousepick_texture[3];
-    bool is_default;
-    int width;
-    int height;
     void* user_data;
+    GLuint handle;
+    CGL_int width;
+    CGL_int height;
+    CGL_int color_attachment_count;
+    bool is_default;
 };
 
 // create framebuffer (32 bit)
-CGL_framebuffer* CGL_framebuffer_create(int width, int height)
+CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height)
 {
-    CGL_framebuffer* framebuffer = (CGL_framebuffer*)malloc(sizeof(CGL_framebuffer));
-    if(framebuffer == NULL)
-        return NULL;
+    CGL_framebuffer* framebuffer = (CGL_framebuffer*)CGL_malloc(sizeof(CGL_framebuffer));
+    if(framebuffer == NULL) return NULL;
+
+    framebuffer->color_attachment_count = 0;
     
     glGenFramebuffers(1, &framebuffer->handle);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle);
@@ -4550,14 +4574,14 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
         return NULL;
     }
         
-    for(int i = 0; i < 3; i++)
+    for(CGL_int i = 0; i < 3; i++)
     {
         framebuffer->mousepick_texture[i] = CGL_texture_create_blank(width, height, GL_RED_INTEGER, GL_R32I, GL_INT);
         if(!framebuffer->mousepick_texture[i])
         {
             CGL_texture_destroy(framebuffer->color_texture);
             CGL_texture_destroy(framebuffer->depth_texture);
-            for(int j = 0; j < i; j++)
+            for(CGL_int j = 0; j < i; j++)
                 CGL_texture_destroy(framebuffer->mousepick_texture[j]);
             free(framebuffer);
             return NULL;
@@ -4581,7 +4605,7 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
     {
         CGL_texture_destroy(framebuffer->color_texture);
         CGL_texture_destroy(framebuffer->depth_texture);
-        for(int i = 0; i < 3; i++)
+        for(CGL_int i = 0; i < 3; i++)
             CGL_texture_destroy(framebuffer->mousepick_texture[i]);
         free(framebuffer);
         CGL_log_internal("Framebuffer is not complete\n");
@@ -4602,14 +4626,119 @@ CGL_framebuffer* CGL_framebuffer_create(int width, int height)
     return framebuffer;
 }
 
+CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height)
+{
+    CGL_framebuffer* framebuffer = (CGL_framebuffer*)CGL_malloc(sizeof(CGL_framebuffer));
+    if(framebuffer == NULL) return NULL;
+    framebuffer->color_attachment_count = 1;    
+    glGenFramebuffers(1, &framebuffer->handle);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle);    
+    // create the textures
+    framebuffer->color_texture = CGL_texture_create_blank(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);    
+    if(!framebuffer->color_texture)
+    {
+        CGL_free(framebuffer);
+        return NULL;
+    }
+    framebuffer->color_attachments[0] = framebuffer->color_texture;
+    
+    framebuffer->depth_texture = CGL_texture_create_blank(width, height, GL_DEPTH_COMPONENT, GL_DEPTH24_STENCIL8, GL_FLOAT);
+    if(!framebuffer->depth_texture)
+    {
+        CGL_texture_destroy(framebuffer->color_texture);
+        CGL_free(framebuffer);
+        return NULL;
+    }
+        
+    // attach the textures
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebuffer->color_texture->handle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, framebuffer->depth_texture->handle, 0);
+
+    GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	glDrawBuffers(1, buffers);
+
+    
+    // check if framebuffer is complete
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        CGL_texture_destroy(framebuffer->color_texture);
+        CGL_texture_destroy(framebuffer->depth_texture);
+        for(CGL_int i = 0; i < 3; i++)
+            CGL_texture_destroy(framebuffer->mousepick_texture[i]);
+        free(framebuffer);
+        CGL_log_internal("Framebuffer is not complete\n");
+        // get and print opengl error
+        GLenum error = glGetError();
+        if(error != GL_NO_ERROR)
+            CGL_log_internal("OpenGL error: %d\n", (error));
+        return NULL;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    framebuffer->width = width;
+    framebuffer->height = height;
+    framebuffer->is_default = false;
+    framebuffer->user_data = NULL;
+
+    return framebuffer;
+
+}
+
+void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture)
+{
+    if(framebuffer->is_default)
+    {
+        CGL_log_internal("Cannot add color attachment to default framebuffer\n");
+        return;
+    }
+
+    if(framebuffer->color_attachment_count >= 4)
+    {
+        CGL_log_internal("Framebuffer already has 4 color attachments\n");
+        return;
+    }
+
+    if(framebuffer->color_attachment_count == 0)
+    {
+        CGL_log_internal("This type of framebuffer cannot have a custom color attachment");
+        return;
+    }
+
+    framebuffer->color_attachments[framebuffer->color_attachment_count++] = texture;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + framebuffer->color_attachment_count - 1, GL_TEXTURE_2D, texture->handle, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	glDrawBuffers(framebuffer->color_attachment_count, buffers);
+
+    // check if framebuffer is complete
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        CGL_texture_destroy(framebuffer->color_texture);
+        CGL_texture_destroy(framebuffer->depth_texture);
+        for(CGL_int i = 0; i < 3; i++)
+            CGL_texture_destroy(framebuffer->mousepick_texture[i]);
+        free(framebuffer);
+        CGL_log_internal("Framebuffer is not complete\n");
+        // get and print opengl error
+        GLenum error = glGetError();
+        if(error != GL_NO_ERROR)
+            CGL_log_internal("OpenGL error: %d\n", (error));
+        return;
+    }
+}
+
 #ifndef CGL_EXCLUDE_WINDOW_API
 // create framebuffer from default framebuffer
 CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window)
 {
     CGL_framebuffer* framebuffer = (CGL_framebuffer*)malloc(sizeof(CGL_framebuffer));
-    if(framebuffer == NULL)
-        return NULL;
+    if(framebuffer == NULL) return NULL;
     framebuffer->handle = 0;
+    framebuffer->color_attachment_count = 0;
     framebuffer->is_default = true;
     framebuffer->user_data = window;
     return framebuffer;
@@ -4621,10 +4750,13 @@ void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer)
 {
     if(!framebuffer->is_default)
     {
-        CGL_texture_destroy(framebuffer->color_texture);
+        if(framebuffer->color_attachment_count == 0)
+        {
+            CGL_texture_destroy(framebuffer->color_texture);
+            for(CGL_int i = 0; i < 3; i++) CGL_texture_destroy(framebuffer->mousepick_texture[i]);
+        }
+        else for(CGL_int i = 0; i < framebuffer->color_attachment_count; i++) CGL_texture_destroy(framebuffer->color_attachments[i]);
         CGL_texture_destroy(framebuffer->depth_texture);
-        for(int i = 0; i < 3; i++)
-            CGL_texture_destroy(framebuffer->mousepick_texture[i]);
         glDeleteFramebuffers(1, &framebuffer->handle);
     }
     free(framebuffer);
@@ -4635,7 +4767,7 @@ void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
 {
     if(framebuffer->is_default)
     {
-        int width = 0, height = 0;
+        CGL_int width = 0, height = 0;
 #ifdef CGL_WASM
         // TODO
 #else
@@ -4652,11 +4784,11 @@ void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
 }
 
 // get framebuffer size
-void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, int* width, int* height)
+void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height)
 {
     if(framebuffer->is_default)
     {
-        int w = 0, h = 0;
+        CGL_int w = 0, h = 0;
 #ifdef CGL_WASM
         // TODO
 #else
@@ -4675,36 +4807,33 @@ void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, int* width, int* hei
 // set framebuffer user data
 void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data)
 {
-    if(!framebuffer->is_default)
-        framebuffer->user_data = user_data;
+    if(!framebuffer->is_default) framebuffer->user_data = user_data;
 }
 
 // get framebuffer user data
 void* CGL_framebuffer_get_user_data(CGL_framebuffer* framebuffer)
 {
-    if(!framebuffer->is_default)
-        return framebuffer->user_data;
+    if(!framebuffer->is_default) return framebuffer->user_data;
     return NULL;
 }
 
 // read pixels from framebuffer
-void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, int x, int y, int width, int height, void* pixels)
+void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int width, CGL_int height, void* pixels)
 {    
-    if(framebuffer->is_default)
-        return;
+    if(framebuffer->color_attachment_count != 0) return;
+    if(framebuffer->is_default) return;
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle);
     glReadPixels(x, y, width, height, framebuffer->color_texture->format, framebuffer->color_texture->type, pixels);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);    
 }
  
 // get mouse pick id
-int CGL_framebuffer_get_mouse_pick_id(CGL_framebuffer* framebuffer, int x, int y, int index)
+CGL_int CGL_framebuffer_get_mouse_pick_id(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int index)
 {
-    if(index >= 3)
-        return -1;
-    if(framebuffer->is_default)
-        return 0;
-    int id = 0;
+    if(framebuffer->color_attachment_count != 0) return 0;
+    if(index >= 3) return -1;
+    if(framebuffer->is_default) return 0;
+    CGL_int id = 0;
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle);
     glReadBuffer(GL_COLOR_ATTACHMENT0 + 1 + index);
     glReadPixels(x, framebuffer->height - y, 1, 1, GL_RED_INTEGER, GL_INT, &id);
@@ -4715,8 +4844,7 @@ int CGL_framebuffer_get_mouse_pick_id(CGL_framebuffer* framebuffer, int x, int y
 // get color texture
 CGL_texture* CGL_framebuffer_get_color_texture(CGL_framebuffer* framebuffer)
 {
-    if(framebuffer->is_default)
-        return NULL;
+    if(framebuffer->is_default) return NULL;
     return framebuffer->color_texture;
 }
 
@@ -4733,7 +4861,7 @@ struct CGL_ssbo
 {
     GLuint handle;
     size_t size;
-    int binding;
+    CGL_int binding;
     void* user_data;
 };
 
@@ -4849,32 +4977,45 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 
 // gl
 // clear 
-void CGL_gl_clear(float r, float g, float b, float a)
+void CGL_gl_clear(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {    
     glClearColor(r, g, b, a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+static CGL_mesh_gpu* __CGL_GL_SCREEN_QUAD_MESH = NULL;
+
 // load opengl functions
 bool CGL_gl_init()
 {
 #ifdef CGL_WASM
-    int gles_version = gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
+    CGL_int gles_version = gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
     return true;
 #else
     bool result = gladLoadGL();
-    if(!result)
-    {
-        CGL_log_internal("Failed to load OpenGL functions");
-    }
-    return result;
+    if(!result) CGL_log_internal("Failed to load OpenGL functions");
 #endif
+    CGL_mesh_cpu* mesh_cpu = CGL_mesh_cpu_quad(
+        CGL_vec3_init(-1.0f, -1.0f, 0.0f),
+        CGL_vec3_init(1.0f, -1.0f, 0.0f),
+        CGL_vec3_init(1.0f, 1.0f, 0.0f),
+        CGL_vec3_init(-1.0f, 1.0f, 0.0f)
+    );
+    __CGL_GL_SCREEN_QUAD_MESH = CGL_mesh_gpu_create();
+    CGL_mesh_gpu_upload(__CGL_GL_SCREEN_QUAD_MESH, mesh_cpu, true);
+    CGL_mesh_cpu_destroy(mesh_cpu);    
+    return result;
 }
 
 // clean up
 void CGL_gl_shutdown()
 {
+    CGL_mesh_gpu_destroy(__CGL_GL_SCREEN_QUAD_MESH);
+}
 
+void CGL_gl_render_screen_quad()
+{
+    CGL_mesh_gpu_render(__CGL_GL_SCREEN_QUAD_MESH);
 }
 
 // mesh
@@ -4993,11 +5134,11 @@ CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
     return mesh;
 }
 
-void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, int count)
+void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, CGL_int count)
 {
     char* begin = line;
     char* end = line + strlen(line);
-    int i = 0, j = 0;
+    CGL_int i = 0, j = 0;
     while ((begin < end) && (i < count))
     {
         if (line[j++] == ' ')
@@ -5021,8 +5162,8 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
     char* file_data = CGL_utils_read_file(path, &file_size);
     if(file_size == 0) return NULL;
     char* line = strtok(file_data, "\n");
-    int object_count = 0;
-    float item_data[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    CGL_int object_count = 0;
+    CGL_float item_data[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     uint32_t index = 0;
     while(line != NULL)
     {
@@ -5051,7 +5192,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
             memset(index_v_vt_vn, 0, sizeof(index_v_vt_vn));
             char* begin = temp_buffer;
             char* end = temp_buffer + strlen(temp_buffer);
-            int i = 0, j = 0, k = 0;
+            CGL_int i = 0, j = 0, k = 0;
             while ((begin < end) && (i < 3))
             {
                 if (temp_buffer[j] == '/' || temp_buffer[j] == ' ')
@@ -5065,7 +5206,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
                 j++;
             }            
             CGL_mesh_vertex current_vertex;
-            for (int i = 0; i < 3; i++)
+            for (CGL_int i = 0; i < 3; i++)
             {
                 if (!CGL_list_get(vertex_positions, index_v_vt_vn[i][0] - 1, &current_vertex.position))
                     current_vertex.position = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
@@ -5172,23 +5313,23 @@ CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
 }
 
 // Algorithm from https://stackoverflow.com/a/31326534/14911094
-CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(int res_u, int res_v, float start_u, float start_v, float end_u, float end_v, CGL_parametric_function function)
+CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function)
 {
     CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(res_u * res_v * 4, res_u * res_v * 6);
     if(mesh == NULL)
         return  NULL;
-    float step_u = (end_u - start_u) / res_u;
-    float step_v = (end_v - start_v) / res_v;
+    CGL_float step_u = (end_u - start_u) / res_u;
+    CGL_float step_v = (end_v - start_v) / res_v;
     size_t vertex_index = 0;
     size_t index_index = 0;
-    for(int i = 0 ; i < res_u ; i++)
+    for(CGL_int i = 0 ; i < res_u ; i++)
     {
-        for(int j = 0 ; j < res_v ; j++)
+        for(CGL_int j = 0 ; j < res_v ; j++)
         {
-            float u = i * step_u + start_u;
-            float v = j * step_v + start_v;
-            float un = ((i + 1) == res_u) ? end_u : ((i + 1)  * step_u + start_u);
-            float vn = ((j + 1) == res_v) ? end_v : ((j + 1)  * step_v + start_v);
+            CGL_float u = i * step_u + start_u;
+            CGL_float v = j * step_v + start_v;
+            CGL_float un = ((i + 1) == res_u) ? end_u : ((i + 1)  * step_u + start_u);
+            CGL_float vn = ((j + 1) == res_v) ? end_v : ((j + 1)  * step_v + start_v);
             // find the four points of the grid square
             // by evaluating the paramatric surface function
             CGL_vec3 p0 = function(u, v);
@@ -5222,12 +5363,12 @@ CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(int res_u, int res_v,
     return mesh;
 }
 
-static CGL_vec3 __CGL_mesh_cpu_sphere_parametric_function(float u, float v)
+static CGL_vec3 __CGL_mesh_cpu_sphere_parametric_function(CGL_float u, CGL_float v)
 {
     return CGL_vec3_init(cosf(u)*sinf(v), cosf(v), sinf(u)*sinf(v));
 }
 
-CGL_mesh_cpu* CGL_mesh_cpu_sphere(int res_u, int res_v)
+CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v)
 {
     return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function
     );
@@ -5347,7 +5488,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords)
     mesh->vertices[35].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[35].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     
-    for(int i = 0 ; i < 36 ; i++)
+    for(CGL_int i = 0 ; i < 36 ; i++)
         mesh->indices[i] = i;
 
     return mesh;       
@@ -5366,7 +5507,7 @@ void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffe
     function_name,
     mesh->vertex_count, mesh->index_count);
     strcat(buffer, temp_buffer);
-    for(int i = 0 ; i < mesh->vertex_count ; i++)
+    for(CGL_int i = 0 ; i < mesh->vertex_count ; i++)
     {
         sprintf(temp_buffer,
         "\tmesh->vertices[%d].position = CGL_vec4_init(%f, %f, %f, %f);\n"
@@ -5377,8 +5518,8 @@ void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffe
         i, mesh->vertices[i].texture_coordinates.x, mesh->vertices[i].texture_coordinates.y, mesh->vertices[i].texture_coordinates.z, mesh->vertices[i].texture_coordinates.w);
         strcat(buffer, temp_buffer);
     }
-    strcat(buffer, "\n\tmesh->indices = (int []){ ");
-    for(int i = 0 ; i < mesh->index_count ; i++)
+    strcat(buffer, "\n\tmesh->indices = (CGL_int []){ ");
+    for(CGL_int i = 0 ; i < mesh->index_count ; i++)
     {
         sprintf(temp_buffer,  ((i == mesh->index_count - 1) ? "%d " : "%d, "), mesh->indices[i]);
         strcat(buffer, temp_buffer);
@@ -5568,7 +5709,7 @@ void CGL_shader_destroy(CGL_shader* shader)
 }
 
 // dispatch compute shader
-void CGL_shader_compute_dispatch(CGL_shader* shader, int x, int y, int z)
+void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_int z)
 {
     glUseProgram(shader->handle);
     glDispatchCompute(x, y, z);
@@ -5588,78 +5729,78 @@ int CGL_shader_get_uniform_location(CGL_shader* shader, const char* name)
 }
 
 // set uniform bool
-void CGL_shader_set_uniform_bool(CGL_shader* shader, int location, bool value)
+void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value)
 {
     glUniform1i(location, value);
 }
 
 // set uniform matrix
-void CGL_shader_set_uniform_mat4(CGL_shader* shader, int location, CGL_mat4* matrix)
+void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix)
 {
     glUniformMatrix4fv(location, 1, GL_FALSE, (GLfloat*)matrix);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec4(CGL_shader* shader, int location, CGL_vec4* vector)
+void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector)
 {
     glUniform4fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec3(CGL_shader* shader, int location, CGL_vec3* vector)
+void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector)
 {
     glUniform3fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec2(CGL_shader* shader, int location, CGL_vec2* vector)
+void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector)
 {
     glUniform2fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform int
-void CGL_shader_set_uniform_int(CGL_shader* shader, int location, int value)
+void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value)
 {
     glUniform1i(location, value);
 }
 
 // set uniform float
-void CGL_shader_set_uniform_float(CGL_shader* shader, int location, float value)
+void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value)
 {
     glUniform1f(location, value);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec2v(CGL_shader* shader, int location, float x, float y)
+void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y)
 {
     glUniform2f(location, x, y);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec3v(CGL_shader* shader, int location, float x, float y, float z)
+void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z)
 {
     glUniform3f(location, x, y, z);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec4v(CGL_shader* shader, int location, float x, float y, float z, float w)
+void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w)
 {
     glUniform4f(location, x, y, z, w);
 }
 
-void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, int location, int x, int y)
+void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y)
 {
     glUniform2i(location, x, y);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, int location, int x, int y, int z)
+void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z)
 {
     glUniform3i(location, x, y, z);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, int location, int x, int y, int z, int w)
+void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w)
 {
     glUniform4i(location, x, y, z, w);
 }
@@ -5685,18 +5826,18 @@ struct CGL_bloom
     CGL_texture* tex_lod[CGL_BLOOM_MAX_ITERATIONS * 2];    
     CGL_texture* prefiltered;
     CGL_shader* compute;
-    float offset_x;
-    float offset_y;
-    int width;
-    int height;
-    int iterations;
-    float threshold;
-    float knee;
-    int cs_u_mode;
-    int cs_u_src_size;
-    int cs_u_dst_size;
-    int cs_u_prefilter_threshold;
-    int cs_u_offset;
+    CGL_float offset_x;
+    CGL_float offset_y;
+    CGL_int width;
+    CGL_int height;
+    CGL_int iterations;
+    CGL_float threshold;
+    CGL_float knee;
+    CGL_int cs_u_mode;
+    CGL_int cs_u_src_size;
+    CGL_int cs_u_dst_size;
+    CGL_int cs_u_prefilter_threshold;
+    CGL_int cs_u_offset;
 };
 
 const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
@@ -5709,7 +5850,7 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "#define MODE_UPSAMPLE       2\n"
 "#define MODE_COMPOSITE      3\n"
 "\n"
-"uniform int u_mode;\n"
+"uniform CGL_int u_mode;\n"
 "uniform vec2 u_src_size;\n"
 "uniform ivec2 u_offset;\n"
 "uniform vec2 u_dst_size;\n"
@@ -5718,15 +5859,15 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "vec4 prefilter(vec4 color)\n"
 "{\n"
 "    // pixel brightness\n"
-"    float br = max(color.x, max(color.y, color.z));\n"
+"    CGL_float br = max(color.x, max(color.y, color.z));\n"
 "\n"
 "    // under-threshold part : quadratic curve\n"
 "    vec3 curve = u_prefilter_threshold.yzw; // curve = (threshold - knee, knee * 2, 0.25 / knee)\n"
-"    float rq = clamp(br - curve.x, 0.0f, curve.y);\n"
+"    CGL_float rq = clamp(br - curve.x, 0.0f, curve.y);\n"
 "    rq = curve.z * rq * rq;\n"
 "\n"
 "    //  combine and apply the brightness response curve\n"
-"    float threshold = u_prefilter_threshold.x;\n"
+"    CGL_float threshold = u_prefilter_threshold.x;\n"
 "    color *= max(rq, br - threshold) / max(br, 0.00001f);\n"
 "    //color *= (br - threshold) / max(br, 0.00001f);\n"
 "\n"
@@ -5780,11 +5921,11 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "}\n"
 "\n"
 "vec3 aces_tonemap(vec3 x){	\n"
-"	const float a = 2.51f;\n"
-"    const float b = 0.03f;\n"
-"    const float c = 2.43f;\n"
-"    const float d = 0.59f;\n"
-"    const float e = 0.14f;\n"
+"	const CGL_float a = 2.51f;\n"
+"    const CGL_float b = 0.03f;\n"
+"    const CGL_float c = 2.43f;\n"
+"    const CGL_float d = 0.59f;\n"
+"    const CGL_float e = 0.14f;\n"
 "    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
 "}\n"
 "\n"
@@ -5830,7 +5971,7 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "    }\n"
 "}";
 
-CGL_bloom* CGL_bloom_create(int width, int height, int iterations)
+CGL_bloom* CGL_bloom_create(CGL_int width, CGL_int height, CGL_int iterations)
 {
     CGL_bloom* bloom = (CGL_bloom*)CGL_malloc(sizeof(CGL_bloom));
     if(bloom == NULL) return NULL;
@@ -5841,7 +5982,7 @@ CGL_bloom* CGL_bloom_create(int width, int height, int iterations)
     bloom->height = height;
     iterations = CGL_utils_min(CGL_utils_max(1, iterations), CGL_BLOOM_MAX_ITERATIONS);
     bloom->prefiltered = CGL_texture_create_blank(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);
-    int i = 0;
+    CGL_int i = 0;
     for(i = 0 ; i < iterations ; i++)
     {
         width /= 2; height /= 2;
@@ -5872,7 +6013,7 @@ CGL_bloom* CGL_bloom_create(int width, int height, int iterations)
 void CGL_bloom_destroy(CGL_bloom* bloom)
 {
     CGL_texture_destroy(bloom->prefiltered);
-    for(int i = 0 ; i < bloom->iterations * 2 ; i++)
+    for(CGL_int i = 0 ; i < bloom->iterations * 2 ; i++)
         CGL_texture_destroy(bloom->tex_lod[i]);
     CGL_shader_destroy(bloom->compute);
     CGL_free(bloom);
@@ -5901,7 +6042,7 @@ void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
     CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[0]->width, bloom->tex_lod[0]->height, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    int i = 0;
+    CGL_int i = 0;
     for(i = 0 ; i < bloom->iterations - 1 ; i++)
     {
         glBindImageTexture(0, bloom->tex_lod[i]->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
@@ -5936,7 +6077,7 @@ void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, int index)
+CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, CGL_int index)
 {
     return bloom->tex_lod[index];
 }
@@ -5946,7 +6087,7 @@ CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom)
     return bloom->prefiltered;
 }
 
-void CGL_bloom_set_knee(CGL_bloom* bloom, float val)
+void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val)
 {
     bloom->knee = val;
 }
@@ -5956,7 +6097,7 @@ float CGL_bloom_get_knee(CGL_bloom* bloom)
     return bloom->knee;
 }
 
-void CGL_bloom_set_threshold(CGL_bloom* bloom, float val)
+void CGL_bloom_set_threshold(CGL_bloom* bloom, CGL_float val)
 {
     bloom->threshold = val;
 }
@@ -5971,7 +6112,7 @@ int CGL_bloom_get_iterations(CGL_bloom* bloom)
     return bloom->iterations;
 }
 
-void CGL_bloom_set_offset(CGL_bloom* bloom, float x, float y)
+void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y)
 {
     bloom->offset_x = x;
     bloom->offset_y = y;
@@ -5995,10 +6136,10 @@ struct CGL_camera
     CGL_vec3 front;
     CGL_vec3 right;
     CGL_vec3 up;
-    float fov;
-    float aspect;
-    float z_near;
-    float z_far;
+    CGL_float fov;
+    CGL_float aspect;
+    CGL_float z_near;
+    CGL_float z_far;
     CGL_mat4 projection;
     CGL_mat4 view;
     CGL_mat4 pv;
@@ -6059,23 +6200,23 @@ CGL_vec4 CGL_camera_get_orthographic_limits(CGL_camera* camera)
     return camera->ortho_limits;
 }
 
-void CGL_camera_set_fov(CGL_camera* camera, float fov)
+void CGL_camera_set_fov(CGL_camera* camera, CGL_float fov)
 {
     camera->fov = fov;
 }
 
-void CGL_camera_set_aspect_ratio(CGL_camera* camera, float aspect_ratio)
+void CGL_camera_set_aspect_ratio(CGL_camera* camera, CGL_float aspect_ratio)
 {
     if(fabs(aspect_ratio) < 0.001f || fabs(aspect_ratio) > 100.0f )aspect_ratio = 1.0f;
     camera->aspect = aspect_ratio;
 }
 
-void CGL_camera_set_z_near(CGL_camera* camera, float z_near)
+void CGL_camera_set_z_near(CGL_camera* camera, CGL_float z_near)
 {
     camera->z_near = z_near;
 }
 
-void CGL_camera_set_z_far(CGL_camera* camera, float z_far)
+void CGL_camera_set_z_far(CGL_camera* camera, CGL_float z_far)
 {
     camera->z_far = z_far;
 }
@@ -6235,7 +6376,7 @@ struct CGL_phong_mat
     bool use_normal_map;
     CGL_texture* normal_map_texture;
     CGL_image* normal_map_image;
-    float shininess;    
+    CGL_float shininess;    
     bool wireframe;
     void* user_data;
 };
@@ -6246,32 +6387,32 @@ struct CGL_phong_pipeline
     CGL_shader* shader;
     CGL_phong_light* lights[CGL_PHONG_MAX_LIGHTS];
     CGL_vec3 ambient_light_color;
-    float ambient_light_strength;
+    CGL_float ambient_light_strength;
     uint32_t light_count;
     bool use_gamma_correction;
     bool depth_testing;
     void* user_data;
     // uniform locations
-    int u_lights_v4[4][CGL_PHONG_MAX_LIGHTS];
-    int u_projection;
-    int u_view;
-    int u_pv;
-    int u_model_matrix;
-    int u_light_count;
-    int u_use_diffuse_texture;
-    int u_diffuse_color;
-    int u_diffuse_texture;
-    int u_use_specular_texture;
-    int u_specular_color;
-    int u_specular_texture;
-    int u_use_normal_map;
-    int u_normal_map_texture;
-    int u_shininess;
-    int u_camera_position;
-    int u_use_blinn;
-    int u_ambient_light_color;
-    int u_ambient_light_strength;
-    int u_use_gamma_correction;
+    CGL_int u_lights_v4[4][CGL_PHONG_MAX_LIGHTS];
+    CGL_int u_projection;
+    CGL_int u_view;
+    CGL_int u_pv;
+    CGL_int u_model_matrix;
+    CGL_int u_light_count;
+    CGL_int u_use_diffuse_texture;
+    CGL_int u_diffuse_color;
+    CGL_int u_diffuse_texture;
+    CGL_int u_use_specular_texture;
+    CGL_int u_specular_color;
+    CGL_int u_specular_texture;
+    CGL_int u_use_normal_map;
+    CGL_int u_normal_map_texture;
+    CGL_int u_shininess;
+    CGL_int u_camera_position;
+    CGL_int u_use_blinn;
+    CGL_int u_ambient_light_color;
+    CGL_int u_ambient_light_strength;
+    CGL_int u_use_gamma_correction;
 };
 
 struct CGL_phong_light
@@ -6279,10 +6420,10 @@ struct CGL_phong_light
     uint32_t light_type;
     CGL_vec3 vector;
     CGL_vec3 color;
-    float intensity;
-    float constant;
-    float linear;
-    float quadratic;
+    CGL_float intensity;
+    CGL_float constant;
+    CGL_float linear;
+    CGL_float quadratic;
     void* user_data;
 };
 
@@ -6336,9 +6477,9 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "#define LIGHT_VECTOR(index)    u_lights_data_2[index].xyz\n"
 "\n"
 "out vec4 FragColor;\n"
-"//out int MousePick0;\n"
-"//out int MousePick1;\n"
-"//out int MousePick2;\n"
+"//out CGL_int MousePick0;\n"
+"//out CGL_int MousePick1;\n"
+"//out CGL_int MousePick2;\n"
 "in vec3 Position;\n"
 "in vec3 Normal;\n"
 "in vec2 TexCoord;\n"
@@ -6354,7 +6495,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "uniform mat4 u_view;\n"
 "uniform mat4 u_pv;\n"
 "uniform mat4 u_model_matrix;\n"
-"uniform int u_light_count;\n"
+"uniform CGL_int u_light_count;\n"
 "uniform bool u_use_diffuse_texture;\n"
 "uniform vec3 u_diffuse_color;\n"
 "uniform sampler2D u_diffuse_texture;\n"
@@ -6363,11 +6504,11 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "uniform sampler2D u_specular_texture;\n"
 "uniform bool u_use_normal_map;\n"
 "uniform sampler2D u_normal_map_texture;\n"
-"uniform float u_shininess;\n"
+"uniform CGL_float u_shininess;\n"
 "uniform vec3 u_camera_position;\n"
 "uniform bool u_use_blinn;\n"
 "uniform vec3 u_ambient_light_color;\n"
-"uniform float u_ambient_light_strength;\n"
+"uniform CGL_float u_ambient_light_strength;\n"
 "uniform bool u_use_gamma_correction;\n"
 "\n"
 "vec4 get_material_diffuse_color()\n"
@@ -6386,22 +6527,22 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "\n"
 "\n"
 "vec3 aces_tonemap(vec3 x){	\n"
-"	const float a = 2.51f;\n"
-"    const float b = 0.03f;\n"
-"    const float c = 2.43f;\n"
-"    const float d = 0.59f;\n"
-"    const float e = 0.14f;\n"
+"	const CGL_float a = 2.51f;\n"
+"    const CGL_float b = 0.03f;\n"
+"    const CGL_float c = 2.43f;\n"
+"    const CGL_float d = 0.59f;\n"
+"    const CGL_float e = 0.14f;\n"
 "    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
 "}\n"
 "\n"
-"vec4 calculate_directional_light(int index)\n"
+"vec4 calculate_directional_light(CGL_int index)\n"
 "{\n"
 "    vec3 light_direcion = normalize(-LIGHT_VECTOR(index));\n"
 "    // diffuse shading\n"
-"    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
+"    CGL_float diff = max(dot(Normal, light_direcion), 0.0f);\n"
 "    // specular shading\n"
 "    vec3 view_dir = normalize(u_camera_position - Position);\n"
-"    float spec = 0.0f;\n"
+"    CGL_float spec = 0.0f;\n"
 "    if(u_use_blinn)\n"
 "    {\n"
 "        vec3 halfway_direction = normalize(light_direcion + view_dir);\n"
@@ -6420,14 +6561,14 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    return (ambient_lighting + diffuse_lighting + specular_lighting) * LIGHT_INTENSITY(index);\n"
 "}\n"
 "\n"
-"vec4 calculate_point_light(int index)\n"
+"vec4 calculate_point_light(CGL_int index)\n"
 "{\n"
 "    vec3 light_direcion = normalize(LIGHT_VECTOR(index) - Position);\n"
 "    // diffuse shading\n"
-"    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
+"    CGL_float diff = max(dot(Normal, light_direcion), 0.0f);\n"
 "    // specular shading\n"
 "    vec3 view_dir = normalize(u_camera_position - Position);\n"
-"    float spec = 0.0f;\n"
+"    CGL_float spec = 0.0f;\n"
 "    if(u_use_blinn)\n"
 "    {\n"
 "        vec3 halfway_direction = normalize(light_direcion + view_dir);\n"
@@ -6442,15 +6583,15 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    vec4 material_diffuse = get_material_diffuse_color();\n"
 "    vec4 material_specular = get_material_specular_color();\n"
 "    // attrnuation\n"
-"    float distance = length(LIGHT_VECTOR(index) - Position);\n"
-"    float attenuation = 1.0f / ( LIGHT_CONSTANT(index) + LIGHT_LINEAR(index) * distance + LIGHT_QUADRATIC(index) * (distance * distance));\n"
+"    CGL_float distance = length(LIGHT_VECTOR(index) - Position);\n"
+"    CGL_float attenuation = 1.0f / ( LIGHT_CONSTANT(index) + LIGHT_LINEAR(index) * distance + LIGHT_QUADRATIC(index) * (distance * distance));\n"
 "    vec4 ambient_lighting = vec4(u_ambient_light_color * u_ambient_light_strength, 1.0f);\n"
 "    vec4 diffuse_lighting = LIGHT_COLOR(index) * diff * material_diffuse;\n"
 "    vec4 specular_lighting = LIGHT_COLOR(index) * spec * material_specular;\n"
 "    return (ambient_lighting + diffuse_lighting + specular_lighting) * attenuation * LIGHT_INTENSITY(index);\n"
 "}\n"
 "\n"
-"vec4 calculate_spot_light(int index)\n"
+"vec4 calculate_spot_light(CGL_int index)\n"
 "{\n"
 "    return vec4(0.0f);\n"
 "}\n"
@@ -6460,7 +6601,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "{\n"
 "    vec4 color = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
 "    vec4 light_output = vec4(0.0f);\n"
-"    for ( int i = 0 ; i < u_light_count ; i++)\n"
+"    for ( CGL_int i = 0 ; i < u_light_count ; i++)\n"
 "    {\n"
 "        if(LIGHT_TYPE(i) < LIGHT_TYPE_DIRECTIONAL)\n"
 "            light_output += calculate_directional_light(i);\n"
@@ -6516,9 +6657,9 @@ CGL_phong_pipeline* CGL_phong_pipeline_create()
     pipeline->u_ambient_light_strength = CGL_shader_get_uniform_location(pipeline->shader, "u_ambient_light_strength");
     pipeline->u_use_gamma_correction = CGL_shader_get_uniform_location(pipeline->shader, "u_use_gamma_correction");
     static char temp_buffer[256];
-    for(int i = 0 ; i < 4 ; i ++)
+    for(CGL_int i = 0 ; i < 4 ; i ++)
     {
-        for(int j = 0 ; j < CGL_PHONG_MAX_LIGHTS ; j ++)
+        for(CGL_int j = 0 ; j < CGL_PHONG_MAX_LIGHTS ; j ++)
         {
             sprintf(temp_buffer, "u_lights_data_%d[%d]", i, j);
             pipeline->u_lights_v4[i][j] = CGL_shader_get_uniform_location(pipeline->shader, temp_buffer);
@@ -6531,7 +6672,7 @@ CGL_phong_pipeline* CGL_phong_pipeline_create()
 void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline)
 {
     CGL_shader_destroy(pipeline->shader);
-    for(int i = 0 ; i < CGL_utils_array_size(pipeline->lights); i++)
+    for(CGL_int i = 0 ; i < CGL_utils_array_size(pipeline->lights); i++)
         if(pipeline->lights[i])
             CGL_phong_light_destroy(pipeline->lights[i]);
     CGL_free(pipeline);
@@ -6557,7 +6698,7 @@ void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline)
     pipeline->use_gamma_correction = false;
 }
 
-void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, float strength)
+void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, CGL_float strength)
 {
     pipeline->ambient_light_strength = CGL_utils_clamp(strength, 0.0f, 1000.0f);
 }
@@ -6600,7 +6741,7 @@ void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline)
 // pipeline_add_light
 uint32_t CGL_phong_pipeline_add_light(CGL_phong_pipeline* pipeline, CGL_phong_light* light)
 {
-    for(int i = 0 ; i < CGL_utils_array_size(pipeline->lights);i++)
+    for(CGL_int i = 0 ; i < CGL_utils_array_size(pipeline->lights);i++)
     {
         if(pipeline->lights[i] == NULL)
         {
@@ -6709,7 +6850,7 @@ void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image)
 }
 
 // mat_set_shininess
-void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, float shininess)
+void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, CGL_float shininess)
 {
     mat->shininess = shininess;
 }
@@ -6755,7 +6896,7 @@ float CGL_phong_mat_get_shininess(CGL_phong_mat* mat)
 }
 
 // light_directional
-CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color, float intensity)
+CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color, CGL_float intensity)
 {
     CGL_phong_light* light = (CGL_phong_light*)malloc(sizeof(CGL_phong_light));
     light->light_type = CGL_PHONG_LIGHT_DIRECTIONAL;
@@ -6766,7 +6907,7 @@ CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color,
 }
 
 // light_point
-CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, float intensity, float constant, float linear, float quadratic)
+CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, CGL_float intensity, CGL_float constant, CGL_float linear, CGL_float quadratic)
 {
     CGL_phong_light* light = (CGL_phong_light*)malloc(sizeof(CGL_phong_light));
     light->light_type = CGL_PHONG_LIGHT_POINT;
@@ -6786,7 +6927,7 @@ void CGL_phong_light_destroy(CGL_phong_light* light)
 }
 
 // light_set_intensity
-void CGL_phong_light_set_intensity(CGL_phong_light* light, float intensity)
+void CGL_phong_light_set_intensity(CGL_phong_light* light, CGL_float intensity)
 {
     light->intensity = intensity;
 }
@@ -6924,9 +7065,9 @@ static const char* __CGL_TILEMAP_FRAGENT_SHADER =
 #endif
 "\n"
 "out vec4 FragColor;\n"
-"//out int MousePick0;\n"
-"//out int MousePick1;\n"
-"//out int MousePick2;\n"
+"//out CGL_int MousePick0;\n"
+"//out CGL_int MousePick1;\n"
+"//out CGL_int MousePick2;\n"
 "in vec3 Position;\n"
 "in vec3 Normal;\n"
 "in vec2 TexCoord;\n"
@@ -7034,12 +7175,12 @@ struct CGL_tilemap
     CGL_shader* shader;
     CGL_ssbo* ssbo;
     // unifrom locations
-    int u_tile_count;
-    int u_tile_size;
-    int u_offset;
-    int u_scale;
-    int u_texture_tileset;
-    int u_texture_array;
+    CGL_int u_tile_count;
+    CGL_int u_tile_size;
+    CGL_int u_offset;
+    CGL_int u_scale;
+    CGL_int u_texture_tileset;
+    CGL_int u_texture_array;
 };
 
 
@@ -7106,7 +7247,7 @@ bool CGL_tilemap_upload(CGL_tilemap* tilemap)
     return true;
 }
 
-void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float r, float g, float b)
+void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(r, g, b, 2.5f);
@@ -7120,7 +7261,7 @@ void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile
     if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
-void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, float texture_x_min, float texture_y_min, float texture_x_max, float texture_y_max)
+void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(texture_x_min, texture_y_min, texture_x_max, texture_y_max);
@@ -7147,7 +7288,7 @@ void CGL_tilemap_reset(CGL_tilemap* tilemap)
     CGL_ssbo_set_data(tilemap->ssbo, (sizeof(CGL_tile) * tilemap->tile_count_x * tilemap->tile_count_y), tilemap->tile_data, false);
 }
 
-void CGL_tilemap_render(CGL_tilemap* tilemap, float scale_x, float scale_y, float offset_x, float offset_y, CGL_texture* texture)
+void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture)
 {
     CGL_shader_bind(tilemap->shader);
     if(texture) CGL_texture_bind(texture, 0);
@@ -7180,22 +7321,22 @@ struct CGL_sky
     CGL_mesh_gpu* skybox_mesh;
     CGL_mesh_gpu* skysphere_mesh;
     CGL_mesh_gpu* active_mesh;
-    float cirrus;
-    float cumulus;
-    float upf;
-    float time;
+    CGL_float cirrus;
+    CGL_float cumulus;
+    CGL_float upf;
+    CGL_float time;
     bool is_procedural;
     // unifroms
-    int cs_u_projection;
-    int cs_u_view;
-    int cs_u_texture;
-    int ps_u_projection;
-    int ps_u_view;
-    int ps_u_cirrus;
-    int ps_u_cumulus;
-    int ps_u_upf;
-    int ps_u_time;
-    int ps_u_fsun;
+    CGL_int cs_u_projection;
+    CGL_int cs_u_view;
+    CGL_int cs_u_texture;
+    CGL_int ps_u_projection;
+    CGL_int ps_u_view;
+    CGL_int ps_u_cirrus;
+    CGL_int ps_u_cumulus;
+    CGL_int ps_u_upf;
+    CGL_int ps_u_time;
+    CGL_int ps_u_fsun;
 
 };
 
@@ -7248,29 +7389,29 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "#version 430 core\n"
 #endif
 "uniform vec3 fsun = vec3(0, 0.2, 0.1);\n"
-"uniform float time = 0.0;\n"
-"uniform float cirrus = 0.4;\n"
-"uniform float cumulus = 0.8;\n"
-"uniform float upf = 0.35;\n"
+"uniform CGL_float time = 0.0;\n"
+"uniform CGL_float cirrus = 0.4;\n"
+"uniform CGL_float cumulus = 0.8;\n"
+"uniform CGL_float upf = 0.35;\n"
 "\n"
 "in vec3 Position;"
 "\n"
 "out vec4 FragColor;\n"
 "\n"
-"const float Br = 0.0025;\n"
-"const float Bm = 0.0003;\n"
-"const float g = 0.9800;\n"
+"const CGL_float Br = 0.0025;\n"
+"const CGL_float Bm = 0.0003;\n"
+"const CGL_float g = 0.9800;\n"
 "const vec3 nitrogen = vec3(0.650, 0.570, 0.475);\n"
 "const vec3 Kr = Br / pow(nitrogen, vec3(4.0));\n"
 "const vec3 Km = Bm / pow(nitrogen, vec3(0.84));\n"
 "\n"
-"float hash(float n) {\n"
+"float hash(CGL_float n) {\n"
 "  return fract(sin(n) * 43758.5453123);\n"
 "}\n"
 "\n"
 "float noise(vec3 x) {\n"
 "  vec3 f = fract(x);\n"
-"  float n = dot(floor(x), vec3(1.0, 157.0, 113.0));\n"
+"  CGL_float n = dot(floor(x), vec3(1.0, 157.0, 113.0));\n"
 "  return mix(mix(mix(hash(n + 0.0), hash(n + 1.0), f.x),\n"
 "      mix(hash(n + 157.0), hash(n + 158.0), f.x), f.y),\n"
 "    mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),\n"
@@ -7279,7 +7420,7 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "\n"
 "const mat3 m = mat3(0.0, 1.60, 1.20, -1.6, 0.72, -0.96, -1.2, -0.96, 1.28);\n"
 "float fbm(vec3 p) {\n"
-"  float f = 0.0;\n"
+"  CGL_float f = 0.0;\n"
 "  f += noise(p) / 2;\n"
 "  p = m * p * 1.1;\n"
 "  f += noise(p) / 4;\n"
@@ -7296,8 +7437,8 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "  vec3 pos = vec3(Position.x, Position.y+upf, Position.z);\n"
 "\n"
 "  // Atmosphere Scattering\n"
-"  float mu = dot(normalize(pos), normalize(fsun));\n"
-"  float rayleigh = 3.0 / (8.0 * 3.14) * (1.0 + mu * mu);\n"
+"  CGL_float mu = dot(normalize(pos), normalize(fsun));\n"
+"  CGL_float rayleigh = 3.0 / (8.0 * 3.14) * (1.0 + mu * mu);\n"
 "  vec3 mie = (Kr + Km * (1.0 - g * g) / (2.0 + g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5)) / (Br + Bm);\n"
 "\n"
 "  vec3 day_extinction = exp(-exp(-((pos.y + fsun.y * 4.0) * (exp(-pos.y * 16.0) + 0.1) / 80.0) / Br) * (exp(-pos.y * 16.0) + 0.1) * Kr / Br) * exp(-pos.y * exp(-pos.y * 8.0) * 4.0) * exp(-pos.y * 2.0) * 4.0;\n"
@@ -7306,12 +7447,12 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "  FragColor.rgb = rayleigh * mie * extinction;\n"
 "\n"
 "  // Cirrus Clouds\n"
-"  float density = smoothstep(1.0 - cirrus, 1.0, fbm(pos.xyz / pos.y * 2.0 + time * 0.05)) * 0.3;\n"
+"  CGL_float density = smoothstep(1.0 - cirrus, 1.0, fbm(pos.xyz / pos.y * 2.0 + time * 0.05)) * 0.3;\n"
 "  FragColor.rgb = mix(FragColor.rgb, extinction * 4.0, density * max(pos.y, 0.0));\n"
 "\n"
 "  // Cumulus Clouds\n"
-"  for (int i = 0; i < 3; i++) {\n"
-"    float density = smoothstep(1.0 - cumulus, 1.0, fbm((0.7 + float(i) * 0.01) * pos.xyz / pos.y + time * 0.3));\n"
+"  for (CGL_int i = 0; i < 3; i++) {\n"
+"    CGL_float density = smoothstep(1.0 - cumulus, 1.0, fbm((0.7 + float(i) * 0.01) * pos.xyz / pos.y + time * 0.3));\n"
 "    FragColor.rgb = mix(FragColor.rgb, extinction * density * 5.0, min(density, 1.0) * max(pos.y, 0.0));\n"
 "  }\n"
 "\n"
@@ -7390,19 +7531,19 @@ void CGL_sky_use_procedural(CGL_sky* sky)
     sky->is_procedural = true;
 }
 
-void CGL_sky_cubemap_set_face(CGL_sky* sky, int face, CGL_image* image)
+void CGL_sky_cubemap_set_face(CGL_sky* sky, CGL_int face, CGL_image* image)
 {
     CGL_texture_cubemap_set_face(sky->cubemap, face, image);
 }
 
-void CGL_sky_procedural_set_options(CGL_sky* sky, float cirrus, float cumulus, float upf)
+void CGL_sky_procedural_set_options(CGL_sky* sky, CGL_float cirrus, CGL_float cumulus, CGL_float upf)
 {
     sky->cirrus = cirrus;
     sky->cumulus = cumulus;
     sky->upf = upf;
 }
 
-void CGL_sky_procedural_set_time(CGL_sky* sky, float time)
+void CGL_sky_procedural_set_time(CGL_sky* sky, CGL_float time)
 {
     sky->time = time;
 }
@@ -7662,7 +7803,7 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
     size_t tex_width = 0;
     size_t tex_height = 0;
     size_t max_bottom_pad = 0;
-    for(int i = 0 ; i < string_length ; i++ )
+    for(CGL_int i = 0 ; i < string_length ; i++ )
     {
         char ch = string[i];
         tex_width += (((int)font->characters[ch].advance.x) >> 6);
@@ -7675,7 +7816,7 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
     if(!tex) return NULL;
     size_t offset_x = 0;
     size_t offset_y = 0;
-    for(int i = 0 ; i < string_length ; i++ )
+    for(CGL_int i = 0 ; i < string_length ; i++ )
     {
         char ch = string[i];
         size_t offset_x_local = offset_x + (size_t)font->characters[ch].bearing.x;
@@ -7709,8 +7850,8 @@ struct CGL_widgets_context
     size_t vertices_count;
     size_t max_indices;
     size_t indices_count;
-    float stroke_thickness;
-    float aspect_ratio;
+    CGL_float stroke_thickness;
+    CGL_float aspect_ratio;
     GLuint vertex_array;
     GLuint vertex_buffer;
     GLuint index_buffer;
@@ -7742,9 +7883,9 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "\n"
 "out vec4 FragColor;\n"
-"//out int MousePick0;\n"
-"//out int MousePick1;\n"
-"//out int MousePick2;\n"
+"//out CGL_int MousePick0;\n"
+"//out CGL_int MousePick1;\n"
+"//out CGL_int MousePick2;\n"
 "\n"
 "in vec3 Position;\n"
 "in vec3 Normal;\n"
@@ -7805,7 +7946,7 @@ void CGL_widgets_context_destory(CGL_widgets_context* context)
     CGL_free(context);
 }
 
-void CGL_widgets_adjust_for_aspect_ratio(float aspect_ratio)
+void CGL_widgets_adjust_for_aspect_ratio(CGL_float aspect_ratio)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->aspect_ratio = aspect_ratio;
     __CGL_WIDGETS_CURRENT_CONTEXT->adjust_for_aspect_ratio = true;
@@ -7837,7 +7978,7 @@ void CGL_window_set_current_context(CGL_widgets_context* context)
     if(context) __CGL_WIDGETS_CURRENT_CONTEXT = context;
 }
 
-bool CGL_widgets_begin_int(float scale_x, float scale_y, float offset_x, float offset_y)
+bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->flushed = false;
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
@@ -7953,7 +8094,7 @@ void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord)
     CGL_widgets_add_vertex(&vertex);
 }
 
-void CGL_widgets_add_vertex_p3ft2f(float pos_x, float pos_y, float pos_z, float tex_x, float tex_y)
+void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y)
 {
     CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), CGL_vec2_init(tex_x, tex_y));
 }
@@ -7963,17 +8104,17 @@ void CGL_widgets_add_vertex_p(CGL_vec3 position)
     CGL_widgets_add_vertex_pt(position, CGL_vec2_init(0.0f, 0.0f));
 }
 
-void CGL_widgets_add_vertex_p3f(float pos_x, float pos_y, float pos_z)
+void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z)
 {
     CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), CGL_vec2_init(0.0f, 0.0f));
 }
 
-void CGL_widgets_add_vertex_p3ft(float pos_x, float pos_y, float pos_z, CGL_vec2 tex_coord)
+void CGL_widgets_add_vertex_p3ft(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_vec2 tex_coord)
 {
     CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), tex_coord);
 }
 
-void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, float tex_x, float tex_y)
+void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float tex_y)
 {
     CGL_widgets_add_vertex_pt(position, CGL_vec2_init(tex_x, tex_y));
 }
@@ -7983,12 +8124,12 @@ void CGL_widgets_set_stroke_color(CGL_color color)
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
 }
 
-void CGL_widgets_set_stroke_colorf(float r, float g, float b, float a)
+void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(r, g, b, a);
 }
 
-void CGL_widgets_set_stroke_thicnkess(float thickness)
+void CGL_widgets_set_stroke_thicnkess(CGL_float thickness)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = thickness;
 }
@@ -7998,7 +8139,7 @@ void CGL_widgets_set_fill_color(CGL_color color)
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
 }
 
-void CGL_widgets_set_fill_colorf(float r, float g, float b, float a)
+void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(r, g, b, a);
 }
@@ -8052,7 +8193,7 @@ void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
     else __CGL_widgets_add_quad_stroked(a, b, c, d);
 }
 
-void CGL_widgets_add_quad_8f(float ax, float ay, float bx, float by, float cx, float cy, float dx, float dy)
+void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy)
 {
     CGL_widgets_add_quad(
         CGL_vec3_init(ax, ay, 0.0f),
@@ -8066,11 +8207,11 @@ void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
 {
     CGL_vec3 a, b, c, d;
 
-    float original_slope = (end.y - start.y) / (end.x - start.x);
-    float perp_slope = -1.0f / original_slope;
-    float angle = atanf(perp_slope);
-    float thickness = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness;
-    float r = thickness / 2.0f;
+    CGL_float original_slope = (end.y - start.y) / (end.x - start.x);
+    CGL_float perp_slope = -1.0f / original_slope;
+    CGL_float angle = atanf(perp_slope);
+    CGL_float thickness = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness;
+    CGL_float r = thickness / 2.0f;
 
     a = CGL_vec3_init(start.x + r * cosf(angle), start.y + r * sinf(angle), start.z);
     b = CGL_vec3_init(start.x - r * cosf(angle), start.y - r * sinf(angle), start.z);
@@ -8084,7 +8225,7 @@ void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = was_fill;
 }
 
-void CGL_widgets_add_line2f(float start_x, float start_y, float end_x, float end_y)
+void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y)
 {
     CGL_widgets_add_line(
         CGL_vec3_init(start_x, start_y, 0.0f),
@@ -8102,7 +8243,7 @@ void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size)
     );
 }
 
-void CGL_widgets_add_rect2f(float start_x, float start_y, float size_x, float size_y)
+void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y)
 {
     CGL_widgets_add_quad(
         CGL_vec3_init(start_x, start_y, 0.0f),
@@ -8114,8 +8255,8 @@ void CGL_widgets_add_rect2f(float start_x, float start_y, float size_x, float si
 
 void __CGL_widgets_add_oval_filled(CGL_vec3 position, CGL_vec2 radius)
 {
-    float x = 0.0f, y = 0.0f;
-    for(float i =0; i <= 360;)
+    CGL_float x = 0.0f, y = 0.0f;
+    for(CGL_float i =0; i <= 360;)
     {
         x = radius.x * cosf(i);
         y = radius.y * sinf(i);
@@ -8134,7 +8275,7 @@ void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius)
     CGL_LOG("void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius) not implemented\n");
 }
 
-void CGL_widgets_add_circle2f(float pos_x, float pos_y, float radius)
+void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
     else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
@@ -8146,21 +8287,21 @@ void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius)
     else __CGL_widgets_add_oval_stroked(position, radius);
 }
 
-void CGL_widgets_add_oval2f(float pos_x, float pos_y, float radius_x, float radius_y)
+void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius_x, radius_y));
     else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius_x, radius_y));
 }
 
 
-void CGL_widgets_add_circle(CGL_vec3 position, float radius)
+void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(position, CGL_vec2_init(radius, radius));
     else __CGL_widgets_add_oval_stroked(position, CGL_vec2_init(radius, radius));    
 }
 
 
-bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy)
+bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy)
 {
     bool was_fill = __CGL_WIDGETS_CURRENT_CONTEXT->is_fill;
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
@@ -8533,16 +8674,16 @@ bool CGL_widgets_add_character(char c, float x, float y, float sx, float sy)
     return true;
 }
 
-bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float sy)
+bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy)
 {
-    const float line_gap = 0.01f;
-    const float char_gap = 0.01f;
-    int length = (int)strlen(str);
-    int line_length = 0;
-    int line_length_max = 0;
-    int num_lines = 1;
-    float ix = x, iy = y + sy;
-    for(int i = 0; i < length ; i++)
+    const CGL_float line_gap = 0.01f;
+    const CGL_float char_gap = 0.01f;
+    CGL_int length = (int)strlen(str);
+    CGL_int line_length = 0;
+    CGL_int line_length_max = 0;
+    CGL_int num_lines = 1;
+    CGL_float ix = x, iy = y + sy;
+    for(CGL_int i = 0; i < length ; i++)
     {
         line_length++;
         if(str[i] == '\n')
@@ -8553,10 +8694,10 @@ bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float s
         }        
     }
     line_length_max = CGL_utils_max(line_length, line_length_max);
-    float character_sx =  sx / line_length - char_gap;
-    float character_sy = (sy - line_gap * num_lines) / (num_lines);
+    CGL_float character_sx =  sx / line_length - char_gap;
+    CGL_float character_sy = (sy - line_gap * num_lines) / (num_lines);
     y += sy - character_sy;
-    for(int i = 0 ; i < length ; i ++)
+    for(CGL_int i = 0 ; i < length ; i ++)
     {
         if(str[i] == '\n')
         {
@@ -8573,7 +8714,7 @@ bool CGL_widgets_add_string(const char* str, float x, float y, float sx, float s
 
 void CGL_widgets_add_shape_out_line(CGL_shape* shape)
 {
-    for(int i = 0 ; i < shape->vertices_count ; i++)
+    for(CGL_int i = 0 ; i < shape->vertices_count ; i++)
     {
         CGL_vec3 p0 = CGL_vec3_apply_transformations(shape->vertices[i], &shape->position, &shape->rotation, &shape->scale);
         CGL_vec3 p1 = CGL_vec3_apply_transformations(shape->vertices[(i + 1) % shape->vertices_count], &shape->position, &shape->rotation, &shape->scale);
@@ -8667,15 +8808,15 @@ struct CGL_node_editor
     CGL_node_editor_pin* end_pin;
     void(*ondrop)(float, float, CGL_node_editor_pin*);
     void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*);
-    float mouse_pos_x;
-    float mouse_pos_y;
-    float mouse_delta_x;
-    float mouse_delta_y;
-    float offset_x;
-    float offset_y;
-    float aspect_ratio;
-    float scale;
-    int num_selected;
+    CGL_float mouse_pos_x;
+    CGL_float mouse_pos_y;
+    CGL_float mouse_delta_x;
+    CGL_float mouse_delta_y;
+    CGL_float offset_x;
+    CGL_float offset_y;
+    CGL_float aspect_ratio;
+    CGL_float scale;
+    CGL_int num_selected;
     bool has_lifted;
 };
 
@@ -8857,12 +8998,12 @@ static bool __CGL_node_editor_pin_update(CGL_node_editor_pin* pin)
 {
     CGL_node_editor_node* node = pin->parent;
     CGL_node_editor* editor = node->editor;
-    float sx = 0.05f / pin->parent->editor->input->aspect_ratio;
-    float sy = 0.05f;
+    CGL_float sx = 0.05f / pin->parent->editor->input->aspect_ratio;
+    CGL_float sy = 0.05f;
 
     bool focused = false;
-    float ofx = node->editor->offset_x;
-    float ofy = node->editor->offset_y;
+    CGL_float ofx = node->editor->offset_x;
+    CGL_float ofy = node->editor->offset_y;
 
     if(editor->input->mouse_button_left
     && CGL_utils_is_point_in_rect(
@@ -8885,15 +9026,15 @@ void CGL_node_editor_node_update(CGL_node_editor_node* node)
 {
     const CGL_node_editor* editor = node->editor;
     node->pins_count[0] = node->pins_count[1] = 0;
-    for(int i = 0 ; i < CGL_NODE_EDITOR_NODE_MAX_PINS ; i++) 
+    for(CGL_int i = 0 ; i < CGL_NODE_EDITOR_NODE_MAX_PINS ; i++) 
     {
         if(node->left_pins[i].is_set) node->pins_count[0]++;
         if(node->right_pins[i].is_set) node->pins_count[1]++;
     }    
-    float ofx = node->editor->offset_x;
-    float ofy = node->editor->offset_y;
-    float sx = node->size_x;
-    float sy = node->size_y = (0.1f + (float)CGL_utils_max(node->pins_count[0], node->pins_count[1]) * (0.05f + 0.1f));
+    CGL_float ofx = node->editor->offset_x;
+    CGL_float ofy = node->editor->offset_y;
+    CGL_float sx = node->size_x;
+    CGL_float sy = node->size_y = (0.1f + (float)CGL_utils_max(node->pins_count[0], node->pins_count[1]) * (0.05f + 0.1f));
     if(node->render_title) sy += 0.1f;
     bool require_movement = false;
     if(editor->input->mouse_button_left && !editor->input->shift) node->selected = false;
@@ -8908,7 +9049,7 @@ void CGL_node_editor_node_update(CGL_node_editor_node* node)
     if(node->selected) node->editor->num_selected++;
 
     // TODO: try to do it in the loop above
-    for(int i = 0 ; i < CGL_NODE_EDITOR_NODE_MAX_PINS ; i++) 
+    for(CGL_int i = 0 ; i < CGL_NODE_EDITOR_NODE_MAX_PINS ; i++) 
     {
         if(node->left_pins[i].is_set) 
             require_movement &= !__CGL_node_editor_pin_update(&node->left_pins[i]);
@@ -8926,13 +9067,13 @@ void CGL_node_editor_node_update(CGL_node_editor_node* node)
 void CGL_node_editor_node_render(CGL_node_editor_node* node)
 {
     const CGL_node_editor* editor = node->editor;
-    float sx = node->size_x;
-    float sy = node->size_y;
+    CGL_float sx = node->size_x;
+    CGL_float sy = node->size_y;
     if(node->render_title) sy += 0.1f;
     //if(sx > sy) sy = sx * node->editor->input->aspect_ratio;
     //else sx = sy / node->editor->input->aspect_ratio;    
-    float ofx = node->editor->offset_x;
-    float ofy = node->editor->offset_y;
+    CGL_float ofx = node->editor->offset_x;
+    CGL_float ofy = node->editor->offset_y;
     // render selection
     if(node->selected)
     {
@@ -8953,9 +9094,9 @@ void CGL_node_editor_node_render(CGL_node_editor_node* node)
     // render pins
 
     // left pins
-    float ty1 = ofy + node->pos_y + 0.1f;
-    float ty2 = ofy + node->pos_y + 0.1f;
-    for(int i = CGL_NODE_EDITOR_NODE_MAX_PINS - 1 ; i >= 0 ; i--)
+    CGL_float ty1 = ofy + node->pos_y + 0.1f;
+    CGL_float ty2 = ofy + node->pos_y + 0.1f;
+    for(CGL_int i = CGL_NODE_EDITOR_NODE_MAX_PINS - 1 ; i >= 0 ; i--)
     {
         if(node->left_pins[i].is_set)
         {
@@ -8978,7 +9119,7 @@ void CGL_node_editor_node_render(CGL_node_editor_node* node)
 
 }
 
-void CGL_node_editor_node_set_position(CGL_node_editor_node* node, float x, float y)
+void CGL_node_editor_node_set_position(CGL_node_editor_node* node, CGL_float x, CGL_float y)
 {
     node->pos_x = x;
     node->pos_y = y;
@@ -8991,7 +9132,7 @@ void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const char* titl
     strcpy(node->title, title);
 }
 
-CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bool left, int index)
+CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bool left, CGL_int index)
 {
     CGL_node_editor_pin* pin = NULL;
     if(left) pin = &node->left_pins[index];
@@ -9012,11 +9153,11 @@ struct CGL_ray_caster
 {
     CGL_shape_triangle triangles[CGL_RAY_CASTER_MAX_TRIANGLES];
     CGL_vec4 walls[CGL_RAY_CASTER_MAX_WALLS];
-    int wall_count;
-    int triangle_count;
-    float theta_min;
-    float theta_max;
-    float max_dist;
+    CGL_int wall_count;
+    CGL_int triangle_count;
+    CGL_float theta_min;
+    CGL_float theta_max;
+    CGL_float max_dist;
 #ifndef CGL_EXCLUDE_GRAPHICS_API
     CGL_mesh_gpu* mesh;
 #endif
@@ -9045,7 +9186,7 @@ void CGL_ray_caster_destroy(CGL_ray_caster* caster)
     CGL_free(caster);
 }
 
-void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, int walls_count)
+void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, CGL_int walls_count)
 {
     if((caster->wall_count + walls_count) >= CGL_RAY_CASTER_MAX_WALLS) CGL_warn("Max Ray Caster walls exceeded");
     walls_count = CGL_utils_min(walls_count, CGL_RAY_CASTER_MAX_WALLS - caster->wall_count - 1);
@@ -9064,24 +9205,24 @@ void CGL_ray_caster_clear_walls(CGL_ray_caster* caster)
 }
 
 // algorithm from http://www.gamers.org/dEngine/rsc/usenet/comp.graphics.algorithms.faq
-float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4 wall, CGL_vec2* intersection_point, float* angle, float max_dist)
+float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4 wall, CGL_vec2* intersection_point, float* angle, CGL_float max_dist)
 {
-    const float infinity = max_dist;
+    const CGL_float infinity = max_dist;
     CGL_vec2 A = pos;
     CGL_vec2 B = CGL_vec2_init(pos.x + infinity * dir.x, pos.y + infinity * dir.y);
     CGL_vec2 C = CGL_vec2_init(wall.x, wall.y);
     CGL_vec2 D = CGL_vec2_init(wall.z, wall.w);
-    float n = 0.0f, d = 0.0f;
+    CGL_float n = 0.0f, d = 0.0f;
     // calculate r
     n = (A.y - C.y) * (D.x - C.x) - (A.x - C.x) * (D.y - C.y);
     d = (B.x - A.x) * (D.y - C.y) - (B.y - A.y) * (D.x - C.x);
     if(d == 0.0f) return -1.0f; // they are parallel
-    float r = n / d;
+    CGL_float r = n / d;
     // calculate s
     n = (A.y - C.y) * (B.x - A.x) - (A.x - C.x) * (B.y - A.y);
     d = (B.x - A.x) * (D.y - C.y) - (B.y - A.y) * (D.x - C.x);
     if(d == 0.0f) return -1.0f; // they are parallel
-    float s = n / d;
+    CGL_float s = n / d;
     // check if they intersect
     if(r < 0.0f || r > 1.0f || s < 0.0f || s > 1.0f) return -1.0f;
     // calculate intersection point
@@ -9094,19 +9235,19 @@ float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir,
     return r * infinity;
 }
 
-float CGL_ray_caster_get_intersection_point_for_walls(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4* walls, int wall_count, CGL_vec2* intersection_point, float* angle, float max_dist)
+float CGL_ray_caster_get_intersection_point_for_walls(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4* walls, CGL_int wall_count, CGL_vec2* intersection_point, float* angle, CGL_float max_dist)
 {
-    float t = max_dist;
-    float tmp = 0.0f;
-    for(int i = 0 ; i < wall_count ; i++)
+    CGL_float t = max_dist;
+    CGL_float tmp = 0.0f;
+    for(CGL_int i = 0 ; i < wall_count ; i++)
     {
         tmp = CGL_ray_caster_get_intersection_point_for_wall(pos, dir, walls[i], NULL, NULL, max_dist);
         if(tmp > 0.0001f) t = CGL_utils_min(t, tmp);
     }
-    float a = pos.x;
-    float b = pos.y;
-    float d = dir.x;
-    float e = dir.y;
+    CGL_float a = pos.x;
+    CGL_float b = pos.y;
+    CGL_float d = dir.x;
+    CGL_float e = dir.y;
     if(intersection_point) *intersection_point = CGL_vec2_init(a + t * d, b + t * e);
     if(angle) *angle = atan2f(dir.y, dir.x);
     return t;
@@ -9116,43 +9257,43 @@ struct __CGL_ray_caster_ray
 {
     CGL_vec2 target;
     CGL_vec2 dir;
-    float angle;
-    float dist;
+    CGL_float angle;
+    CGL_float dist;
 };
 typedef struct __CGL_ray_caster_ray __CGL_ray_caster_ray;
 
-static void __CGL_ray_caster_calc_ray(CGL_ray_caster* caster, CGL_vec2* pos, float theta, __CGL_ray_caster_ray* ray)
+static void __CGL_ray_caster_calc_ray(CGL_ray_caster* caster, CGL_vec2* pos, CGL_float theta, __CGL_ray_caster_ray* ray)
 {
     ray->dir = CGL_vec2_init(cosf(theta), sinf(theta));
-    float t = CGL_ray_caster_get_intersection_point_for_walls(*pos, ray->dir, caster->walls, caster->wall_count, &ray->target, &ray->angle, caster->max_dist);
+    CGL_float t = CGL_ray_caster_get_intersection_point_for_walls(*pos, ray->dir, caster->walls, caster->wall_count, &ray->target, &ray->angle, caster->max_dist);
     ray->dist = t;
 }
 
-static int __CGL_ray_caster_ray_compare(const void *a, const void *b) {
-    float c = ((__CGL_ray_caster_ray *) a)->angle;
-    float d = ((__CGL_ray_caster_ray *) b)->angle;
+static CGL_int __CGL_ray_caster_ray_compare(const void *a, const void *b) {
+    CGL_float c = ((__CGL_ray_caster_ray *) a)->angle;
+    CGL_float d = ((__CGL_ray_caster_ray *) b)->angle;
     if(c > d) return -1;
     if(c < d) return 1;
     return 0;
 }
 
-float __CGL_ray_caster_calculate_angle_in_range(float ang)
+float __CGL_ray_caster_calculate_angle_in_range(CGL_float ang)
 {
-    int n = (int)(fabsf(ang) / 3.141f);
-    float th = fmodf(fabsf(ang), 3.141f);
+    CGL_int n = (int)(fabsf(ang) / 3.141f);
+    CGL_float th = fmodf(fabsf(ang), 3.141f);
     if(ang > 3.141f) ang =  th -((n % 2 == 0) ? 0.0f : 3.141f);
     else if(ang < -3.141f) ang =  ((n % 2 == 0) ? 0.0f : 3.141f) - th;
     return ang;
 }
 
-void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotation, bool visualise_rays)
+void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, CGL_float rotation, bool visualise_rays)
 {
     static __CGL_ray_caster_ray rays[CGL_RAY_CASTER_MAX_WALLS * 2];
-    int ray_count = 0;
+    CGL_int ray_count = 0;
     
-    float angmn = __CGL_ray_caster_calculate_angle_in_range(caster->theta_min + rotation);        
-    float angmx = __CGL_ray_caster_calculate_angle_in_range(caster->theta_max + rotation);
-    float cdelta_half = cosf(fabsf(angmx - angmn) * 0.5f);
+    CGL_float angmn = __CGL_ray_caster_calculate_angle_in_range(caster->theta_min + rotation);        
+    CGL_float angmx = __CGL_ray_caster_calculate_angle_in_range(caster->theta_max + rotation);
+    CGL_float cdelta_half = cosf(fabsf(angmx - angmn) * 0.5f);
     CGL_vec2 min_border = CGL_vec2_init(cosf(angmn), sinf(angmn));
     CGL_vec2 max_border = CGL_vec2_init(cosf(angmx), sinf(angmx));
     CGL_vec2 dir = CGL_vec2_add(min_border, max_border);
@@ -9161,13 +9302,13 @@ void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotati
     
     //__CGL_ray_caster_calc_ray(caster, &pos, caster->theta_min + rotation, &rays[ray_count++]);
     //__CGL_ray_caster_calc_ray(caster, &pos, caster->theta_max + rotation, &rays[ray_count++]);
-    for(float st = -3.141f ; st < 3.141f ; st += 0.5f)
+    for(CGL_float st = -3.141f ; st < 3.141f ; st += 0.5f)
         __CGL_ray_caster_calc_ray(caster, &pos, st, &rays[ray_count++]); 
-    const float epsilon = 0.0001f;
-    for(int i = 0 ; i < caster->wall_count ; i++)
+    const CGL_float epsilon = 0.0001f;
+    for(CGL_int i = 0 ; i < caster->wall_count ; i++)
     {
         CGL_vec4 wall = caster->walls[i];
-        float theta = 0.0f;
+        CGL_float theta = 0.0f;
 
         // calculate theta for wall start
         theta = atan2f(wall.y - pos.y, wall.x - pos.x);
@@ -9189,7 +9330,7 @@ void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotati
 
     // create tiangle fans
     caster->triangle_count = 0;
-    for(int i = 0 ; i < ray_count ; i++)
+    for(CGL_int i = 0 ; i < ray_count ; i++)
     {
         //CGL_widgets_set_fill_color(CGL_utils_random_color());
         caster->triangles[caster->triangle_count].a = CGL_vec3_init(pos.x, pos.y, 0.0f);
@@ -9220,7 +9361,7 @@ void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotati
     {     
         CGL_widgets_set_stroke_colorf(0.2f, 0.3f, 0.7f, 1.0f);
         CGL_widgets_set_stroke_thicnkess(0.01f);
-        for(int i = 0 ; i < ray_count ; i++)
+        for(CGL_int i = 0 ; i < ray_count ; i++)
         {
             //if( ((rays[i].angle) >= (angmn - 0.1f) && (rays[i].angle) <= (angmx + 0.1f)) || ( (angmn >= 3.141f / 2 && angmx <= -3.141f/2) && (rays[i].angle >= (angmx - 0.1f) || (rays[i].angle) <= (angmn + 0.1f)) ) )
             // if( CGL_vec2_dot(dir, rays[i].dir) >= cdelta_half - 0.01f) // for future
@@ -9235,23 +9376,23 @@ void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, float rotati
 
 bool CGL_ray_caster_is_in_view(CGL_ray_caster* caster, CGL_vec2 point)
 {
-    for(int i = 0 ; i < caster->triangle_count ; i++)
+    for(CGL_int i = 0 ; i < caster->triangle_count ; i++)
         if(CGL_utils_is_point_in_triangle(point, CGL_vec2_init(caster->triangles[i].a.x, caster->triangles[i].a.y), CGL_vec2_init(caster->triangles[i].b.x, caster->triangles[i].b.y), CGL_vec2_init(caster->triangles[i].c.x, caster->triangles[i].c.y))) return true;
     return false;
 }
 
-void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, float min_angle, float max_angle)
+void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, CGL_float min_angle, CGL_float max_angle)
 {
     caster->theta_min = min_angle;
     caster->theta_max = max_angle;
 }
 
-void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, float val)
+void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, CGL_float val)
 {
     caster->max_dist = val;
 }
 
-CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, int* count)
+CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, CGL_int* count)
 {
     if(count) *count = caster->triangle_count;
     return caster->triangles;
@@ -9309,22 +9450,22 @@ void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec2 a,
     CGL_list_push(list, &v);
 }
 
-CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, int resolution_x, int resolution_y)
+CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, CGL_int resolution_x, CGL_int resolution_y)
 {
     CGL_vec2 step_size = CGL_vec2_init((end.x - start.x) / (float)resolution_x, (end.y - start.y) / (float)resolution_y);
     CGL_vec2 pos[4], mpts[4];
     CGL_bool smpb[4];
     CGL_float smpv[4], intr[4];
     CGL_list* mesh_list = CGL_list_create(sizeof(CGL_mesh_vertex), 1000);
-    for(int xi = -1 ; xi < resolution_x ; xi ++)
+    for(CGL_int xi = -1 ; xi < resolution_x ; xi ++)
     {
-        for(int yi = -1 ; yi < resolution_y ; yi ++)
+        for(CGL_int yi = -1 ; yi < resolution_y ; yi ++)
         {
             pos[0] = CGL_vec2_init(start.x + xi * step_size.x, start.y + (yi + 1) * step_size.y);
             pos[1] = CGL_vec2_init(start.x + (xi + 1) * step_size.x, start.y + (yi + 1) * step_size.y);
             pos[2] = CGL_vec2_init(start.x + (xi + 1) * step_size.x, start.y + yi * step_size.y);
             pos[3] = CGL_vec2_init(start.x + xi * step_size.x, start.y + yi * step_size.y);
-            for (int i = 0 ; i < 4 ; i++) intr[i] = 0.5f;
+            for (CGL_int i = 0 ; i < 4 ; i++) intr[i] = 0.5f;
             /*
             *  A Possible Optimization
             *
@@ -9333,9 +9474,9 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
             * And have 2 inner loops from 1 - 10 each there e could cache the vlaue of the distance function
             * And then use the cached values in the inner loop saving a lot of calls to the distance function
             */
-            for (int i = 0 ; i < 4 ; i++) smpb[i] = sampler(pos[i], &smpv[i], marcher->user_data);
-            if(marcher->interpolate) for (int i = 0 ; i < 4 ; i++) intr[i] = smpv[i] / ( smpv[i] + smpv[(i + 1) % 4]);
-            for (int i = 0 ; i < 4 ; i++) mpts[i] = CGL_vec2_init(CGL_utils_mix(pos[i].x, pos[(i + 1) % 4].x, intr[i]), CGL_utils_mix(pos[i].y, pos[(i + 1) % 4].y, intr[i]));
+            for (CGL_int i = 0 ; i < 4 ; i++) smpb[i] = sampler(pos[i], &smpv[i], marcher->user_data);
+            if(marcher->interpolate) for (CGL_int i = 0 ; i < 4 ; i++) intr[i] = smpv[i] / ( smpv[i] + smpv[(i + 1) % 4]);
+            for (CGL_int i = 0 ; i < 4 ; i++) mpts[i] = CGL_vec2_init(CGL_utils_mix(pos[i].x, pos[(i + 1) % 4].x, intr[i]), CGL_utils_mix(pos[i].y, pos[(i + 1) % 4].y, intr[i]));
             if(!smpb[0] && !smpb[1] && !smpb[2] && !smpb[3]) // 0000
             {
 
