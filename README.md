@@ -14,6 +14,11 @@
 </p>
 <br/>
 
+# Index
+* [Intro](#cgl)
+* [Platforms](#target-platforms)
+* [Features](#what-does-cgl-provide)
+* [Showreels](#showreels)
 
 # CGL
 CGL (C Graphics Library) is a multipurpose library mainly for recreational coding /  demo scenes / prototyping / small games / experimentation. This has a lot of utilities for graphics. And best of all all of it is inside a single header file `cgl.h`.  Also CGL is made purely in C but is also compatible with C++. 
@@ -29,7 +34,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
 * WebAssembly (Beta)
 * Android (Comming soon...)
 
-## What does CGL provide?
+## What does CGL Provide
 
 * Windowing library (Optional)
   - You can completely disable it by `#define CGL_EXCLUDE_WINDOW_API`
@@ -223,7 +228,17 @@ NOTE: Do not think that header only means its going to increase compile time as 
  * PBR renderer (optional)
  * IBL (optional)
  
-## Requirements 
+## Showreels
 
-* GLFW
-* Glad
+
+
+https://user-images.githubusercontent.com/73700725/205130311-87cdddbb-e96f-412a-a9b5-96b2f474f6d1.mp4
+
+
+https://user-images.githubusercontent.com/73700725/205130454-017992a5-f786-4b7e-b330-9046edbec25c.mp4
+
+
+https://user-images.githubusercontent.com/73700725/205130582-8f6a4ce8-d932-402e-ad88-24a2e7d090b7.mp4
+
+
+For more see [Examples](./examples) and [Showreel](./showreels)
