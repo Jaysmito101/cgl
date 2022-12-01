@@ -1700,11 +1700,23 @@ CGL_square_marcher* CGL_square_marcher_create();
 void CGL_square_marcher_destroy(CGL_square_marcher* marcher);
 void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data);
 void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher);
-void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bool enable);
+void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, CGL_bool enable);
 CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, CGL_int resolution_x, CGL_int resolution_y);
 
 #endif
 
+
+#ifndef CGL_EXCLUDE_TOON_POsT_PROCESSOR
+
+struct CGL_toon;
+typedef struct CGL_toon CGL_toon;
+
+void CGL_toon_post_processor_init();
+void CGL_toon_post_processor_shutdown();
+void CGL_toon_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades);
+void CGL_toon_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width);
+
+#endif
 
 
 #ifdef CGL_INCLUDE_PASCAL_TYPES
@@ -4019,8 +4031,7 @@ char* CGL_utils_read_file(const char* path, size_t* size_ptr)
     fread(data, 1, size, file);
     data[size] = '\0';
     fclose(file);
-    if(size_ptr)
-        *size_ptr = size;
+    if(size_ptr) *size_ptr = size;
     return data;
 }
 
@@ -4888,8 +4899,13 @@ void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
     }
     else
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->handle); 
         glViewport(0, 0, framebuffer->width, framebuffer->height);
+        if(framebuffer->color_attachment_count > 0)
+        {
+            GLenum buffers[8] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
+        	glDrawBuffers(framebuffer->color_attachment_count, buffers);
+        }            
     }
 }
 
@@ -9693,6 +9709,149 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
     for(size_t i = 0; i < vt_ct; i++) mesh->indices[i] = (CGL_uint)i;
     CGL_list_destroy(mesh_list);
     return mesh;
+}
+
+#endif
+
+
+#ifndef CGL_EXCLUDE_TOON_POsT_PROCESSOR
+
+struct CGL_toon
+{
+    CGL_shader* shades_shader;
+    CGL_shader* outlines_shader;
+};
+
+static CGL_toon* __CGL_TOON_CONTEXT = NULL;
+
+static const CGL_byte* __CGL_TOON_SHADES_SHADER_SOURCE =
+"#version 430 core\n"
+"\n"
+"layout (local_size_x = 1, local_size_y = 1) in;\n"
+"\n"
+"layout (rgba32f, binding = 0) uniform image2D output_tex;\n"
+"layout (rgba32f, binding = 1) uniform image2D input_tex;\n"
+"\n"
+"uniform int shades = 1;\n"
+"uniform sampler2D albedo_tex;\n"
+"uniform ivec2 resolution;\n"
+"\n"
+"void main()\n"
+"{\n"
+"    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);\n"
+"    vec2 uv = vec2(pixel_coord) / vec2(resolution);\n"
+"    vec3 scene_pixel = imageLoad(input_tex, pixel_coord).rgb;\n"
+"    scene_pixel = floor(scene_pixel * float(shades)) / float(shades);\n"
+"    vec3 albedo_pixel = texture(albedo_tex, uv).rgb;\n"
+"    vec3 output_pixel = scene_pixel + albedo_pixel;\n"
+"    imageStore(output_tex, pixel_coord, vec4(output_pixel, 1.0));\n"
+"}\n"
+"\n";
+
+static const CGL_byte* __CGL_TOON_OUTLINES_SHADER_SOURCE = 
+"#version 430 core\n"
+
+"layout (local_size_x = 1, local_size_y = 1) in;\n"
+
+"layout (rgba32f, binding = 0) uniform image2D output_tex;\n"
+"layout (rgba32f, binding = 1) uniform image2D scene;\n"
+
+"uniform float outline_width = 1.0f;\n"
+"uniform ivec2 resolution;\n"
+"uniform sampler2D normal_tex;\n"
+"uniform sampler2D depth_tex;\n"
+
+"float max_vec3(vec3 v)\n"
+"{\n"
+"    return max(max(v.x, v.y), v.z);\n"
+"}\n"
+
+// TODO: Take zFar and zNear as uniforms 
+"float linearize_depth(float depth)\n"
+"{\n"
+"    float zFar = 100.0f;\n"
+"    float zNear = 0.01f;\n"
+"    return (2.0f * zNear) / (zFar + zNear - depth * (zFar - zNear));\n"
+"}\n"
+
+
+"float get_n_factor(vec2 uv)\n"
+"{\n"
+"    float current_normal = max_vec3(texture(normal_tex, uv).rgb);\n"
+"    float left_normal = max_vec3(texture(normal_tex, uv + vec2(-outline_width / float(resolution.x), 0.0)).rgb);\n"
+"    float right_normal = max_vec3(texture(normal_tex, uv + vec2(outline_width / float(resolution.x), 0.0)).rgb);\n"
+"    float top_normal = max_vec3(texture(normal_tex, uv + vec2(0.0, outline_width / float(resolution.y))).rgb);\n"
+"    float bottom_normal = max_vec3(texture(normal_tex, uv + vec2(0.0, -outline_width / float(resolution.y))).rgb);\n"
+"    float n_factor = 0.0;\n"
+"    n_factor = abs(current_normal - left_normal) + abs(current_normal - right_normal) + abs(current_normal - top_normal) + abs(current_normal - bottom_normal);\n"
+//"    return clamp(n_factor, 0.0f, 1.0f);\n" // another special effect
+"    return 1.0f - clamp(smoothstep(n_factor, 0.2f, 0.85f), 0.0f, 1.0f);\n"
+"}\n"
+
+"float get_d_factor(vec2 uv)\n"
+"{\n"
+"    float current_depth = linearize_depth(texture(depth_tex, uv).r);\n"
+"    float left_depth = linearize_depth(texture(depth_tex, uv + vec2(-outline_width / float(resolution.x), 0.0)).r);\n"
+"    float right_depth = linearize_depth(texture(depth_tex, uv + vec2(outline_width / float(resolution.x), 0.0)).r);\n"
+"    float top_depth = linearize_depth(texture(depth_tex, uv + vec2(0.0, outline_width / float(resolution.y))).r);\n"
+"    float bottom_depth = linearize_depth(texture(depth_tex, uv + vec2(0.0, -outline_width / float(resolution.y))).r);\n"
+"    float d_factor = 0.0;\n"
+"    d_factor = abs(current_depth - left_depth) + abs(current_depth - right_depth) + abs(current_depth - top_depth) + abs(current_depth - bottom_depth);\n"
+"    return clamp(d_factor, 0.0f, 1.0f);\n"
+"}\n"
+
+"void main()\n"
+"{\n"
+"    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);\n"
+"    vec2 uv = vec2(pixel_coord) / vec2(resolution);\n"
+"    float n_factor = get_n_factor(uv);\n"
+"    float d_factor = get_d_factor(uv);\n"
+"    float factor = max(n_factor, d_factor);\n"
+"    vec3 scene_pixel = imageLoad(scene, pixel_coord).rgb;\n"
+"    vec3 output_pixel = scene_pixel * (1.0f - factor);\n"
+"    imageStore(output_tex, pixel_coord, vec4(output_pixel, 1.0));\n"
+"}\n";
+
+void CGL_toon_post_processor_init()
+{
+    __CGL_TOON_CONTEXT = (CGL_toon*)CGL_malloc(sizeof(CGL_toon));
+    __CGL_TOON_CONTEXT->shades_shader = CGL_shader_compute_create(__CGL_TOON_SHADES_SHADER_SOURCE, NULL);
+    __CGL_TOON_CONTEXT->outlines_shader = CGL_shader_compute_create(__CGL_TOON_OUTLINES_SHADER_SOURCE, NULL);
+}
+
+void CGL_toon_post_processor_shutdown()
+{
+    CGL_shader_destroy(__CGL_TOON_CONTEXT->shades_shader);
+    CGL_shader_destroy(__CGL_TOON_CONTEXT->outlines_shader);
+    CGL_free(__CGL_TOON_CONTEXT);
+}
+
+void CGL_toon_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades)
+{
+    CGL_shader_bind(__CGL_TOON_CONTEXT->shades_shader);
+    glBindImageTexture(0, output->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, scene->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "shades"), shades);    
+    CGL_texture_bind(albedo, 2);
+    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "albedo_tex"), 2);    
+    CGL_shader_set_uniform_ivec2v(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "resolution"), output->width, output->height);
+    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->shades_shader, output->width, output->height, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+void CGL_toon_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width)
+{
+    CGL_shader_bind(__CGL_TOON_CONTEXT->outlines_shader);
+    glBindImageTexture(0, output->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, scene->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    CGL_texture_bind(normal, 2);
+    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "normal_tex"), 2);    
+    CGL_texture_bind(depth, 3);
+    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "depth_tex"), 3);
+    CGL_shader_set_uniform_ivec2v(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "resolution"), output->width, output->height);
+    CGL_shader_set_uniform_float(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "outline_width"), outline_width);
+    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->outlines_shader, output->width, output->height, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 #endif
