@@ -86,10 +86,17 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Generate Seperating Axes for polygons
   - Get Overlap distance
 
-* MArching Square
+* Marching Square
   - Fully Customizablt Marcher
   - Linear Interpolation supported
   - Generates 2D Mesh (Triangles) for CGL
+
+* Toon Post Processor
+  - Outline Effect
+  - Toon Shading Effect
+  - All in a single post process call ( no per object calculation)
+  - Completely implemented in Compute Shader
+  - Customizable
 
 * CGL Ray Cast
   - Fast 2D Ray Cast
