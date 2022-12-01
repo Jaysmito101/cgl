@@ -167,10 +167,10 @@ void CGL_utils_get_timestamp(char* buffer);
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
 #define CGL_utils_random_int(min, max) (rand() % (max - min + 1) + min)
 #define CGL_utils_random_bool() (rand() % 2)
-#define CGL_utils_random_vec2(min, max) ((CGL_vec2){CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y})
-#define CGL_utils_random_vec3(min, max) ((CGL_vec3){CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z})
-#define CGL_utils_random_vec4(min, max) ((CGL_vec4){CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z, CGL_utils_random_float() * (max.w - min.w) + min.w})
-#define CGL_utils_random_color() ((CGL_color){CGL_utils_random_float(), CGL_utils_random_float(), CGL_utils_random_float(), 1.0f})
+#define CGL_utils_random_vec2(min, max) (CGL_vec2_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y))
+#define CGL_utils_random_vec3(min, max) (CGL_vec3_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z))
+#define CGL_utils_random_vec4(min, max) (CGL_vec4_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z, CGL_utils_random_float() * (max.w - min.w) + min.w))
+#define CGL_utils_random_color() (CGL_vec4_init(CGL_utils_random_float(), CGL_utils_random_float(), CGL_utils_random_float(), 1.0f))
 #define CGL_utils_clamp(x, minl, maxl) (x < minl ? minl : (x > maxl ? maxl : x))
 #define CGL_utils_array_size(array) (sizeof(array) / sizeof(array[0]))
 #define CGL_utils_max(a, b) ( ((a) > (b)) ? (a) : (b) )
@@ -393,6 +393,10 @@ struct CGL_vec2
 {
     CGL_float x;
     CGL_float y;
+#ifdef __cplusplus
+    CGL_vec2() : x(0), y(0) {}
+    CGL_vec2(CGL_float x, CGL_float y) : x(x), y(y) {}
+#endif
 };
 typedef struct CGL_vec2 CGL_vec2;
 
@@ -401,6 +405,10 @@ struct CGL_vec3
     CGL_float x;
     CGL_float y;
     CGL_float z;
+#ifdef __cplusplus
+    CGL_vec3() : x(0), y(0), z(0) {}
+    CGL_vec3(CGL_float x, CGL_float y, CGL_float z) : x(x), y(y), z(z) {}
+#endif
 };
 typedef struct CGL_vec3 CGL_vec3;
 
@@ -410,6 +418,10 @@ struct CGL_vec4
     CGL_float y;
     CGL_float z;
     CGL_float w;
+#ifdef __cplusplus
+    CGL_vec4() : x(0), y(0), z(0), w(0) {}
+    CGL_vec4(CGL_float x, CGL_float y, CGL_float z, CGL_float w) : x(x), y(y), z(z), w(w) {}
+#endif
 };
 typedef struct CGL_vec4 CGL_vec4;
 typedef struct CGL_vec4 CGL_color;
@@ -420,18 +432,50 @@ struct CGL_ivec4
     CGL_int y;
     CGL_int z;
     CGL_int w;
+#ifdef __cplusplus
+    CGL_ivec4() : x(0), y(0), z(0), w(0) {}
+    CGL_ivec4(CGL_int x, CGL_int y, CGL_int z, CGL_int w) : x(x), y(y), z(z), w(w) {}
+#endif
 };
 typedef struct CGL_ivec4 CGL_ivec4;
 
 struct CGL_mat3
 {
     CGL_float m[9];
+#ifdef __cplusplus
+    CGL_mat3() {}
+    CGL_mat3(CGL_float m0, CGL_float m1, CGL_float m2, CGL_float m3, CGL_float m4, CGL_float m5, CGL_float m6, CGL_float m7, CGL_float m8)
+    {
+        m[0] = m0;
+        m[1] = m1;
+        m[2] = m2;
+        m[3] = m3;
+        m[4] = m4;
+        m[5] = m5;
+        m[6] = m6;
+        m[7] = m7;
+        m[8] = m8;
+    }
+#endif
 };
 typedef struct CGL_mat3 CGL_mat3;
 
 struct CGL_mat4
 {
     CGL_float m[16];
+#ifdef __cplusplus
+    CGL_mat4() {}
+    CGL_mat4(CGL_float m0, CGL_float m1, CGL_float m2, CGL_float m3,
+             CGL_float m4, CGL_float m5, CGL_float m6, CGL_float m7,
+             CGL_float m8, CGL_float m9, CGL_float m10, CGL_float m11,
+             CGL_float m12, CGL_float m13, CGL_float m14, CGL_float m15)
+    {
+        m[0] = m0; m[1] = m1; m[2] = m2; m[3] = m3;
+        m[4] = m4; m[5] = m5; m[6] = m6; m[7] = m7;
+        m[8] = m8; m[9] = m9; m[10] = m10; m[11] = m11;
+        m[12] = m12; m[13] = m13; m[14] = m14; m[15] = m15;
+    }
+#endif
 };
 typedef struct CGL_mat4 CGL_mat4;
 
@@ -439,6 +483,10 @@ struct CGL_quat
 {
     CGL_vec3 vec;
     CGL_float w;
+#ifdef __cplusplus
+    CGL_quat() : vec(CGL_vec3(0, 0, 0)), w(0) {}
+    CGL_quat(CGL_float x, CGL_float y, CGL_float z, CGL_float w) : vec(CGL_vec3(x, y, z)), w(w) {}
+#endif
 };
 typedef struct CGL_quat CGL_quat;
 
@@ -456,19 +504,24 @@ CGL_float CGL_float_quadratic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_fl
 CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float d, CGL_float t);
 
 
+#ifdef __cplusplus
+#define CGL_vec2_init(x, y) CGL_vec2(x, y)
+#else
 #define CGL_vec2_init(x, y) ((CGL_vec2){(x), (y)})
-#define CGL_vec2_add(a, b) (CGL_vec2){a.x + b.x, a.y + b.y}
-#define CGL_vec2_add_scaled(a, b, scale) (CGL_vec2){(a).x + (b).x * (scale), (a).y + (b).y * (scale)}
-#define CGL_vec2_sub(a, b) (CGL_vec2){a.x - b.x, a.y - b.y}
-#define CGL_vec2_mul(a, b) (CGL_vec2){a.x * b.x, a.y * b.y}
-#define CGL_vec2_div(a, b) (CGL_vec2){a.x / b.x, a.y / b.y}
-#define CGL_vec2_scale(a, s) (CGL_vec2){a.x * (s), a.y * (s)}
+#endif
+
+#define CGL_vec2_add(a, b) CGL_vec2_init(a.x + b.x, a.y + b.y)
+#define CGL_vec2_add_scaled(a, b, scale) CGL_vec2_init((a).x + (b).x * (scale), (a).y + (b).y * (scale))
+#define CGL_vec2_sub(a, b) CGL_vec2_init(a.x - b.x, a.y - b.y)
+#define CGL_vec2_mul(a, b) CGL_vec2_init(a.x * b.x, a.y * b.y)
+#define CGL_vec2_div(a, b) CGL_vec2_init(a.x / b.x, a.y / b.y)
+#define CGL_vec2_scale(a, s) CGL_vec2_init(a.x * (s), a.y * (s))
 #define CGL_vec2_dot(a, b) (a.x * b.x + a.y * b.y)
 #define CGL_vec2_length(a) sqrtf(a.x * a.x + a.y * a.y)
 #define CGL_vec2_normalize(a) { CGL_float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec2_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; }
-#define CGL_vec2_lerp(a, b, t) (CGL_vec2){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t}
-#define CGL_vec2_min(a, b) (CGL_vec2){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y}
-#define CGL_vec2_max(a, b) (CGL_vec2){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y}
+#define CGL_vec2_lerp(a, b, t) CGL_vec2_init(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)
+#define CGL_vec2_min(a, b) CGL_vec2_init(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y)
+#define CGL_vec2_max(a, b) CGL_vec2_init(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y)
 #define CGL_vec2_equal(a, b) (a.x == b.x && a.y == b.y)
 #define CGL_vec2_rotate_about_point(a, p, theta) CGL_vec2_init(((a.x - p.x) * cosf(theta) - (a.y - p.y) * sinf(theta) ), ((a.x - p.x) * sinf(theta) + (a.y - p.y) * cosf(theta)))
 #define CGL_vec2_centroid_of_triangle(a, b, c) CGL_vec2_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f)
@@ -482,21 +535,24 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec2_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec2_elem_set(a, i, v) (((float*)&a)[i] = v)
 
-
-#define CGL_vec3_init(x, y, z) ((CGL_vec3){x, y, z})
-#define CGL_vec3_add(a, b) (CGL_vec3){a.x + b.x, a.y + b.y, a.z + b.z}
-#define CGL_vec3_add_scaled(a, b, scale) (CGL_vec3){(a).x + (b).x * (scale), (a).y + (b).y * (scale), (a).z + (b).z * (scale)}
-#define CGL_vec3_sub(a, b) (CGL_vec3){a.x - b.x, a.y - b.y, a.z - b.z}
-#define CGL_vec3_mul(a, b) (CGL_vec3){a.x * b.x, a.y * b.y, a.z * b.z}
-#define CGL_vec3_div(a, b) (CGL_vec3){a.x / b.x, a.y / b.y, a.z / b.z}
-#define CGL_vec3_scale(a, s) (CGL_vec3){a.x * (s), a.y * (s), a.z * (s)}
+#ifdef __cplusplus
+#define CGL_vec3_init(x, y, z) CGL_vec3(x, y, z)
+#else
+#define CGL_vec3_init(x, y, z) ((CGL_vec3){(x), (y), (z)})
+#endif
+#define CGL_vec3_add(a, b) CGL_vec3_init(a.x + b.x, a.y + b.y, a.z + b.z)
+#define CGL_vec3_add_scaled(a, b, scale) CGL_vec3_init((a).x + (b).x * (scale), (a).y + (b).y * (scale), (a).z + (b).z * (scale))
+#define CGL_vec3_sub(a, b) CGL_vec3_init(a.x - b.x, a.y - b.y, a.z - b.z)
+#define CGL_vec3_mul(a, b) CGL_vec3_init(a.x * b.x, a.y * b.y, a.z * b.z)
+#define CGL_vec3_div(a, b) CGL_vec3_init(a.x / b.x, a.y / b.y, a.z / b.z)
+#define CGL_vec3_scale(a, s) CGL_vec3_init(a.x * (s), a.y * (s), a.z * (s))
 #define CGL_vec3_dot(a, b) (a.x * b.x + a.y * b.y + a.z * b.z)
-#define CGL_vec3_cross(a, b) (CGL_vec3){a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}
+#define CGL_vec3_cross(a, b) CGL_vec3_init(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
 #define CGL_vec3_length(a) sqrtf(a.x * a.x + a.y * a.y + a.z * a.z)
 #define CGL_vec3_normalize(a) { CGL_float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec3_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; a.z *= __CGL_vector_length##__LINE__; }
-#define CGL_vec3_lerp(a, b, t) (CGL_vec3){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t}
-#define CGL_vec3_min(a, b) (CGL_vec3){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z}
-#define CGL_vec3_max(a, b) (CGL_vec3){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z}
+#define CGL_vec3_lerp(a, b, t) CGL_vec3_init(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t)
+#define CGL_vec3_min(a, b) CGL_vec3_init(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z)
+#define CGL_vec3_max(a, b) CGL_vec3_init(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z)
 #define CGL_vec3_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z)
 #define CGL_vec3_rotate_x(a, theta) CGL_vec3_init(a.x, a.y * cosf(theta) - a.z * sinf(theta), a.y * sinf(theta) + a.z * cosf(theta))
 #define CGL_vec3_rotate_y(v, theta) CGL_vec3_init(v.x * cosf(theta) + v.z * sinf(theta), v.y, -v.x * sinf(theta) + v.z * cosf(theta))
@@ -505,7 +561,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec3_from_angle(theta) CGL_vec3_init(cosf(theta), sinf(theta), 0.0f)
 #define CGL_vec3_angle_between(a, b) acosf(CGL_vec3_dot(a, b) / (CGL_vec3_length(a) * CGL_vec3_length(b)))
 #define CGL_vec3_from_spherical_coordinates(r, theta, phi) CGL_vec3_init(r * sinf(theta) * cosf(phi), r * sinf(theta) * sinf(phi), r * cosf(theta))
-#define CGL_vec3_to_spherical_coordinates(a) (CGL_vec3){sqrtf(a.x * a.x + a.y * a.y + a.z * a.z), acosf(a.z / sqrtf(a.x * a.x + a.y * a.y + a.z * a.z)), atan2f(a.y, a.x)}
+#define CGL_vec3_to_spherical_coordinates(a) CGL_vec3_init(sqrtf(a.x * a.x + a.y * a.y + a.z * a.z), acosf(a.z / sqrtf(a.x * a.x + a.y * a.y + a.z * a.z)), atan2f(a.y, a.x))
 #define CGL_vec3_from_higher_dimension(a) CGL_vec3_init(a.x, a.y, a.z)
 #define CGL_vec3_from_vec2(a, z) CGL_vec3_init(a.x, a.y, z)
 #define CGL_vec3_elem_get(a, i) ((float*)&a)[i]
@@ -515,16 +571,20 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
 
 
 
+#ifdef __cplusplus
+#define CGL_vec4_init(x, y, z, w) CGL_vec4(x, y, z, w)
+#else
 #define CGL_vec4_init(x, y, z, w) ((CGL_vec4){x, y, z, w})
-#define CGL_vec4_add(a, b) (CGL_vec4){a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w}
-#define CGL_vec4_sub(a, b) (CGL_vec4){a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w}
-#define CGL_vec4_mul(a, b) (CGL_vec4){a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w}
-#define CGL_vec4_div(a, b) (CGL_vec4){a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w}
-#define CGL_vec4_scale(a, s) (CGL_vec4){a.x * s, a.y * s, a.z * s, a.w * s}
+#endif
+#define CGL_vec4_add(a, b) CGL_vec4_init(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w)
+#define CGL_vec4_sub(a, b) CGL_vec4_init(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w)
+#define CGL_vec4_mul(a, b) CGL_vec4_init(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w)
+#define CGL_vec4_div(a, b) CGL_vec4_init(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w)
+#define CGL_vec4_scale(a, s) CGL_vec4_init(a.x * s, a.y * s, a.z * s, a.w * s)
 #define CGL_vec4_dot(a, b) (a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w)
-#define CGL_vec4_lerp(a, b, t) (CGL_vec4){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t}
-#define CGL_vec4_min(a, b) (CGL_vec4){a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w}
-#define CGL_vec4_max(a, b) (CGL_vec4){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w}
+#define CGL_vec4_lerp(a, b, t) CGL_vec4_init(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t)
+#define CGL_vec4_min(a, b) CGL_vec4_init(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w)
+#define CGL_vec4_max(a, b) CGL_vec4_init(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w)
 #define CGL_vec4_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w)
 #define CGL_vec4_centroid_of_triangle(a, b, c) CGL_vec4_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f, (a.z + b.z + c.z) / 3.0f, (a.w + b.w + c.w) / 3.0f)
 #define CGL_vec4_from_vec3(a, w) CGL_vec4_init(a.x, a.y, a.z, w)
@@ -532,6 +592,9 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
 #define CGL_vec4_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec4_elem_set(a, i, v) (((float*)&a)[i] = v)
 
+#ifdef __cplusplus
+#define CGL_mat3_init(a, b, c, d, e, f, g, h, i) CGL_mat3(a, b, c, d, e, f, g, h, i)
+#else
 #define CGL_mat3_init(m00, m01, m02, m10, m11, m12, m20, m21, m22) (CGL_mat3) \
 { \
     { \
@@ -540,6 +603,7 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
         m02, m12, m22  \
     } \
 }
+#endif
 
 #define CGL_mat3_add(a, b) (CGL_mat3){a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8]}
 #define CGL_mat3_sub(a, b) (CGL_mat3){a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8]}
@@ -571,6 +635,7 @@ CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
 )
 
 
+/*
 #define CGL_mat4_init(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) (CGL_mat4) \
 { \
     { \
@@ -580,10 +645,43 @@ CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
         m03, m13, m23, m33 \
     } \
 }
+*/
 
-#define CGL_mat4_add(a, b) (CGL_mat4){a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8], a.m[9] + b.m[9], a.m[10] + b.m[10], a.m[11] + b.m[11], a.m[12] + b.m[12], a.m[13] + b.m[13], a.m[14] + b.m[14], a.m[15] + b.m[15]}
-#define CGL_mat4_sub(a, b) (CGL_mat4){a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8], a.m[9] - b.m[9], a.m[10] - b.m[10], a.m[11] - b.m[11], a.m[12] - b.m[12], a.m[13] - b.m[13], a.m[14] - b.m[14], a.m[15] - b.m[15]}
-#define CGL_mat4_mul_scalar(a, s) (CGL_mat4){a.m[0] * s, a.m[1] * s, a.m[2] * s, a.m[3] * s, a.m[4] * s, a.m[5] * s, a.m[6] * s, a.m[7] * s, a.m[8] * s, a.m[9] * s, a.m[10] * s, a.m[11] * s, a.m[12] * s, a.m[13] * s, a.m[14] * s, a.m[15] * s}
+#ifdef __cplusplus
+#define CGL_mat4_init(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) CGL_mat4(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
+#else
+#define CGL_mat4_init(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) (CGL_mat4) \
+{ \
+    { \
+        m00, m01, m02, m03, \
+        m10, m11, m12, m13, \
+        m20, m21, m22, m23, \
+        m30, m31, m32, m33 \
+    } \
+}
+#endif
+
+#define CGL_mat4_add(a, b) CGL_mat_init( \
+    CGL_mat4_elem_get(a, 0, 0) + CGL_mat4_elem_get(b, 0, 0), CGL_mat4_elem_get(a, 0, 1) + CGL_mat4_elem_get(b, 0, 1), CGL_mat4_elem_get(a, 0, 2) + CGL_mat4_elem_get(b, 0, 2), CGL_mat4_elem_get(a, 0, 3) + CGL_mat4_elem_get(b, 0, 3), \
+    CGL_mat4_elem_get(a, 1, 0) + CGL_mat4_elem_get(b, 1, 0), CGL_mat4_elem_get(a, 1, 1) + CGL_mat4_elem_get(b, 1, 1), CGL_mat4_elem_get(a, 1, 2) + CGL_mat4_elem_get(b, 1, 2), CGL_mat4_elem_get(a, 1, 3) + CGL_mat4_elem_get(b, 1, 3), \
+    CGL_mat4_elem_get(a, 2, 0) + CGL_mat4_elem_get(b, 2, 0), CGL_mat4_elem_get(a, 2, 1) + CGL_mat4_elem_get(b, 2, 1), CGL_mat4_elem_get(a, 2, 2) + CGL_mat4_elem_get(b, 2, 2), CGL_mat4_elem_get(a, 2, 3) + CGL_mat4_elem_get(b, 2, 3), \
+    CGL_mat4_elem_get(a, 3, 0) + CGL_mat4_elem_get(b, 3, 0), CGL_mat4_elem_get(a, 3, 1) + CGL_mat4_elem_get(b, 3, 1), CGL_mat4_elem_get(a, 3, 2) + CGL_mat4_elem_get(b, 3, 2), CGL_mat4_elem_get(a, 3, 3) + CGL_mat4_elem_get(b, 3, 3)  \
+)
+
+#define CGL_mat4_sub(a, b) CGL_mat_init( \
+    CGL_mat4_elem_get(a, 0, 0) - CGL_mat4_elem_get(b, 0, 0), CGL_mat4_elem_get(a, 0, 1) - CGL_mat4_elem_get(b, 0, 1), CGL_mat4_elem_get(a, 0, 2) - CGL_mat4_elem_get(b, 0, 2), CGL_mat4_elem_get(a, 0, 3) - CGL_mat4_elem_get(b, 0, 3), \
+    CGL_mat4_elem_get(a, 1, 0) - CGL_mat4_elem_get(b, 1, 0), CGL_mat4_elem_get(a, 1, 1) - CGL_mat4_elem_get(b, 1, 1), CGL_mat4_elem_get(a, 1, 2) - CGL_mat4_elem_get(b, 1, 2), CGL_mat4_elem_get(a, 1, 3) - CGL_mat4_elem_get(b, 1, 3), \
+    CGL_mat4_elem_get(a, 2, 0) - CGL_mat4_elem_get(b, 2, 0), CGL_mat4_elem_get(a, 2, 1) - CGL_mat4_elem_get(b, 2, 1), CGL_mat4_elem_get(a, 2, 2) - CGL_mat4_elem_get(b, 2, 2), CGL_mat4_elem_get(a, 2, 3) - CGL_mat4_elem_get(b, 2, 3), \
+    CGL_mat4_elem_get(a, 3, 0) - CGL_mat4_elem_get(b, 3, 0), CGL_mat4_elem_get(a, 3, 1) - CGL_mat4_elem_get(b, 3, 1), CGL_mat4_elem_get(a, 3, 2) - CGL_mat4_elem_get(b, 3, 2), CGL_mat4_elem_get(a, 3, 3) - CGL_mat4_elem_get(b, 3, 3)  \
+)
+
+#define CGL_mat4_mul_scalar(a, s) CGL_mat4_init( \
+    CGL_mat4_elem_get(a, 0, 0) * s, CGL_mat4_elem_get(a, 0, 1) * s, CGL_mat4_elem_get(a, 0, 2) * s, CGL_mat4_elem_get(a, 0, 3) * s, \
+    CGL_mat4_elem_get(a, 1, 0) * s, CGL_mat4_elem_get(a, 1, 1) * s, CGL_mat4_elem_get(a, 1, 2) * s, CGL_mat4_elem_get(a, 1, 3) * s, \
+    CGL_mat4_elem_get(a, 2, 0) * s, CGL_mat4_elem_get(a, 2, 1) * s, CGL_mat4_elem_get(a, 2, 2) * s, CGL_mat4_elem_get(a, 2, 3) * s, \
+    CGL_mat4_elem_get(a, 3, 0) * s, CGL_mat4_elem_get(a, 3, 1) * s, CGL_mat4_elem_get(a, 3, 2) * s, CGL_mat4_elem_get(a, 3, 3) * s  \
+)
+
 CGL_mat4 CGL_mat4_mul(CGL_mat4 a, CGL_mat4 b);
 CGL_float CGL_mat4_det(CGL_mat4 m);
 CGL_float CGL_mat4_det_by_lu(CGL_mat4 m);
@@ -603,8 +701,12 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
 
 #define CGL_mat4_is_invertible(m) (CGL_mat4_det(m) != 0.0f)
 
-#define CGL_mat4_elem_get(mat, row, col) ((mat).m[row + col * 4])
-#define CGL_mat4_elem_set(mat, row, col, value) ((mat).m[row + col * 4] = value)
+//#define CGL_mat4_elem_get(mat, row, col) ((mat).m[row + col * 4])
+//#define CGL_mat4_elem_set(mat, row, col, value) ((mat).m[row + col * 4] = value)
+
+#define CGL_mat4_elem_get(mat, row, col) ((mat).m[row * 4 + col])
+#define CGL_mat4_elem_set(mat, row, col, value) ((mat).m[row * 4 + col] = value)
+
 #define CGL_mat3_elem_get(mat, row, col) ((mat).m[row + col * 3])
 #define CGL_mat3_elem_set(mat, row, col, value) ((mat).m[row + col * 3] = value)
 
@@ -657,12 +759,24 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
     0.0f, 0.0f, 0.0f, 1.0f \
 )
 
+/*
+#define CGL_mat4_perspective(fov, aspect, near, far) CGL_mat4_init(\
+    1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, \
+    0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, \
+    0.0f, 0.0f, (far + near) / (near - far), (2.0f * far * near) / (near - far), \
+    0.0f, 0.0f, -1.0f, 0.0f \
+)
+*/
+
+
 #define CGL_mat4_perspective(fov, aspect, fnear, ffar) CGL_mat4_init(\
     1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, \
     0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, \
     0.0f, 0.0f, (ffar + fnear) / (fnear - ffar), -1.0f, \
     0.0f, 0.0f, (2.0f * ffar * fnear) / (fnear - ffar), 0.0f \
 )
+
+
 
 #define CGL_mat4_orthographic(left, right, bottom, top, fnear, ffar) CGL_mat4_init( \
     2.0f / (right - left), 0.0f, 0.0f, -(right + left) / (right - left), \
@@ -687,8 +801,12 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
 
 typedef CGL_vec3(*CGL_parametric_function)(CGL_float, CGL_float);
 
-
+#ifdef __cplusplus
+#define CGL_quat_init(x, y, z, w) CGL_quat(x, y, z, w)
+#else
 #define CGL_quat_init(x, y, z, w) (CGL_quat){{x, y, z}, w}
+#endif
+
 #define CGL_quat_identity() CGL_quat_init(0.0f, 0.0f, 0.0f, 1.0f)
 #define CGL_quat_equal(a, b) (CGL_vec3_equal(a.vec, b.vec) && (a.w == b.w))
 #define CGL_quat_from_axis_angle(x, y, z, angle) CGL_quat_init(sinf(angle / 2.0f) * x, sinf(angle / 2.0f) * y, sinf(angle / 2.0f) * z, cosf(angle / 2.0f))
@@ -990,10 +1108,10 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 struct CGL_image
 {
     void* data;
-    uint32_t height;
-    uint32_t width;
-    uint32_t bytes_per_channel;
-    uint32_t channels;
+    CGL_int height;
+    CGL_int width;
+    CGL_int bytes_per_channel;
+    CGL_int channels;
 };
 typedef struct CGL_image CGL_image;
 
@@ -1064,6 +1182,7 @@ CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height); // creat
 CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height);
 void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture); // add color attachment to framebuffer
 void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer); // destroy framebuffer
+CGL_texture* CGL_framebuffer_get_color_attachment(CGL_framebuffer* framebuffer, CGL_int index); // get color attachment from framebuffer
 void CGL_framebuffer_bind(CGL_framebuffer* framebuffer); // bind framebuffer
 void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height); // get framebuffer size
 void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data); // set framebuffer user data
@@ -2448,14 +2567,14 @@ void CGL_net_socket_close(CGL_net_socket* soc)
 
 bool CGL_net_socket_send(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_sent)
 {
-    CGL_int result = send(soc->socket, buffer, (int)size, 0);
+    CGL_int result = send(soc->socket, (const CGL_byte*)buffer, (int)size, 0);
     if(size_sent) *size_sent = result;
     return result != SOCKET_ERROR;
 }
 
 bool CGL_net_socket_recv(CGL_net_socket* soc, void* buffer, size_t size, size_t* size_recieved)
 {
-    CGL_int result = recv(soc->socket, buffer, (int)size, 0);
+    CGL_int result = recv(soc->socket, (CGL_byte*)buffer, (int)size, 0);
     if(result > 0 && size_recieved) *size_recieved = (size_t)result;
     return result > 0;
 }
@@ -2634,7 +2753,7 @@ void __CGL_net_http_prepare_request(char* buffer, const char* method, const char
 int __CGL_net_http_parse_response(const char* response, const size_t recieved_length, size_t* body_size, char* body)
 {
     CGL_int response_code = atoi(response + 9);
-    char* start_pt = response + 2;
+    const char* start_pt = response + 2;
     while(*start_pt != '\0')
     {
         start_pt ++;
@@ -2675,7 +2794,7 @@ int CGL_net_http_request(const char* method, const char* host, const char* path,
     }
     CGL_net_socket_close(sock);
     CGL_net_addrinfo_destroy(infos);
-    return __CGL_net_http_parse_response(temp_buffer, recieved_length, size, buffer);
+    return __CGL_net_http_parse_response(temp_buffer, recieved_length, size, (CGL_byte*)buffer);
 }
 
 int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent)
@@ -3816,29 +3935,19 @@ CGL_quat CGL_quat_squad(CGL_quat q0, CGL_quat q1, CGL_quat a0, CGL_quat a1, CGL_
 
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
 {
-    CGL_vec3 z_axis = CGL_vec3_sub(target, eye);
-    CGL_vec3_normalize(z_axis);
-    CGL_vec3 x_axis = CGL_vec3_cross(up, z_axis);
-    CGL_vec3_normalize(x_axis);
-    CGL_vec3 y_axis = CGL_vec3_cross(z_axis, x_axis);
-    CGL_mat4 mat;
-    mat.m[0] = x_axis.x;
-    mat.m[1] = x_axis.y;
-    mat.m[2] = x_axis.z;
-    mat.m[3] = -1.0f * CGL_vec3_dot(x_axis, eye);
-    mat.m[4] = y_axis.x;
-    mat.m[5] = y_axis.y;
-    mat.m[6] = y_axis.z;
-    mat.m[7] = -1.0f * CGL_vec3_dot(y_axis, eye);
-    mat.m[8] = z_axis.x;
-    mat.m[9] = z_axis.y;
-    mat.m[10] = z_axis.z;
-    mat.m[11] = -1.0f * CGL_vec3_dot(z_axis, eye);
-    mat.m[12] = 0.0f;
-    mat.m[13] = 0.0f;
-    mat.m[14] = 0.0f;
-    mat.m[15] = 1.0f;
-    return mat;
+    CGL_vec3 z = CGL_vec3_sub(eye, target);
+    CGL_vec3_normalize(z);
+    CGL_vec3 x = CGL_vec3_cross(up, z);
+    CGL_vec3_normalize(x);
+    CGL_vec3 y = CGL_vec3_cross(z, x);
+    CGL_vec3_normalize(y);
+    CGL_mat4 mt = CGL_mat4_init(
+        x.x, x.y, x.z, -CGL_vec3_dot(x, eye),
+        y.x, y.y, y.z, -CGL_vec3_dot(y, eye),
+        z.x, z.y, z.z, -CGL_vec3_dot(z, eye),
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+    return (mt);
 }
 
 CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale)
@@ -4338,7 +4447,7 @@ CGL_texture* CGL_texture_create(CGL_image* image)
         type = GL_FLOAT;
     else
     {CGL_error("Invalid bit depth for image\n");return NULL;}        
-    CGL_texture* texture = malloc(sizeof(CGL_texture));
+    CGL_texture* texture = (CGL_texture*)CGL_malloc(sizeof(CGL_texture));
     texture->width = image->width;
     texture->height = image->height;
     texture->depth = 0;
@@ -4362,7 +4471,7 @@ CGL_texture* CGL_texture_create(CGL_image* image)
 // create texture
 CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum format, GLenum internal_format, GLenum type)
 {
-    CGL_texture* texture = malloc(sizeof(CGL_texture));
+    CGL_texture* texture = (CGL_texture*)CGL_malloc(sizeof(CGL_texture));
     texture->width = width;
     texture->height = height;
     texture->depth = 0;
@@ -4387,7 +4496,7 @@ CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum form
 
 CGL_texture* CGL_texture_create_cubemap()
 {
-    CGL_texture* texture = malloc(sizeof(CGL_texture));
+    CGL_texture* texture = (CGL_texture*)CGL_malloc(sizeof(CGL_texture));
     texture->width = 0;
     texture->height = 0;
     texture->depth = 0;
@@ -4410,7 +4519,7 @@ CGL_texture* CGL_texture_create_cubemap()
 
 CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int layers, GLenum format, GLenum internal_format, GLenum type)
 {
-    CGL_texture* texture = malloc(sizeof(CGL_texture));
+    CGL_texture* texture = (CGL_texture*)CGL_malloc(sizeof(CGL_texture));
     texture->width = width;
     texture->height = height;
     texture->depth = layers;
@@ -4654,7 +4763,7 @@ CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height)
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebuffer->color_texture->handle, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, framebuffer->depth_texture->handle, 0);
 
-    GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+    GLenum buffers[1] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buffers);
 
     
@@ -4663,14 +4772,11 @@ CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height)
     {
         CGL_texture_destroy(framebuffer->color_texture);
         CGL_texture_destroy(framebuffer->depth_texture);
-        for(CGL_int i = 0; i < 3; i++)
-            CGL_texture_destroy(framebuffer->mousepick_texture[i]);
         free(framebuffer);
         CGL_log_internal("Framebuffer is not complete\n");
         // get and print opengl error
         GLenum error = glGetError();
-        if(error != GL_NO_ERROR)
-            CGL_log_internal("OpenGL error: %d\n", (error));
+        if(error != GL_NO_ERROR) CGL_log_internal("OpenGL error: %d\n", (error));
         return NULL;
     }
 
@@ -4693,7 +4799,7 @@ void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_text
         return;
     }
 
-    if(framebuffer->color_attachment_count >= 4)
+    if(framebuffer->color_attachment_count >= 8)
     {
         CGL_log_internal("Framebuffer already has 4 color attachments\n");
         return;
@@ -4711,7 +4817,7 @@ void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_text
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + framebuffer->color_attachment_count - 1, GL_TEXTURE_2D, texture->handle, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+    GLenum buffers[8] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 };
 	glDrawBuffers(framebuffer->color_attachment_count, buffers);
 
     // check if framebuffer is complete
@@ -4729,6 +4835,16 @@ void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_text
             CGL_log_internal("OpenGL error: %d\n", (error));
         return;
     }
+}
+
+CGL_texture* CGL_framebuffer_get_color_attachment(CGL_framebuffer* framebuffer, CGL_int index)
+{
+    if(index >= framebuffer->color_attachment_count)
+    {
+        CGL_log_internal("Framebuffer does not have a color attachment at index %d\n", index);
+        return NULL;
+    }
+    return framebuffer->color_attachments[index];
 }
 
 #ifndef CGL_EXCLUDE_WINDOW_API
@@ -5737,7 +5853,8 @@ void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool valu
 // set uniform matrix
 void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix)
 {
-    glUniformMatrix4fv(location, 1, GL_FALSE, (GLfloat*)matrix);
+    glUniformMatrix4fv(location, 1, GL_FALSE, (GLfloat*)matrix->m);
+    //glUniformMatrix4fv(location, 1, GL_TRUE, (GLfloat*)matrix);
 }
 
 // set uniform vector
@@ -6449,7 +6566,7 @@ static const char* __CGL_PHONG_VERTEX_SHADER =
 "\n"
 "void main()\n"
 "{\n"
-"	gl_Position = u_projection * transpose(u_view) * (u_model_matrix) * vec4(position.xyz, 1.0f);\n"
+"	gl_Position = u_projection * u_view * transpose(u_model_matrix) * vec4(position.xyz, 1.0f);\n"
 "	Position = (transpose(u_model_matrix) * position).xyz;\n"
 "	Normal = normal.xyz;\n"
 "	TexCoord = texcoord.xy;		\n"
@@ -7200,10 +7317,10 @@ CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, ui
     tilemap->tile_size_x = tile_size_x;
     tilemap->tile_size_y = tile_size_y;
     tilemap->ssbo = CGL_ssbo_create(ssbo_binding);
-    CGL_mesh_cpu* screen_quad_mesh_cpu = CGL_mesh_cpu_quad((CGL_vec3){ 1.0,  1.0, 0.0},
-                                                           (CGL_vec3){ 1.0, -1.0, 0.0},
-                                                           (CGL_vec3){-1.0, -1.0, 0.0},
-                                                           (CGL_vec3){-1.0,  1.0, 0.0});
+    CGL_mesh_cpu* screen_quad_mesh_cpu = CGL_mesh_cpu_quad(CGL_vec3_init( 1.0,  1.0, 0.0),
+                                                           CGL_vec3_init( 1.0, -1.0, 0.0),
+                                                           CGL_vec3_init(-1.0, -1.0, 0.0),
+                                                           CGL_vec3_init(-1.0,  1.0, 0.0));
     CGL_mesh_gpu* screen_quad_mesh_gpu = CGL_mesh_gpu_create();
     CGL_mesh_gpu_upload(screen_quad_mesh_gpu, screen_quad_mesh_cpu, true);
     CGL_mesh_cpu_destroy(screen_quad_mesh_cpu);
@@ -7624,7 +7741,7 @@ void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_funct
 bool CGL_markov_token_function_ngram_text(void* context, const void* dat, const size_t data_size, void* key, void* value)
 {
     CGL_markov_token_function_ngram_text_context* ctx = (CGL_markov_token_function_ngram_text_context*)context;
-    const char* data = dat;
+    const char* data = (const char*)dat;
     if(ctx->index >= data_size - ctx->n - 1) return false;
     if(key) memcpy(key, data + ctx->index, ctx->n);
     if(value) *((char*)value) = *(data + ctx->index + ctx->n);
