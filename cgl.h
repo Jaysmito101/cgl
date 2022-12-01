@@ -446,15 +446,9 @@ struct CGL_mat3
     CGL_mat3() {}
     CGL_mat3(CGL_float m0, CGL_float m1, CGL_float m2, CGL_float m3, CGL_float m4, CGL_float m5, CGL_float m6, CGL_float m7, CGL_float m8)
     {
-        m[0] = m0;
-        m[1] = m1;
-        m[2] = m2;
-        m[3] = m3;
-        m[4] = m4;
-        m[5] = m5;
-        m[6] = m6;
-        m[7] = m7;
-        m[8] = m8;
+        m[0] = m0; m[3] = m1; m[6] = m2;
+        m[1] = m3; m[4] = m4; m[7] = m5;
+        m[2] = m6; m[5] = m7; m[8] = m8;
     }
 #endif
 };
@@ -470,10 +464,10 @@ struct CGL_mat4
              CGL_float m8, CGL_float m9, CGL_float m10, CGL_float m11,
              CGL_float m12, CGL_float m13, CGL_float m14, CGL_float m15)
     {
-        m[0] = m0; m[1] = m1; m[2] = m2; m[3] = m3;
-        m[4] = m4; m[5] = m5; m[6] = m6; m[7] = m7;
-        m[8] = m8; m[9] = m9; m[10] = m10; m[11] = m11;
-        m[12] = m12; m[13] = m13; m[14] = m14; m[15] = m15;
+        m[0] = m0;   m[4] = m1;   m[8] = m2;     m[12] = m3;
+        m[1] = m4;   m[5] = m5;   m[9] = m6;     m[13] = m7;
+        m[2] = m8;   m[6] = m9;   m[10] = m10;   m[14] = m11;
+        m[3] = m12;  m[7] = m13;  m[11] = m14;   m[15] = m15;
     }
 #endif
 };
@@ -639,10 +633,10 @@ CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
 #define CGL_mat4_init(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) (CGL_mat4) \
 { \
     { \
-        m00, m10, m20, m30, \
-        m01, m11, m21, m31, \
-        m02, m12, m22, m32, \
-        m03, m13, m23, m33 \
+        m00, m01, m02, m03, \
+        m10, m11, m12, m13, \
+        m20, m21, m22, m23, \
+        m30, m31, m32, m33 \
     } \
 }
 */
@@ -653,10 +647,10 @@ CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
 #define CGL_mat4_init(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) (CGL_mat4) \
 { \
     { \
-        m00, m01, m02, m03, \
-        m10, m11, m12, m13, \
-        m20, m21, m22, m23, \
-        m30, m31, m32, m33 \
+        m00, m10, m20, m30, \
+        m01, m11, m21, m31, \
+        m02, m12, m22, m32, \
+        m03, m13, m23, m33 \
     } \
 }
 #endif
@@ -759,22 +753,22 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
     0.0f, 0.0f, 0.0f, 1.0f \
 )
 
-/*
 #define CGL_mat4_perspective(fov, aspect, near, far) CGL_mat4_init(\
     1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, \
     0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, \
     0.0f, 0.0f, (far + near) / (near - far), (2.0f * far * near) / (near - far), \
     0.0f, 0.0f, -1.0f, 0.0f \
 )
-*/
 
 
+/*
 #define CGL_mat4_perspective(fov, aspect, fnear, ffar) CGL_mat4_init(\
     1.0f / (aspect * tanf(fov / 2.0f)), 0.0f, 0.0f, 0.0f, \
     0.0f, 1.0f / tanf(fov / 2.0f), 0.0f, 0.0f, \
     0.0f, 0.0f, (ffar + fnear) / (fnear - ffar), -1.0f, \
     0.0f, 0.0f, (2.0f * ffar * fnear) / (fnear - ffar), 0.0f \
 )
+*/
 
 
 
@@ -3616,7 +3610,7 @@ CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n)
 }
 
 
-CGL_mat4 CGL_mat4_mul(CGL_mat4 a, CGL_mat4 b)
+CGL_mat4 CGL_mat4_mul(CGL_mat4 b, CGL_mat4 a)
 {
     CGL_mat4 result = CGL_mat4_zero();
     for (CGL_int i = 0; i < 4; i++) for (CGL_int j = 0; j < 4; j++)
