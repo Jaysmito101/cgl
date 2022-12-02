@@ -580,6 +580,8 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
 #define CGL_vec4_min(a, b) CGL_vec4_init(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w)
 #define CGL_vec4_max(a, b) CGL_vec4_init(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w)
 #define CGL_vec4_equal(a, b) (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w)
+#define CGL_vec4_normalize(a) { CGL_float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec4_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; a.z *= __CGL_vector_length##__LINE__; a.w *= __CGL_vector_length##__LINE__; }
+#define CGL_vec4_normalize_vec3(a) { CGL_float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec3_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; a.z *= __CGL_vector_length##__LINE__; }
 #define CGL_vec4_centroid_of_triangle(a, b, c) CGL_vec4_init((a.x + b.x + c.x) / 3.0f, (a.y + b.y + c.y) / 3.0f, (a.z + b.z + c.z) / 3.0f, (a.w + b.w + c.w) / 3.0f)
 #define CGL_vec4_from_vec3(a, w) CGL_vec4_init(a.x, a.y, a.z, w)
 #define CGL_vec4_from_vec2(a, z, w) CGL_vec4_init(a.x, a.y, z, w)
@@ -1207,6 +1209,7 @@ void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static
 
 
 CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count);
+CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh);
 CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
@@ -5260,6 +5263,33 @@ CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
     return mesh;
 }
 
+CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh)
+{
+    // clear normals
+    for(size_t i = 0; i < mesh->vertex_count; i++) mesh->vertices[i].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    // calculate un normalized normals
+    for(size_t i = 0; i < mesh->index_count; i += 3)
+    {
+        CGL_vec4 a = mesh->vertices[mesh->indices[i + 0]].position;
+        CGL_vec4 b = mesh->vertices[mesh->indices[i + 1]].position;
+        CGL_vec4 c = mesh->vertices[mesh->indices[i + 2]].position;
+        CGL_vec3 ab = CGL_vec3_sub(b, a);
+        CGL_vec3 ac = CGL_vec3_sub(c, a);
+        CGL_vec3 normal_3 = CGL_vec3_cross(ac, ab);
+        CGL_vec4 normal = CGL_vec4_init(normal_3.x, normal_3.y, normal_3.z, 0.0f);
+        mesh->vertices[mesh->indices[i + 0]].normal = CGL_vec4_add(mesh->vertices[mesh->indices[i + 0]].normal, normal);
+        mesh->vertices[mesh->indices[i + 1]].normal = CGL_vec4_add(mesh->vertices[mesh->indices[i + 1]].normal, normal);
+        mesh->vertices[mesh->indices[i + 2]].normal = CGL_vec4_add(mesh->vertices[mesh->indices[i + 2]].normal, normal);
+    }
+    // normalize normals
+    for(size_t i = 0; i < mesh->vertex_count; i++)
+    {
+        CGL_vec4_normalize_vec3(mesh->vertices[i].normal);
+    }  
+
+    return mesh;
+}
+
 void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, CGL_int count)
 {
     char* begin = line;
@@ -5968,7 +5998,7 @@ struct CGL_bloom
 };
 
 const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
-"layout(local_size_x = 1, local_size_y = 1) in;\n"
+"layout(local_size_x = 16, local_size_y = 16) in;\n"
 "layout(rgba32f, binding = 0) uniform image2D tex_src;\n"
 "layout(rgba32f, binding = 1) uniform image2D tex_dst;\n"
 "\n"
@@ -5977,7 +6007,7 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "#define MODE_UPSAMPLE       2\n"
 "#define MODE_COMPOSITE      3\n"
 "\n"
-"uniform CGL_int u_mode;\n"
+"uniform int u_mode;\n"
 "uniform vec2 u_src_size;\n"
 "uniform ivec2 u_offset;\n"
 "uniform vec2 u_dst_size;\n"
@@ -5986,15 +6016,15 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "vec4 prefilter(vec4 color)\n"
 "{\n"
 "    // pixel brightness\n"
-"    CGL_float br = max(color.x, max(color.y, color.z));\n"
+"    float br = max(color.x, max(color.y, color.z));\n"
 "\n"
 "    // under-threshold part : quadratic curve\n"
 "    vec3 curve = u_prefilter_threshold.yzw; // curve = (threshold - knee, knee * 2, 0.25 / knee)\n"
-"    CGL_float rq = clamp(br - curve.x, 0.0f, curve.y);\n"
+"    float rq = clamp(br - curve.x, 0.0f, curve.y);\n"
 "    rq = curve.z * rq * rq;\n"
 "\n"
 "    //  combine and apply the brightness response curve\n"
-"    CGL_float threshold = u_prefilter_threshold.x;\n"
+"    float threshold = u_prefilter_threshold.x;\n"
 "    color *= max(rq, br - threshold) / max(br, 0.00001f);\n"
 "    //color *= (br - threshold) / max(br, 0.00001f);\n"
 "\n"
@@ -6048,11 +6078,11 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "}\n"
 "\n"
 "vec3 aces_tonemap(vec3 x){	\n"
-"	const CGL_float a = 2.51f;\n"
-"    const CGL_float b = 0.03f;\n"
-"    const CGL_float c = 2.43f;\n"
-"    const CGL_float d = 0.59f;\n"
-"    const CGL_float e = 0.14f;\n"
+"	const float a = 2.51f;\n"
+"    const float b = 0.03f;\n"
+"    const float c = 2.43f;\n"
+"    const float d = 0.59f;\n"
+"    const float e = 0.14f;\n"
 "    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
 "}\n"
 "\n"
@@ -6087,8 +6117,8 @@ const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
 "        ivec2 pixel_coords2 = ivec2(gl_GlobalInvocationID.xy) + u_offset;\n"
 "        pixel += imageLoad(tex_dst, pixel_coords); \n"
 "        pixel += imageLoad(tex_src, pixel_coords2); \n"
-"        pixel = vec4(aces_tonemap(pixel.xyz), clamp(pixel.w, 0.0f, 1.0f));\n"
-"        imageStore(tex_dst, pixel_coords, pixel);        \n"
+"        pixel = vec4(pixel.xyz, clamp(pixel.w, 0.0f, 1.0f));\n"
+"        imageStore(tex_dst, pixel_coords, pixel); \n"
 "    }\n"
 "    else\n"
 "    {\n"
@@ -6107,6 +6137,8 @@ CGL_bloom* CGL_bloom_create(CGL_int width, CGL_int height, CGL_int iterations)
     bloom->iterations = 0;
     bloom->width = width;
     bloom->height = height;
+    bloom->offset_x = 0.0f;
+    bloom->offset_y = 0.0f;
     iterations = CGL_utils_min(CGL_utils_max(1, iterations), CGL_BLOOM_MAX_ITERATIONS);
     bloom->prefiltered = CGL_texture_create_blank(width, height, GL_RGBA, GL_RGBA32F, GL_FLOAT);
     CGL_int i = 0;
@@ -6157,7 +6189,7 @@ void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->width, (float)bloom->height);
     CGL_shader_set_uniform_vec4v(bloom->compute, bloom->cs_u_prefilter_threshold, bloom->threshold, bloom->threshold - bloom->knee, bloom->knee * 2.0f, 0.25f / bloom->knee);
-    CGL_shader_compute_dispatch(bloom->compute, bloom->width, bloom->height, 1);
+    CGL_shader_compute_dispatch(bloom->compute, bloom->width/16 + 1, bloom->height / 16 + 1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     // downsample
@@ -6166,7 +6198,7 @@ void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
     CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_DOWNSAMPLE);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->tex_lod[0]->width, (float)bloom->tex_lod[0]->height);
-    CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[0]->width, bloom->tex_lod[0]->height, 1);
+    CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[0]->width / 16 + 1, bloom->tex_lod[0]->height / 16 + 1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     CGL_int i = 0;
@@ -6177,7 +6209,7 @@ void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
         CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_DOWNSAMPLE);
         CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->tex_lod[i]->width, (float)bloom->tex_lod[i]->height);
         CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->tex_lod[i + 1]->width, (float)bloom->tex_lod[i + 1]->height);
-        CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[i + 1]->width, bloom->tex_lod[i + 1]->height, 1);
+        CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[i + 1]->width / 16 + 1, bloom->tex_lod[i + 1]->height / 16 + 1, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
 
@@ -6189,18 +6221,18 @@ void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
         CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_UPSAMPLE);
         CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->tex_lod[i]->width, (float)bloom->tex_lod[i]->height);
         CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->tex_lod[i + 1]->width, (float)bloom->tex_lod[i + 1]->height);
-        CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[i + 1]->width, bloom->tex_lod[i + 1]->height, 1);
+        CGL_shader_compute_dispatch(bloom->compute, bloom->tex_lod[i + 1]->width / 16 + 1, bloom->tex_lod[i + 1]->height / 16 + 1, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
 
     // composite
-    glBindImageTexture(0, bloom->tex_lod[bloom->iterations * 2 - 1]->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(0, bloom->tex_lod[bloom->iterations * 2 - 1]->handle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
     glBindImageTexture(1, tex->handle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
     CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_COMPOSITE);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->width, (float)bloom->height);
     CGL_shader_set_uniform_ivec2v(bloom->compute, bloom->cs_u_offset, (int)bloom->offset_x, (int)bloom->offset_y);
-    CGL_shader_compute_dispatch(bloom->compute, bloom->width, bloom->height, 1);
+    CGL_shader_compute_dispatch(bloom->compute, bloom->width / 16 + 1, bloom->height / 16 + 1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
@@ -6622,7 +6654,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "uniform mat4 u_view;\n"
 "uniform mat4 u_pv;\n"
 "uniform mat4 u_model_matrix;\n"
-"uniform CGL_int u_light_count;\n"
+"uniform int u_light_count;\n"
 "uniform bool u_use_diffuse_texture;\n"
 "uniform vec3 u_diffuse_color;\n"
 "uniform sampler2D u_diffuse_texture;\n"
@@ -6631,11 +6663,11 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "uniform sampler2D u_specular_texture;\n"
 "uniform bool u_use_normal_map;\n"
 "uniform sampler2D u_normal_map_texture;\n"
-"uniform CGL_float u_shininess;\n"
+"uniform float u_shininess;\n"
 "uniform vec3 u_camera_position;\n"
 "uniform bool u_use_blinn;\n"
 "uniform vec3 u_ambient_light_color;\n"
-"uniform CGL_float u_ambient_light_strength;\n"
+"uniform float u_ambient_light_strength;\n"
 "uniform bool u_use_gamma_correction;\n"
 "\n"
 "vec4 get_material_diffuse_color()\n"
@@ -6654,11 +6686,11 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "\n"
 "\n"
 "vec3 aces_tonemap(vec3 x){	\n"
-"	const CGL_float a = 2.51f;\n"
-"    const CGL_float b = 0.03f;\n"
-"    const CGL_float c = 2.43f;\n"
-"    const CGL_float d = 0.59f;\n"
-"    const CGL_float e = 0.14f;\n"
+"	const float a = 2.51f;\n"
+"    const float b = 0.03f;\n"
+"    const float c = 2.43f;\n"
+"    const float d = 0.59f;\n"
+"    const float e = 0.14f;\n"
 "    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
 "}\n"
 "\n"
@@ -6666,10 +6698,10 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "{\n"
 "    vec3 light_direcion = normalize(-LIGHT_VECTOR(index));\n"
 "    // diffuse shading\n"
-"    CGL_float diff = max(dot(Normal, light_direcion), 0.0f);\n"
+"    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
 "    // specular shading\n"
 "    vec3 view_dir = normalize(u_camera_position - Position);\n"
-"    CGL_float spec = 0.0f;\n"
+"    float spec = 0.0f;\n"
 "    if(u_use_blinn)\n"
 "    {\n"
 "        vec3 halfway_direction = normalize(light_direcion + view_dir);\n"
@@ -6692,10 +6724,10 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "{\n"
 "    vec3 light_direcion = normalize(LIGHT_VECTOR(index) - Position);\n"
 "    // diffuse shading\n"
-"    CGL_float diff = max(dot(Normal, light_direcion), 0.0f);\n"
+"    float diff = max(dot(Normal, light_direcion), 0.0f);\n"
 "    // specular shading\n"
 "    vec3 view_dir = normalize(u_camera_position - Position);\n"
-"    CGL_float spec = 0.0f;\n"
+"    float spec = 0.0f;\n"
 "    if(u_use_blinn)\n"
 "    {\n"
 "        vec3 halfway_direction = normalize(light_direcion + view_dir);\n"
@@ -6710,8 +6742,8 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    vec4 material_diffuse = get_material_diffuse_color();\n"
 "    vec4 material_specular = get_material_specular_color();\n"
 "    // attrnuation\n"
-"    CGL_float distance = length(LIGHT_VECTOR(index) - Position);\n"
-"    CGL_float attenuation = 1.0f / ( LIGHT_CONSTANT(index) + LIGHT_LINEAR(index) * distance + LIGHT_QUADRATIC(index) * (distance * distance));\n"
+"    float distance = length(LIGHT_VECTOR(index) - Position);\n"
+"    float attenuation = 1.0f / ( LIGHT_CONSTANT(index) + LIGHT_LINEAR(index) * distance + LIGHT_QUADRATIC(index) * (distance * distance));\n"
 "    vec4 ambient_lighting = vec4(u_ambient_light_color * u_ambient_light_strength, 1.0f);\n"
 "    vec4 diffuse_lighting = LIGHT_COLOR(index) * diff * material_diffuse;\n"
 "    vec4 specular_lighting = LIGHT_COLOR(index) * spec * material_specular;\n"
@@ -7525,20 +7557,20 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "\n"
 "out vec4 FragColor;\n"
 "\n"
-"const CGL_float Br = 0.0025;\n"
-"const CGL_float Bm = 0.0003;\n"
-"const CGL_float g = 0.9800;\n"
+"const float Br = 0.0025;\n"
+"const float Bm = 0.0003;\n"
+"const float g = 0.9800;\n"
 "const vec3 nitrogen = vec3(0.650, 0.570, 0.475);\n"
 "const vec3 Kr = Br / pow(nitrogen, vec3(4.0));\n"
 "const vec3 Km = Bm / pow(nitrogen, vec3(0.84));\n"
 "\n"
-"float hash(CGL_float n) {\n"
+"float hash(float n) {\n"
 "  return fract(sin(n) * 43758.5453123);\n"
 "}\n"
 "\n"
 "float noise(vec3 x) {\n"
 "  vec3 f = fract(x);\n"
-"  CGL_float n = dot(floor(x), vec3(1.0, 157.0, 113.0));\n"
+"  float n = dot(floor(x), vec3(1.0, 157.0, 113.0));\n"
 "  return mix(mix(mix(hash(n + 0.0), hash(n + 1.0), f.x),\n"
 "      mix(hash(n + 157.0), hash(n + 158.0), f.x), f.y),\n"
 "    mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),\n"
@@ -7547,7 +7579,7 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "\n"
 "const mat3 m = mat3(0.0, 1.60, 1.20, -1.6, 0.72, -0.96, -1.2, -0.96, 1.28);\n"
 "float fbm(vec3 p) {\n"
-"  CGL_float f = 0.0;\n"
+"  float f = 0.0;\n"
 "  f += noise(p) / 2;\n"
 "  p = m * p * 1.1;\n"
 "  f += noise(p) / 4;\n"
@@ -7564,8 +7596,8 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "  vec3 pos = vec3(Position.x, Position.y+upf, Position.z);\n"
 "\n"
 "  // Atmosphere Scattering\n"
-"  CGL_float mu = dot(normalize(pos), normalize(fsun));\n"
-"  CGL_float rayleigh = 3.0 / (8.0 * 3.14) * (1.0 + mu * mu);\n"
+"  float mu = dot(normalize(pos), normalize(fsun));\n"
+"  float rayleigh = 3.0 / (8.0 * 3.14) * (1.0 + mu * mu);\n"
 "  vec3 mie = (Kr + Km * (1.0 - g * g) / (2.0 + g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5)) / (Br + Bm);\n"
 "\n"
 "  vec3 day_extinction = exp(-exp(-((pos.y + fsun.y * 4.0) * (exp(-pos.y * 16.0) + 0.1) / 80.0) / Br) * (exp(-pos.y * 16.0) + 0.1) * Kr / Br) * exp(-pos.y * exp(-pos.y * 8.0) * 4.0) * exp(-pos.y * 2.0) * 4.0;\n"
@@ -7574,12 +7606,12 @@ static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 "  FragColor.rgb = rayleigh * mie * extinction;\n"
 "\n"
 "  // Cirrus Clouds\n"
-"  CGL_float density = smoothstep(1.0 - cirrus, 1.0, fbm(pos.xyz / pos.y * 2.0 + time * 0.05)) * 0.3;\n"
+"  float density = smoothstep(1.0 - cirrus, 1.0, fbm(pos.xyz / pos.y * 2.0 + time * 0.05)) * 0.3;\n"
 "  FragColor.rgb = mix(FragColor.rgb, extinction * 4.0, density * max(pos.y, 0.0));\n"
 "\n"
 "  // Cumulus Clouds\n"
-"  for (CGL_int i = 0; i < 3; i++) {\n"
-"    CGL_float density = smoothstep(1.0 - cumulus, 1.0, fbm((0.7 + float(i) * 0.01) * pos.xyz / pos.y + time * 0.3));\n"
+"  for (int i = 0; i < 3; i++) {\n"
+"    float density = smoothstep(1.0 - cumulus, 1.0, fbm((0.7 + float(i) * 0.01) * pos.xyz / pos.y + time * 0.3));\n"
 "    FragColor.rgb = mix(FragColor.rgb, extinction * density * 5.0, min(density, 1.0) * max(pos.y, 0.0));\n"
 "  }\n"
 "\n"
@@ -9727,7 +9759,7 @@ static CGL_toon* __CGL_TOON_CONTEXT = NULL;
 static const CGL_byte* __CGL_TOON_SHADES_SHADER_SOURCE =
 "#version 430 core\n"
 "\n"
-"layout (local_size_x = 1, local_size_y = 1) in;\n"
+"layout (local_size_x = 16, local_size_y = 16) in;\n"
 "\n"
 "layout (rgba32f, binding = 0) uniform image2D output_tex;\n"
 "layout (rgba32f, binding = 1) uniform image2D input_tex;\n"
@@ -9751,7 +9783,7 @@ static const CGL_byte* __CGL_TOON_SHADES_SHADER_SOURCE =
 static const CGL_byte* __CGL_TOON_OUTLINES_SHADER_SOURCE = 
 "#version 430 core\n"
 
-"layout (local_size_x = 1, local_size_y = 1) in;\n"
+"layout (local_size_x = 16, local_size_y = 16) in;\n"
 
 "layout (rgba32f, binding = 0) uniform image2D output_tex;\n"
 "layout (rgba32f, binding = 1) uniform image2D scene;\n"
@@ -9835,7 +9867,7 @@ void CGL_toon_post_processor_process_shades(CGL_texture* output, CGL_texture* sc
     CGL_texture_bind(albedo, 2);
     CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "albedo_tex"), 2);    
     CGL_shader_set_uniform_ivec2v(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "resolution"), output->width, output->height);
-    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->shades_shader, output->width, output->height, 1);
+    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->shades_shader, output->width/16+1, output->height/16+1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
@@ -9850,7 +9882,7 @@ void CGL_toon_post_processor_process_outline(CGL_texture* output, CGL_texture* s
     CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "depth_tex"), 3);
     CGL_shader_set_uniform_ivec2v(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "resolution"), output->width, output->height);
     CGL_shader_set_uniform_float(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "outline_width"), outline_width);
-    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->outlines_shader, output->width, output->height, 1);
+    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->outlines_shader, output->width/16+1, output->height/16+1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
