@@ -1709,20 +1709,27 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
 #endif
 
 
-#ifndef CGL_EXCLUDE_TOON_POsT_PROCESSOR
+#ifndef CGL_EXCLUDE_POST_PROCESSOR
 
-struct CGL_toon;
-typedef struct CGL_toon CGL_toon;
+struct CGL_post_processor;
+typedef struct CGL_post_processor CGL_post_processor;
 
-void CGL_toon_post_processor_init();
-void CGL_toon_post_processor_shutdown();
-void CGL_toon_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades);
-void CGL_toon_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width);
+void CGL_post_processor_init();
+void CGL_post_processor_shutdown();
+void CGL_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades);
+void CGL_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width);
+void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene, CGL_texture* uv, CGL_texture** hatch_tex, CGL_int hatch_tex_count);
+
+// for legacy code
+#define  CGL_toon_post_processor_init CGL_post_processor_init
+#define  CGL_toon_post_processor_shutdown CGL_post_processor_shutdown
+#define  CGL_toon_post_processor_process_shades CGL_post_processor_process_shades
+#define  CGL_toon_post_processor_process_outline CGL_post_processor_process_outline
 
 #endif
 
 
-#ifdef CGL_INCLUDE_PASCAL_TYPES
+#ifdef CGL_INCLUDE_PASCAL_CASE_TYPES
 typedef CGL_int Integer;
 typedef CGL_float Real;
 typedef CGL_byte Byte;
@@ -4470,8 +4477,8 @@ CGL_texture* CGL_texture_create(CGL_image* image)
     glTexImage2D(texture->target, 0, internal_format, image->width, image->height, 0, format, type, image->data);
     glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glBindTexture(texture->target, 0);
     return texture;
 }
@@ -4493,10 +4500,10 @@ CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum form
     glTexImage2D(texture->target, 0, internal_format, width, height, 0, format, type, NULL);
     glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT);
 #ifndef CGL_WASM
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_REPEAT);
 #endif
     glBindTexture(texture->target, 0);
     return texture;
@@ -4541,9 +4548,9 @@ CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int lay
     glTexImage3D(texture->target, 0, texture->internal_format, width, height, layers, 0, texture->format, texture->type, NULL);
     glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_REPEAT);
     glBindTexture(texture->target, 0);
     return texture;
 }
@@ -4583,16 +4590,18 @@ void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void*
 
 void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method)
 {
+	glBindTexture(texture->target, texture->handle);
     glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, method);
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, method);
 }
 
 void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
 {
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(texture->target, texture->handle);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, method);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, method);
 #ifndef CGL_WASM
-    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, method);
 #endif
 }
 
@@ -9597,6 +9606,7 @@ void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bool e
     marcher->interpolate = enable;
 }
 
+
 void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
 {
     CGL_mesh_vertex v;
@@ -9609,6 +9619,7 @@ void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec2 a,
     CGL_list_push(list, &v);
 }
 
+
 CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, CGL_int resolution_x, CGL_int resolution_y)
 {
     CGL_vec2 step_size = CGL_vec2_init((end.x - start.x) / (float)resolution_x, (end.y - start.y) / (float)resolution_y);
@@ -9616,6 +9627,7 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
     CGL_bool smpb[4];
     CGL_float smpv[4], intr[4];
     CGL_list* mesh_list = CGL_list_create(sizeof(CGL_mesh_vertex), 1000);
+
     for(CGL_int xi = -1 ; xi < resolution_x ; xi ++)
     {
         for(CGL_int yi = -1 ; yi < resolution_y ; yi ++)
@@ -9624,7 +9636,9 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
             pos[1] = CGL_vec2_init(start.x + (xi + 1) * step_size.x, start.y + (yi + 1) * step_size.y);
             pos[2] = CGL_vec2_init(start.x + (xi + 1) * step_size.x, start.y + yi * step_size.y);
             pos[3] = CGL_vec2_init(start.x + xi * step_size.x, start.y + yi * step_size.y);
+
             for (CGL_int i = 0 ; i < 4 ; i++) intr[i] = 0.5f;
+
             /*
             *  A Possible Optimization
             *
@@ -9633,9 +9647,13 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
             * And have 2 inner loops from 1 - 10 each there e could cache the vlaue of the distance function
             * And then use the cached values in the inner loop saving a lot of calls to the distance function
             */
+
             for (CGL_int i = 0 ; i < 4 ; i++) smpb[i] = sampler(pos[i], &smpv[i], marcher->user_data);
+
             if(marcher->interpolate) for (CGL_int i = 0 ; i < 4 ; i++) intr[i] = smpv[i] / ( smpv[i] + smpv[(i + 1) % 4]);
+
             for (CGL_int i = 0 ; i < 4 ; i++) mpts[i] = CGL_vec2_init(CGL_utils_mix(pos[i].x, pos[(i + 1) % 4].x, intr[i]), CGL_utils_mix(pos[i].y, pos[(i + 1) % 4].y, intr[i]));
+
             if(!smpb[0] && !smpb[1] && !smpb[2] && !smpb[3]) // 0000
             {
 
@@ -9743,18 +9761,28 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
     return mesh;
 }
 
+
+
 #endif
 
 
-#ifndef CGL_EXCLUDE_TOON_POsT_PROCESSOR
 
-struct CGL_toon
+#ifndef CGL_EXCLUDE_POST_PROCESSOR
+
+
+
+struct CGL_post_processor
 {
     CGL_shader* shades_shader;
     CGL_shader* outlines_shader;
+    CGL_shader* hatching_shader;
 };
 
-static CGL_toon* __CGL_TOON_CONTEXT = NULL;
+
+
+static CGL_post_processor* __CGL_POST_PROCESSOR_CONTEXT = NULL;
+
+
 
 static const CGL_byte* __CGL_TOON_SHADES_SHADER_SOURCE =
 "#version 430 core\n"
@@ -9779,6 +9807,8 @@ static const CGL_byte* __CGL_TOON_SHADES_SHADER_SOURCE =
 "    imageStore(output_tex, pixel_coord, vec4(output_pixel, 1.0));\n"
 "}\n"
 "\n";
+
+
 
 static const CGL_byte* __CGL_TOON_OUTLINES_SHADER_SOURCE = 
 "#version 430 core\n"
@@ -9844,52 +9874,127 @@ static const CGL_byte* __CGL_TOON_OUTLINES_SHADER_SOURCE =
 "    imageStore(output_tex, pixel_coord, vec4(output_pixel, 1.0));\n"
 "}\n";
 
-void CGL_toon_post_processor_init()
+
+
+static const CGL_byte* __CGL_TOON_HATCHING_SHADER_SOURCE =
+"#version 430 core\n"
+"\n"
+"layout (local_size_x = 16, local_size_y = 16) in;\n"
+"\n"
+"layout (rgba32f, binding = 0) uniform image2D output_tex;\n"
+"\n"
+"uniform sampler2D input_tex;\n"
+"uniform sampler2D uv_tex;\n"
+"uniform sampler2D hatch_tex[8];\n"
+"uniform int hatch_tex_count;\n"
+"uniform ivec2 resolution;\n"
+"\n"
+"vec3 hatching(vec2 uv, float intensity)\n"
+"{\n"
+"   vec3 overbright = vec3(max(0.0f, intensity - 1.0f));\n"
+"   vec3 opt = overbright;\n"
+"   float tot_weight = 0.0f;\n"
+"   for(int i = 0 ; i < hatch_tex_count; i++)\n"
+"   {\n"
+"       float a0 = clamp(intensity * float(hatch_tex_count) - float(i), 0.0f, 1.0f);\n"
+"       float a1 = clamp(intensity * float(hatch_tex_count) - float(i + 1), 0.0f, 1.0f);\n"
+"       float weight = a0 - a1;\n"
+"       tot_weight += weight;"
+"       opt += texture(hatch_tex[i], uv * 8.0f).rgb * weight;\n"
+"   }\n"
+"   return opt / tot_weight;\n"
+"}\n"
+"\n"
+"void main()\n"
+"{\n"
+"    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);\n"
+"    vec2 uv = vec2(pixel_coord) / vec2(resolution);\n"
+"    vec2 sc_uv = texture(uv_tex, uv).rg;\n"
+"    float filter_f = length(sc_uv);\n"
+"    vec3 input_color = texture(input_tex, uv).rgb;\n"
+"    vec3 output_pixel = vec3(0.0f);\n"
+"    output_pixel = hatching(uv, dot(input_color, vec3(0.2326f, 0.7152f, 0.0722f)));\n"
+"    if(filter_f > 1.0f) {output_pixel = vec3(1.0f); }\n"
+"    imageStore(output_tex, pixel_coord, vec4(output_pixel, 1.0));\n"
+"}\n"
+"\n";
+
+
+void CGL_post_processor_init()
 {
-    __CGL_TOON_CONTEXT = (CGL_toon*)CGL_malloc(sizeof(CGL_toon));
-    __CGL_TOON_CONTEXT->shades_shader = CGL_shader_compute_create(__CGL_TOON_SHADES_SHADER_SOURCE, NULL);
-    __CGL_TOON_CONTEXT->outlines_shader = CGL_shader_compute_create(__CGL_TOON_OUTLINES_SHADER_SOURCE, NULL);
+    __CGL_POST_PROCESSOR_CONTEXT = (CGL_post_processor*)CGL_malloc(sizeof(CGL_post_processor));
+    __CGL_POST_PROCESSOR_CONTEXT->shades_shader = CGL_shader_compute_create(__CGL_TOON_SHADES_SHADER_SOURCE, NULL);
+    __CGL_POST_PROCESSOR_CONTEXT->outlines_shader = CGL_shader_compute_create(__CGL_TOON_OUTLINES_SHADER_SOURCE, NULL);
+    __CGL_POST_PROCESSOR_CONTEXT->hatching_shader = CGL_shader_compute_create(__CGL_TOON_HATCHING_SHADER_SOURCE, NULL);
 }
 
-void CGL_toon_post_processor_shutdown()
+
+void CGL_post_processor_shutdown()
 {
-    CGL_shader_destroy(__CGL_TOON_CONTEXT->shades_shader);
-    CGL_shader_destroy(__CGL_TOON_CONTEXT->outlines_shader);
-    CGL_free(__CGL_TOON_CONTEXT);
+    CGL_shader_destroy(__CGL_POST_PROCESSOR_CONTEXT->shades_shader);
+    CGL_shader_destroy(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader);
+    CGL_shader_destroy(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader);
+    CGL_free(__CGL_POST_PROCESSOR_CONTEXT);
 }
 
-void CGL_toon_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades)
+
+void CGL_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades)
 {
-    CGL_shader_bind(__CGL_TOON_CONTEXT->shades_shader);
+    CGL_shader_bind(__CGL_POST_PROCESSOR_CONTEXT->shades_shader);
     glBindImageTexture(0, output->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindImageTexture(1, scene->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "shades"), shades);    
+    CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->shades_shader, "shades"), shades);    
     CGL_texture_bind(albedo, 2);
-    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "albedo_tex"), 2);    
-    CGL_shader_set_uniform_ivec2v(__CGL_TOON_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->shades_shader, "resolution"), output->width, output->height);
-    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->shades_shader, output->width/16+1, output->height/16+1, 1);
+    CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->shades_shader, "albedo_tex"), 2);    
+    CGL_shader_set_uniform_ivec2v(__CGL_POST_PROCESSOR_CONTEXT->shades_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->shades_shader, "resolution"), output->width, output->height);
+    CGL_shader_compute_dispatch(__CGL_POST_PROCESSOR_CONTEXT->shades_shader, output->width/16+1, output->height/16+1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void CGL_toon_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width)
+
+void CGL_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width)
 {
-    CGL_shader_bind(__CGL_TOON_CONTEXT->outlines_shader);
+    CGL_shader_bind(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader);
     glBindImageTexture(0, output->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindImageTexture(1, scene->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
     CGL_texture_bind(normal, 2);
-    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "normal_tex"), 2);    
+    CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, "normal_tex"), 2);    
     CGL_texture_bind(depth, 3);
-    CGL_shader_set_uniform_int(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "depth_tex"), 3);
-    CGL_shader_set_uniform_ivec2v(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "resolution"), output->width, output->height);
-    CGL_shader_set_uniform_float(__CGL_TOON_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_TOON_CONTEXT->outlines_shader, "outline_width"), outline_width);
-    CGL_shader_compute_dispatch(__CGL_TOON_CONTEXT->outlines_shader, output->width/16+1, output->height/16+1, 1);
+    CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, "depth_tex"), 3);
+    CGL_shader_set_uniform_ivec2v(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, "resolution"), output->width, output->height);
+    CGL_shader_set_uniform_float(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, "outline_width"), outline_width);
+    CGL_shader_compute_dispatch(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader, output->width/16+1, output->height/16+1, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+
+
+void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene, CGL_texture* uv_tex, CGL_texture** hatch_tex, CGL_int hatch_tex_count)
+{
+    static char buffer[256];
+    CGL_shader_bind(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader);
+    glBindImageTexture(0, output->handle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+    CGL_texture_bind(uv_tex, 2);
+    CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, "uv_tex"), 2);
+    CGL_texture_bind(scene, 3);
+    CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, "input_tex"), 3);
+    for(CGL_int i = 0 ; i < hatch_tex_count ; i++)
+    {
+        sprintf(buffer, "hatch_tex[%d]", i);
+        CGL_texture_bind(hatch_tex[i], 4 + i);
+        CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, buffer), 4 + i);
+    }
+    CGL_shader_set_uniform_int(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, "hatch_tex_count"), hatch_tex_count);
+    CGL_shader_set_uniform_ivec2v(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, CGL_shader_get_uniform_location(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, "resolution"), output->width, output->height);
+    CGL_shader_compute_dispatch(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader, output->width/16+1, output->height/16+1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 #endif
 
 
+
+
 #endif // CGL_IMPLEMENTATION
 
 #endif // CGL_H
-
