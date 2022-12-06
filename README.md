@@ -27,17 +27,19 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 **NOTE** : Do not think that header only means its going to increase compile time as the implementation needs be enabled only for 1 file using `#define CGL_IMPLEMENTATION`. See [Examples](./examples)
 
+<br>
+
 ## Target Platforms
 
-||||||
-|--|--|--|--|--|
-|<b><i>Windows</b></i>|<b><i>Linux</b></i>|<b><i>MacOS (untested)</b></i>|<b><i>WebAssembly (Beta)</b></i>|<b><i>Android (Coming Soon)</b></i>|
+- <b><i>Windows</b></i>
+- <b><i>Linux</b></i>
+- <b><i>MacOS (untested)</b></i>
+- <b><i>WebAssembly (Beta)</b></i>
+- <b><i>Android (Coming Soon)</b></i>
 
 <br>
 
 ## What does CGL Provide? 
-
-<details><summary><h3> Know Here </h3></summary>
 
 * Windowing library (Optional)
   - You can completely disable it by `#define CGL_EXCLUDE_WINDOW_API`
@@ -226,8 +228,6 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
        - tileset or texture atlas -> you have to provide bounds (normalized 0.0-1.0) of the area of the alas to be used on tile
     - NOTE: this tile render renders only 4 vertices and has only 1 draw call  (not a instanced call so its quite fast
     
-  </details>
-  
   
  ## Things that are being worked on:
  
