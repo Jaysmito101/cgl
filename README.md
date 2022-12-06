@@ -1,18 +1,22 @@
-<br/>
-<p align="center">
-    <img src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/logo.png" border="0"></
+<p align="center"><img src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/logo.png" border="0">
 </p>
 
-<br/>
+
+
 <p align="center">
-  <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/Jaysmito101/cgl?style=for-the-badge">
-  <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/Jaysmito101/cgl?style=for-the-badge">
-  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/w/Jaysmito101/cgl?style=for-the-badge">
-    <br>
-    <img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2022?style=for-the-badge">
-    <a href="https://patreon.com/jaysmito101"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Djaysmito101%26type%3Dpledges&style=for-the-badge" alt="Support me on Patreon" /></a>
+
+![GitHub PR Open](https://img.shields.io/github/issues-pr/Jaysmito101/cgl?style=for-the-badge&color=aqua)
+![GitHub language count](https://img.shields.io/github/languages/count/Jaysmito101/cgl?style=for-the-badge&color=brightgreen)
+![GitHub top language](https://img.shields.io/github/languages/top/Jaysmito101/cgl?style=for-the-badge&color=aqua)
+![GitHub Maintained](https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg?style=for-the-badge)
+![Github Repo Size](https://img.shields.io/github/repo-size/Jaysmito101/cgl?style=for-the-badge&color=aqua)
+<img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2022?style=for-the-badge">
+<a href="https://patreon.com/jaysmito101"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Djaysmito101%26type%3Dpledges&style=for-the-badge" alt="Support me on Patreon" /></a>
 </p>
 <br/>
+
+<p align="center"> <b>
+⭐ SHOW 🧡 BY STARRING THIS REPO ⭐  </b></p>
 
 # Index
 * [Intro](#cgl)
@@ -23,22 +27,19 @@
 # CGL
 CGL (C Graphics Library) is a multipurpose library mainly for recreational coding /  demo scenes / prototyping / small games / experimentation. This has a lot of utilities for graphics. And best of all all of it is inside a single header file `cgl.h`.  Also CGL is made purely in C but is also compatible with C++. 
 
-NOTE: Do not think that header only means its going to increase compile time as the implementation needs be enabled only for 1 file using `#define CGL_IMPLEMENTATION`
-
-[Examples](./examples)
+**NOTE** : Do not think that header only means its going to increase compile time as the implementation needs be enabled only for 1 file using `#define CGL_IMPLEMENTATION`. See [Examples](./examples)
 
 ## Target Platforms
-* Windows
-* Linux
-* MacOS (untested)
-* WebAssembly (Beta)
-* Android (Comming soon...)
 
-## What does CGL Provide
+<b><i>Windows</b></i> &nbsp;  <b><i>Linux</b></i> &nbsp;  <b><i>MacOS (untested)</b></i> &nbsp;  <b><i>WebAssembly (Beta)</b></i> &nbsp; <b><i>Android (Coming Soon)</b></i>
+
+## What does CGL Provide? 
+
+<details><summary><h3> Know Here </h3></summary>
 
 * Windowing library (Optional)
   - You can completely disable it by `#define CGL_EXCLUDE_WINDOW_API`
-  - This windowing library is primarily a wrapper GLFW along with a few extra functionalities. For example in case you are using some library like `nuklear` for GUI it will mess up all `glfw` callbacks so with CGL you can restore the CGL callbacks with a call to `CGL_window_resecure_callbacks`
+  - This windowing library is primarily a wrapper GLFW along with a few extra functionalities. **Example** : In case you are using some library like `nuklear` for GUI it will mess up all `glfw` callbacks so with CGL you can restore the CGL callbacks with a call to `CGL_window_resecure_callbacks`
 
 * Utility functionalities
   - Reading/Writing files
@@ -145,7 +146,7 @@ NOTE: Do not think that header only means its going to increase compile time as 
   - Rotation Matrices using Goldman's Method
   - look_at matrix 
   - Quaternion math
-  - NOTE: Most of math functions are implemented via macros so will be totally inclined and quite fast without any unnecessary function calls
+  - **NOTE:** Most of math functions are implemented via macros so will be **totally inclined** and quite fast without any unnecessary function calls
 
 * High Level OpenGL API for (Optional)
   - You can completely disable it by `#define CGL_EXCLUDE_GRAPHICS_API`
@@ -223,25 +224,34 @@ NOTE: Do not think that header only means its going to increase compile time as 
        - tileset or texture atlas -> you have to provide bounds (normalized 0.0-1.0) of the area of the alas to be used on tile
     - NOTE: this tile render renders only 4 vertices and has only 1 draw call  (not a instanced call so its quite fast
     
+  </details>
+  
+  
  ## Things that are being worked on:
  
  * PBR renderer (optional)
  * IBL (optional)
  
-## Showreels
-
-
+ 
+<details><summary><h2>Showreels</h2></summary>
+ 
 https://user-images.githubusercontent.com/73700725/205131064-2ea36253-7976-4b02-bfdf-290b5a8e2171.mp4
-
-
+ 
 https://user-images.githubusercontent.com/73700725/205130311-87cdddbb-e96f-412a-a9b5-96b2f474f6d1.mp4
-
 
 https://user-images.githubusercontent.com/73700725/205130454-017992a5-f786-4b7e-b330-9046edbec25c.mp4
 
-
 https://user-images.githubusercontent.com/73700725/205130582-8f6a4ce8-d932-402e-ad88-24a2e7d090b7.mp4
 
+</details>
 
 
-For more see [Examples](./examples) and [Showreel](./showreels)
+**For more see [Examples](./examples) and [Showreel](./showreels)**
+
+<br>
+
+## Contributors
+
+<a href="https://github.com/Jaysmito101/cgl/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Jaysmito101/cgl" />
+</a>
