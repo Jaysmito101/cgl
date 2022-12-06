@@ -6,17 +6,13 @@
 <p align="center">
 
 ![GitHub PR Open](https://img.shields.io/github/issues-pr/Jaysmito101/cgl?style=for-the-badge&color=aqua)
-![GitHub language count](https://img.shields.io/github/languages/count/Jaysmito101/cgl?style=for-the-badge&color=brightgreen)
-![GitHub top language](https://img.shields.io/github/languages/top/Jaysmito101/cgl?style=for-the-badge&color=aqua)
-![GitHub Maintained](https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg?style=for-the-badge)
 ![Github Repo Size](https://img.shields.io/github/repo-size/Jaysmito101/cgl?style=for-the-badge&color=aqua)
 <img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2022?style=for-the-badge">
 <a href="https://patreon.com/jaysmito101"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Djaysmito101%26type%3Dpledges&style=for-the-badge" alt="Support me on Patreon" /></a>
 </p>
 <br/>
 
-<p align="center"> <b>
-⭐ SHOW 🧡 BY STARRING THIS REPO ⭐  </b></p>
+
 
 # Index
 * [Intro](#cgl)
@@ -33,7 +29,11 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 ## Target Platforms
 
-<b><i>Windows</b></i> &nbsp;  <b><i>Linux</b></i> &nbsp;  <b><i>MacOS (untested)</b></i> &nbsp;  <b><i>WebAssembly (Beta)</b></i> &nbsp; <b><i>Android (Coming Soon)</b></i>
+||||||
+|--|--|--|--|--|
+|<b><i>Windows</b></i>|<b><i>Linux</b></i>|<b><i>MacOS (untested)</b></i>|<b><i>WebAssembly (Beta)</b></i>|<b><i>Android (Coming Soon)</b></i>|
+
+<br>
 
 ## What does CGL Provide? 
 
