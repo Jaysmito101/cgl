@@ -3,7 +3,14 @@ import React from "react";
 export default function Header() {
   return (
     <>
-      <nav className="container mx-auto py-2.5 px-5 mt-2 rounded-xl bg-gray-900 w-full z-20 border-gray-600">
+      <nav className="sticky top-0 container mx-auto py-2.5 px-5 rounded-xl bg-gray-900 w-full z-20 border-gray-600" style={{
+        /* From https://css.glass */
+        'background': 'rgba(255, 255, 255, 0.2)',
+        'borderRadius': '16px',
+        'boxShadow': '0 4px 30px rgba(0, 0, 0, 0.1)',
+        'backdropFilter': 'blur(5px)',
+        'border': '1px solid rgba(255, 255, 255, 0.3)',
+      }}>
         <div className="container flex flex-wrap mx-auto items-center justify-between">
 
           <div className="pb-3 pl-4">
