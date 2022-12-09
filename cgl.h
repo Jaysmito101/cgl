@@ -157,11 +157,15 @@ void CGL_net_ssl_log_errors();
 #if 1
 // CGL utils
 
-char* CGL_utils_read_file(const char* path, size_t* size); // read file into memory
-bool CGL_utils_append_file(const char* path, const char* data, size_t size);
-bool CGL_utils_write_file(const char* path, const char* data, size_t size); // write data to file
-float CGL_utils_get_time();
+CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
+CGL_bool CGL_utils_append_file(const CGL_byte* path, const CGL_byte* data, size_t size);
+CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); // write data to file
+CGL_float CGL_utils_get_time();
 void CGL_utils_get_timestamp(char* buffer);
+CGL_bool CGL_utils_is_little_endian();
+void CGL_utils_reverse_bytes(void* data, size_t size);
+void CGL_utils_little_endian_to_current(void* data, size_t size);
+void CGL_utils_big_endian_to_current(void* data, size_t size);
 
 #define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy))
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
@@ -1729,6 +1733,21 @@ void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene
 #endif
 
 
+struct CGL_wav_file
+{
+    CGL_byte* data;
+    CGL_int size;
+    CGL_int channel_count;
+    CGL_int sample_rate;
+    CGL_int bits_per_sample;
+
+};
+typedef struct CGL_wav_file CGL_wav_file;
+
+CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename);
+void CGL_wav_file_destroy(CGL_wav_file* file);
+
+
 #ifdef CGL_INCLUDE_PASCAL_CASE_TYPES
 typedef CGL_int Integer;
 typedef CGL_float Real;
@@ -3147,6 +3166,36 @@ void CGL_utils_get_timestamp(char* buffer)
     time_t ltime = time(NULL);
     sprintf(buffer, "%s", asctime( localtime(&ltime)));
     buffer[strlen(buffer) - 2] = '\0';
+}
+
+// From : https://stackoverflow.com/a/12792056/14911094
+CGL_bool CGL_utils_is_little_endian()
+{
+    CGL_int i = 0x01234567;
+    return (*((CGL_ubyte*)(&i))) == 0x67;
+}
+
+void CGL_utils_reverse_bytes(void* vdata, size_t size)
+{
+    CGL_byte* data = (CGL_byte*)vdata;
+    for(size_t i = 0; i < size / 2; i++)
+    {
+        CGL_byte temp = data[i];
+        data[i] = data[size - i - 1];
+        data[size - i - 1] = temp;
+    }
+}
+
+void CGL_utils_little_endian_to_current(void* data, size_t size)
+{
+    if(CGL_utils_is_little_endian()) return;
+    CGL_utils_reverse_bytes(data, size);
+}
+
+void CGL_utils_big_endian_to_current(void* data, size_t size)
+{
+    if(!CGL_utils_is_little_endian()) return;
+    CGL_utils_reverse_bytes(data, size);
 }
 
 void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
@@ -9992,6 +10041,84 @@ void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene
 
 #endif
 
+// Referred from https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename)
+{
+    FILE* fd = fopen(filename, "rb");
+    if(!fd) return false;
+    CGL_int tmp = 0, ck_size = 0, fmt_ck_size = 0, audio_format = 0, channel_count = 0, sample_rate = 0, byte_rate = 0, block_align = 0, bits_per_sample = 0, data_ck_size = 0;
+
+    // check RIFF signature
+    fread(&tmp, 4, 1, fd);
+    if(memcmp((CGL_byte*)&tmp, "RIFF", 4) != 0) { CGL_log_internal("WAV Loader (%s): Invalid RIFF signature", filename); fclose(fd); return false; }
+
+    // read chunk size
+    fread(&ck_size, 4, 1, fd);
+    CGL_utils_little_endian_to_current(&ck_size, 4);
+
+    // check WAVE signature
+    fread(&tmp, 4, 1, fd);
+    if(memcmp((CGL_byte*)&tmp, "WAVE", 4) != 0) { CGL_log_internal("WAV Loader (%s): Invalid WAVE signature", filename); fclose(fd); return false; }
+
+    // check fmt signature
+    fread(&tmp, 4, 1, fd);
+    if(memcmp((CGL_byte*)&tmp, "fmt ", 4) != 0) { CGL_log_internal("WAV Loader (%s): Invalid fmt signature", filename); fclose(fd); return false; }
+
+    // read fmt chunk size
+    fread(&fmt_ck_size, 4, 1, fd);
+    CGL_utils_little_endian_to_current(&fmt_ck_size, 4);
+
+    // read audio format
+    fread(&audio_format, 2, 1, fd);
+    CGL_utils_little_endian_to_current(&audio_format, 2);
+    audio_format = (CGL_int)(*((CGL_short*)&audio_format));
+    if(audio_format != 1) { CGL_log_internal("WAV Loader (%s): Unsupported audio format", filename); fclose(fd); return false; }
+
+    // read channel count
+    fread(&channel_count, 2, 1, fd);
+    CGL_utils_little_endian_to_current(&channel_count, 2);
+    channel_count = (CGL_int)(*((CGL_short*)&channel_count));
+
+    // read sample rate
+    fread(&sample_rate, 4, 1, fd);
+    CGL_utils_little_endian_to_current(&sample_rate, 4);
+
+    // read byte rate = sample rate * block align(= channel count * bits per sample / 8)
+    fread(&byte_rate, 4, 1, fd);
+    CGL_utils_little_endian_to_current(&byte_rate, 4);
+
+    // read block align = channel count * bits per sample / 8
+    fread(&block_align, 2, 1, fd);
+    CGL_utils_little_endian_to_current(&block_align, 2);
+    block_align = (CGL_int)(*((CGL_short*)&block_align));
+
+    // read bits per sample
+    fread(&bits_per_sample, 2, 1, fd);
+    CGL_utils_little_endian_to_current(&bits_per_sample, 2);
+    bits_per_sample = (CGL_int)(*((CGL_short*)&bits_per_sample));
+
+    // check data signature
+    fread(&tmp, 4, 1, fd);
+    if(memcmp((CGL_byte*)&tmp, "data", 4) != 0) { CGL_log_internal("WAV Loader (%s): Invalid data signature", filename); fclose(fd); return false; }
+
+    // read data chunk size
+    fread(&data_ck_size, 4, 1, fd);
+    CGL_utils_little_endian_to_current(&data_ck_size, 4);
+
+    // read data
+    file->data = (CGL_byte*)CGL_malloc(data_ck_size);
+    if(!file->data) { CGL_log_internal("WAV Loader (%s): Failed to allocate memory", filename); fclose(fd); return false; }
+
+    fread(file->data, data_ck_size, 1, fd);
+    
+    fclose(fd);
+    return true;
+}
+
+void CGL_wav_file_destroy(CGL_wav_file* file)
+{
+    CGL_free(file->data);
+}
 
 
 
