@@ -81,6 +81,7 @@ typedef long long CGL_longlong;
 typedef float CGL_float;
 typedef double CGL_double;
 typedef long double CGL_longdouble;
+typedef size_t CGL_sizei;
 typedef bool CGL_bool;
 
 #ifdef CGL_LOGGING_ENABLED
@@ -1050,6 +1051,7 @@ typedef void(*CGL_window_mouse_position_callback)(CGL_window* window, double xpo
 typedef void(*CGL_window_mouse_scroll_callback)(CGL_window* window, double xoffset, double yoffset);
 typedef void(*CGL_window_framebuffer_size_callback)(CGL_window* window, CGL_int width, CGL_int height);
 typedef void(*CGL_window_close_callback)(CGL_window* window);
+typedef void(*CGL_window_drag_n_drop_callback)(CGL_window* window, const CGL_byte** paths, CGL_int count);
 
 CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title); // create window and initialize GLFW
 void CGL_window_destroy(CGL_window* window); // destroy window and terminate GLFW
@@ -1071,6 +1073,7 @@ void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse
 void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback); // set mouse scroll callback
 void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback); // set framebuffer size callback
 void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback); // set close callback
+void CGL_window_set_drag_n_drop_callback(CGL_window* window, CGL_window_drag_n_drop_callback callback); // set drag and drop callback
 void CGL_window_resecure_callbacks(CGL_window* window);
 void CGL_window_make_context_current(CGL_window* window); // make opengl context current
 GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window);
@@ -1740,12 +1743,70 @@ struct CGL_wav_file
     CGL_int channel_count;
     CGL_int sample_rate;
     CGL_int bits_per_sample;
-
+    CGL_int data_size;
+    CGL_float duration;
 };
 typedef struct CGL_wav_file CGL_wav_file;
 
 CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename);
 void CGL_wav_file_destroy(CGL_wav_file* file);
+
+#ifndef CGL_EXCLUDE_AUDIO
+
+#include <AL/al.h>
+#include <AL/alc.h>
+
+struct CGL_audio_context;
+typedef struct CGL_audio_context CGL_audio_context;
+
+struct CGL_audio_source;
+typedef struct CGL_audio_source CGL_audio_source;
+
+struct CGL_audio_buffer;
+typedef struct CGL_audio_buffer CGL_audio_buffer;
+
+struct CGL_audio_listener;
+typedef struct CGL_audio_listener CGL_audio_listener;
+
+CGL_int CGL_audio_get_last_error();
+const CGL_byte* CGL_audio_get_error_string(CGL_int error);
+const CGL_byte* CGL_audio_get_device_list();
+const CGL_byte* CGL_audio_get_default_device();
+CGL_audio_context* CGL_audio_context_create(const CGL_byte* device_name);
+void CGL_audio_context_destroy(CGL_audio_context* context);
+void CGL_audio_make_context_current(CGL_audio_context* context);
+CGL_audio_source* CGL_audio_source_create();
+void CGL_audio_source_destroy(CGL_audio_source* source);
+void CGL_audio_source_reset_to_defaults(CGL_audio_source* source);
+void CGL_audio_source_set_buffer(CGL_audio_source* source, CGL_audio_buffer* buffer);
+void CGL_audio_source_set_looping(CGL_audio_source* source, CGL_bool looping);
+void CGL_audio_source_set_pitch(CGL_audio_source* source, CGL_float pitch);
+void CGL_audio_source_set_gain(CGL_audio_source* source, CGL_float gain);
+void CGL_audio_source_set_position(CGL_audio_source* source, CGL_vec3 position);
+void CGL_audio_source_set_velocity(CGL_audio_source* source, CGL_vec3 velocity);
+void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction);
+CGL_sizei CGL_audio_source_get_seconds_offset(CGL_audio_source* source);
+void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds);
+CGL_sizei CGL_audio_source_get_samples_offset(CGL_audio_source* source);
+void CGL_audio_source_set_samples_offset(CGL_audio_source* source, CGL_sizei samples);
+CGL_sizei CGL_audio_source_get_bytes_offset(CGL_audio_source* source);
+void CGL_audio_source_set_bytes_offset(CGL_audio_source* source, CGL_sizei bytes);
+void CGL_audio_source_play(CGL_audio_source* source);
+void CGL_audio_source_pause(CGL_audio_source* source);
+void CGL_audio_source_stop(CGL_audio_source* source);
+CGL_bool CGL_audio_source_is_playing(CGL_audio_source* source);
+CGL_bool CGL_audio_source_is_paused(CGL_audio_source* source);
+CGL_bool CGL_audio_source_is_stopped(CGL_audio_source* source);
+CGL_audio_buffer* CGL_audio_buffer_create();
+void CGL_audio_buffer_destroy(CGL_audio_buffer* buffer);
+void CGL_audio_buffer_set_data_from_wav_file(CGL_audio_buffer* buffer, CGL_wav_file* file);
+void CGL_audio_buffer_set_data(CGL_audio_buffer* buffer, void* data, ALenum format, ALsizei size, ALsizei freq);
+void CGL_audio_listener_set_position(CGL_vec3 position);
+void CGL_audio_listener_set_velocity(CGL_vec3 velocity);
+void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up);
+
+
+#endif
 
 
 #ifdef CGL_INCLUDE_PASCAL_CASE_TYPES
@@ -4134,6 +4195,7 @@ struct CGL_window
     CGL_window_mouse_scroll_callback mouse_scroll_callback;
     CGL_window_framebuffer_size_callback framebuffer_size_callback;
     CGL_window_close_callback close_callback;
+    CGL_window_drag_n_drop_callback drag_n_drop_callback;
 
     GLFWkeyfun previous_key_callback;
     GLFWmousebuttonfun previous_mouse_button_callback;
@@ -4141,6 +4203,7 @@ struct CGL_window
     GLFWscrollfun previous_mouse_scroll_callback;
     GLFWframebuffersizefun previous_framebuffer_size_callback;
     GLFWwindowclosefun previous_close_callback;
+    GLFWdropfun previous_drag_n_drop_callback;
 };
 
 // callbacks
@@ -4198,10 +4261,19 @@ void __CGL_window_close_callback(GLFWwindow* window)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
-    if(cgl_window->close_callback != NULL)
+    if(cgl_window->close_callback)
         cgl_window->close_callback(cgl_window);
     if(cgl_window->previous_close_callback)
         cgl_window->previous_close_callback(window);
+}
+
+void  __CGL_window_drag_n_drop_callback(GLFWwindow* window, CGL_int count, const char** paths)
+{
+    CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
+    if(cgl_window->drag_n_drop_callback)
+        cgl_window->drag_n_drop_callback(cgl_window, paths, count);
+    if(cgl_window->previous_drag_n_drop_callback)
+        cgl_window->previous_drag_n_drop_callback(window, count, paths);
 }
 
 // create window
@@ -4252,6 +4324,7 @@ CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
     window->mouse_scroll_callback = NULL;
     window->framebuffer_size_callback = NULL;
     window->close_callback = NULL;
+    window->drag_n_drop_callback = NULL;
     window->user_data = NULL;
     window->previous_close_callback = NULL;
     window->previous_framebuffer_size_callback = NULL;
@@ -4259,6 +4332,7 @@ CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
     window->previous_mouse_button_callback = NULL;
     window->previous_mouse_position_callback = NULL;
     window->previous_mouse_scroll_callback = NULL;
+    window->previous_drag_n_drop_callback = NULL;
     __CGL_context->window_table[(uintptr_t)window->handle % CGL_WINDOW_TABLE_SIZE] = window; // Temporary
     __CGL_context->window_count++;
     return window;
@@ -4401,6 +4475,14 @@ void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback
     window->close_callback = callback;
 }
 
+void CGL_window_set_drag_n_drop_callback(CGL_window* window, CGL_window_drag_n_drop_callback callback) // set drag and drop callback
+{
+    if(window->drag_n_drop_callback == NULL)
+        window->previous_drag_n_drop_callback = glfwSetDropCallback(window->handle, __CGL_window_drag_n_drop_callback);
+    window->drag_n_drop_callback = callback;
+}
+
+
 void CGL_window_resecure_callbacks(CGL_window* window)
 {
     if(window->key_callback != NULL)
@@ -4437,6 +4519,12 @@ void CGL_window_resecure_callbacks(CGL_window* window)
     {
         window->previous_close_callback = glfwSetWindowCloseCallback(window->handle, __CGL_window_close_callback);
         if(window->previous_close_callback == __CGL_window_close_callback) window->previous_close_callback = NULL;
+    }
+
+    if(window->drag_n_drop_callback != NULL)
+    {
+        window->previous_drag_n_drop_callback = glfwSetDropCallback(window->handle, __CGL_window_drag_n_drop_callback);
+        if(window->previous_drag_n_drop_callback == __CGL_window_drag_n_drop_callback) window->previous_drag_n_drop_callback = NULL;
     }
 }
 
@@ -10041,7 +10129,7 @@ void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene
 
 #endif
 
-// Referred from https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+    // Referred from https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
 CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename)
 {
     FILE* fd = fopen(filename, "rb");
@@ -10110,6 +10198,13 @@ CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename)
     if(!file->data) { CGL_log_internal("WAV Loader (%s): Failed to allocate memory", filename); fclose(fd); return false; }
 
     fread(file->data, data_ck_size, 1, fd);
+
+    file->channel_count = channel_count;
+    file->sample_rate = sample_rate;
+    file->bits_per_sample = bits_per_sample;
+    file->data_size = data_ck_size;
+    file->duration = (CGL_float)data_ck_size / (CGL_float)(sample_rate * channel_count * bits_per_sample / 8);
+
     
     fclose(fd);
     return true;
@@ -10120,6 +10215,291 @@ void CGL_wav_file_destroy(CGL_wav_file* file)
     CGL_free(file->data);
 }
 
+#ifndef CGL_EXCLUDE_AUDIO
+
+#include <AL/al.h>
+#include <AL/alc.h>
+
+struct CGL_audio_context
+{
+    ALCdevice* device;
+    ALCcontext* context;
+};
+
+struct CGL_audio_source
+{
+    CGL_vec3 position;
+    CGL_vec3 velocity;
+    CGL_vec3 direction;
+    ALuint source;
+    float pitch;
+    float gain;
+    CGL_bool loop;
+};
+
+struct CGL_audio_buffer
+{
+    ALuint buffer;
+    size_t size;
+};
+
+
+
+CGL_int CGL_audio_get_last_error()
+{
+    return alGetError();
+}
+
+const CGL_byte* CGL_audio_get_error_string(CGL_int error)
+{
+    return alGetString(error);
+}
+
+const CGL_byte* CGL_audio_get_device_list()
+{
+    return alcGetString(NULL, ALC_DEVICE_SPECIFIER);
+}
+
+const CGL_byte* CGL_audio_get_default_device()
+{
+    return alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER);
+}
+
+CGL_audio_context* CGL_audio_context_create(const CGL_byte* device_name)
+{
+    ALCdevice* device = alcOpenDevice(device_name);
+    if(!device) { CGL_log_internal("Audio: Failed to open device %s", device_name); return NULL; }
+    CGL_log_internal("Audio: Opened device %s", device_name);
+    ALCcontext* context = alcCreateContext(device, NULL);
+    if(!context) { CGL_log_internal("Audio: Failed to create context"); alcCloseDevice(device); return NULL; }
+    CGL_log_internal("Audio: Created context");
+    alcMakeContextCurrent(context);
+    CGL_audio_context* cgl_context = (CGL_audio_context*)CGL_malloc(sizeof(CGL_audio_context));
+    if(!cgl_context) { CGL_log_internal("Audio: Failed to allocate memory"); alcDestroyContext(context); alcCloseDevice(device); return NULL; }
+    cgl_context->device = device;
+    cgl_context->context = context;
+    return cgl_context;
+}
+
+void CGL_audio_context_destroy(CGL_audio_context* context)
+{
+    alcMakeContextCurrent(NULL);
+    alcDestroyContext(context->context);
+    alcCloseDevice(context->device);
+    CGL_free(context);
+}
+
+void CGL_audio_make_context_current(CGL_audio_context* context)
+{
+    if(context) alcMakeContextCurrent(context->context);
+    else alcMakeContextCurrent(NULL);
+}
+
+
+
+CGL_audio_source* CGL_audio_source_create()
+{
+    CGL_audio_source* source = (CGL_audio_source*)CGL_malloc(sizeof(CGL_audio_source));
+    if(!source) { CGL_log_internal("Audio: Failed to allocate memory"); return NULL; }
+    alGenSources(1, &source->source);
+    source->position = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    source->velocity = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    source->pitch = 1.0f;
+    source->gain = 1.0f;
+    source->loop = false;
+    return source;
+}
+
+void CGL_audio_source_destroy(CGL_audio_source* source)
+{
+    alDeleteSources(1, &source->source);
+    CGL_free(source);
+}
+
+void CGL_audio_source_reset_to_defaults(CGL_audio_source* source)
+{
+    CGL_audio_source_set_position(source, CGL_vec3_init(0.0f, 0.0f, 0.0f));
+    CGL_audio_source_set_velocity(source, CGL_vec3_init(0.0f, 0.0f, 0.0f));
+    CGL_audio_source_set_direction(source, CGL_vec3_init(0.0f, 0.0f, -1.0f));
+    CGL_audio_source_set_pitch(source, 1.0f);
+    CGL_audio_source_set_gain(source, 1.0f);
+    CGL_audio_source_set_looping(source, false);
+}
+
+void CGL_audio_source_set_buffer(CGL_audio_source* source, CGL_audio_buffer* buffer)
+{
+    alSourcei(source->source, AL_BUFFER, buffer->buffer);
+}
+
+void CGL_audio_source_set_looping(CGL_audio_source* source, CGL_bool looping)
+{
+    source->loop = looping;
+    alSourcei(source->source, AL_LOOPING, looping);
+}
+
+void CGL_audio_source_set_pitch(CGL_audio_source* source, CGL_float pitch)
+{
+    source->pitch = pitch;
+    alSourcef(source->source, AL_PITCH, pitch);
+}
+
+void CGL_audio_source_set_gain(CGL_audio_source* source, CGL_float gain)
+{
+    source->gain = gain;
+    alSourcef(source->source, AL_GAIN, gain);
+}
+
+void CGL_audio_source_set_position(CGL_audio_source* source, CGL_vec3 position)
+{
+    source->position = position;
+    alSource3f(source->source, AL_POSITION, position.x, position.y, position.z);
+}
+
+void CGL_audio_source_set_velocity(CGL_audio_source* source, CGL_vec3 velocity)
+{
+    source->velocity = velocity;
+    alSource3f(source->source, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
+}
+
+void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction)
+{
+    source->direction = direction;
+    alSource3f(source->source, AL_DIRECTION, direction.x, direction.y, direction.z);
+}
+
+CGL_sizei CGL_audio_source_get_seconds_offset(CGL_audio_source* source)
+{
+    ALint offset = 0;
+    alGetSourcei(source->source, AL_SEC_OFFSET, &offset);
+    return (CGL_sizei)offset;
+}
+
+void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds)
+{
+    alSourcei(source->source, AL_SEC_OFFSET, (ALint)seconds);
+}
+
+CGL_sizei CGL_audio_source_get_samples_offset(CGL_audio_source* source)
+{
+    ALint offset = 0;
+    alGetSourcei(source->source, AL_SAMPLE_OFFSET, &offset);
+    return (CGL_sizei)offset;
+}
+
+void CGL_audio_source_set_samples_offset(CGL_audio_source* source, CGL_sizei samples)
+{
+    alSourcei(source->source, AL_SAMPLE_OFFSET, (ALint)samples);
+}
+
+CGL_sizei CGL_audio_source_get_bytes_offset(CGL_audio_source* source)
+{
+    ALint offset = 0;
+    alGetSourcei(source->source, AL_BYTE_OFFSET, &offset);
+    return (CGL_sizei)offset;
+}
+
+void CGL_audio_source_set_bytes_offset(CGL_audio_source* source, CGL_sizei bytes)
+{
+    alSourcei(source->source, AL_BYTE_OFFSET, (ALint)bytes);
+}
+
+void CGL_audio_source_play(CGL_audio_source* source)
+{
+    alSourcePlay(source->source);
+}
+
+void CGL_audio_source_pause(CGL_audio_source* source)
+{
+    alSourcePause(source->source);
+}
+
+void CGL_audio_source_stop(CGL_audio_source* source)
+{
+    alSourceStop(source->source);
+}
+
+CGL_bool CGL_audio_source_is_playing(CGL_audio_source* source)
+{
+    CGL_int state = 0;
+    alGetSourcei(source->source, AL_SOURCE_STATE, &state);
+    return state == AL_PLAYING;
+}
+
+CGL_bool CGL_audio_source_is_paused(CGL_audio_source* source)
+{
+    CGL_int state = 0;
+    alGetSourcei(source->source, AL_SOURCE_STATE, &state);
+    return state == AL_PAUSED;
+}
+
+CGL_bool CGL_audio_source_is_stopped(CGL_audio_source* source)
+{
+    CGL_int state = 0;
+    alGetSourcei(source->source, AL_SOURCE_STATE, &state);
+    return state == AL_STOPPED;
+}
+
+CGL_audio_buffer* CGL_audio_buffer_create()
+{
+    CGL_audio_buffer* buffer = (CGL_audio_buffer*)CGL_malloc(sizeof(CGL_audio_buffer));
+    if(!buffer) { CGL_log_internal("Audio: Failed to allocate memory"); return NULL; }
+    buffer->size = 0;
+    alGenBuffers(1, &buffer->buffer);
+    return buffer;
+}
+
+void CGL_audio_buffer_destroy(CGL_audio_buffer* buffer)
+{
+    alDeleteBuffers(1, &buffer->buffer);
+    CGL_free(buffer);
+}
+
+void CGL_audio_buffer_set_data_from_wav_file(CGL_audio_buffer* buffer, CGL_wav_file* file)
+{
+    ALenum format = AL_FORMAT_MONO16;
+    ALsizei size = 0;
+    ALsizei freq = 0;
+    if(file->channel_count == 1 && file->bits_per_sample == 8)
+        format = AL_FORMAT_MONO8;
+    else if(file->channel_count == 1 && file->bits_per_sample == 16)
+        format = AL_FORMAT_MONO16;
+    else if(file->channel_count == 2 && file->bits_per_sample == 8)
+        format = AL_FORMAT_STEREO8;
+    else if(file->channel_count == 2 && file->bits_per_sample == 16)
+        format = AL_FORMAT_STEREO16;
+    else
+    {
+        CGL_log_internal("Audio: Unsupported WAV file format");
+        return;
+    }
+    size = file->data_size;
+    freq = file->sample_rate;
+    alBufferData(buffer->buffer, format, file->data, size, freq);
+}
+
+void CGL_audio_buffer_set_data(CGL_audio_buffer* buffer, void* data, ALenum format, ALsizei size, ALsizei freq)
+{
+    alBufferData(buffer->buffer, format, data, size, freq);
+}
+
+void CGL_audio_listener_set_position(CGL_vec3 position)
+{
+    alListener3f(AL_POSITION, position.x, position.y, position.z);
+}
+
+void CGL_audio_listener_set_velocity(CGL_vec3 velocity)
+{
+    alListener3f(AL_VELOCITY, velocity.x, velocity.y, velocity.z);
+}
+
+void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up)
+{
+    CGL_float orientation[6] = { forward.x, forward.y, forward.z, up.x, up.y, up.z };
+    alListenerfv(AL_ORIENTATION, orientation);
+}
+
+
+#endif
 
 
 #endif // CGL_IMPLEMENTATION
