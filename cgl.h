@@ -1750,6 +1750,9 @@ typedef struct CGL_wav_file CGL_wav_file;
 
 CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename);
 void CGL_wav_file_destroy(CGL_wav_file* file);
+CGL_int CGL_wav_file_sample(CGL_wav_file* file, CGL_int channel, CGL_int sample_id);
+CGL_int CGL_wav_file_sample_at_time(CGL_wav_file* file, CGL_int channel, CGL_float time);
+
 
 #ifndef CGL_EXCLUDE_AUDIO
 
@@ -1785,7 +1788,7 @@ void CGL_audio_source_set_gain(CGL_audio_source* source, CGL_float gain);
 void CGL_audio_source_set_position(CGL_audio_source* source, CGL_vec3 position);
 void CGL_audio_source_set_velocity(CGL_audio_source* source, CGL_vec3 velocity);
 void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction);
-CGL_sizei CGL_audio_source_get_seconds_offset(CGL_audio_source* source);
+CGL_float CGL_audio_source_get_seconds_offset(CGL_audio_source* source);
 void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds);
 CGL_sizei CGL_audio_source_get_samples_offset(CGL_audio_source* source);
 void CGL_audio_source_set_samples_offset(CGL_audio_source* source, CGL_sizei samples);
@@ -4143,13 +4146,13 @@ char* CGL_utils_read_file(const char* path, size_t* size_ptr)
     size_t size = ftell(file);
     fseek(file, 0, SEEK_SET);
     char* data = (char*)malloc(size + 1);
+    memset(data, 0, size + 1);
     if(data == NULL)
     {
         fclose(file);
         return NULL;
     }
     fread(data, 1, size, file);
-    data[size] = '\0';
     fclose(file);
     if(size_ptr) *size_ptr = size;
     return data;
@@ -10185,8 +10188,14 @@ CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename)
     CGL_utils_little_endian_to_current(&bits_per_sample, 2);
     bits_per_sample = (CGL_int)(*((CGL_short*)&bits_per_sample));
 
-    // check data signature
+    // skip to data chunk
     fread(&tmp, 4, 1, fd);
+    while(memcmp((CGL_byte*)&tmp, "data", 4) != 0)
+    {
+        fread(&tmp, 4, 1, fd);
+        fseek(fd, tmp, SEEK_CUR);
+        if(fread(&tmp, 4, 1, fd) < 1) { CGL_log_internal("WAV Loader (%s): Failed to read data chunk", filename); fclose(fd); return false; }
+    }
     if(memcmp((CGL_byte*)&tmp, "data", 4) != 0) { CGL_log_internal("WAV Loader (%s): Invalid data signature", filename); fclose(fd); return false; }
 
     // read data chunk size
@@ -10213,6 +10222,25 @@ CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename)
 void CGL_wav_file_destroy(CGL_wav_file* file)
 {
     CGL_free(file->data);
+}
+
+CGL_int CGL_wav_file_sample(CGL_wav_file* file, CGL_int channel, CGL_int sample_offset)
+{
+    if(channel >= file->channel_count) return 0;
+    if(sample_offset >= file->data_size) return 0;
+    CGL_short sample = 0;
+    sample_offset += channel * file->bits_per_sample / 8;
+    memcpy(&sample, file->data + sample_offset, file->bits_per_sample / 8);
+    //CGL_utils_little_endian_to_current(&sample, file->bits_per_sample / 8);
+    return (CGL_int)sample;
+}
+
+CGL_int CGL_wav_file_sample_at_time(CGL_wav_file* file, CGL_int channel, CGL_float time)
+{
+    if(channel >= file->channel_count) return 0;
+    if(time >= file->duration) return 0;
+    CGL_int sample_offset = (CGL_int)((CGL_int)(time * file->sample_rate) * file->channel_count * file->bits_per_sample / 8);
+    return CGL_wav_file_sample(file, channel, sample_offset);
 }
 
 #ifndef CGL_EXCLUDE_AUDIO
@@ -10367,11 +10395,11 @@ void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction
     alSource3f(source->source, AL_DIRECTION, direction.x, direction.y, direction.z);
 }
 
-CGL_sizei CGL_audio_source_get_seconds_offset(CGL_audio_source* source)
+CGL_float CGL_audio_source_get_seconds_offset(CGL_audio_source* source)
 {
-    ALint offset = 0;
-    alGetSourcei(source->source, AL_SEC_OFFSET, &offset);
-    return (CGL_sizei)offset;
+    ALfloat offset = 0;
+    alGetSourcef(source->source, AL_SEC_OFFSET, &offset);
+    return (CGL_float)offset;
 }
 
 void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds)
