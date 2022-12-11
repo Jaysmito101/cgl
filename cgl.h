@@ -1152,6 +1152,9 @@ typedef struct CGL_mesh_cpu CGL_mesh_cpu;
 struct CGL_ssbo;
 typedef struct CGL_ssbo CGL_ssbo;
 
+struct CGL_ubo;
+typedef struct CGL_ubo CGL_ubo;
+
 // Taken directly from OpenGL
 #define CGL_CUBEMAP_POSITIVE_X 0x8515 
 #define CGL_CUBEMAP_NEGATIVE_X 0x8516 
@@ -1264,6 +1267,18 @@ void CGL_ssbo_set_user_data(CGL_ssbo* ssbo, void* user_data); // set ssbo user d
 void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo); // get ssbo user data
 size_t CGL_ssbo_get_size(CGL_ssbo* ssbo); // get ssbo size
 void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size); // copy ssbo
+
+CGL_ubo* CGL_ubo_create(); // create ubo
+void CGL_ubo_destroy(CGL_ubo* ubo); // destroy ubo
+void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32_t binding); // bind ubo
+void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw); // set ubo data
+void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw); // set ubo sub data
+void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data); // get ubo data
+void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data); // get ubo sub data
+void CGL_ubo_set_user_data(CGL_ubo* ubo, void* user_data); // set ubo user data
+void* CGL_ubo_get_user_data(CGL_ubo* ubo); // get ubo user data
+size_t CGL_ubo_get_size(CGL_ubo* ubo); // get ubo size
+
 
 
 #endif
@@ -5252,6 +5267,87 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
     glCopyNamedBufferSubData(src->handle, dst->handle, src_offset, dst_offset, size);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
+
+
+struct CGL_ubo
+{
+    CGL_sizei size;
+    CGL_uint handle;
+    CGL_uint binding;
+};
+
+CGL_ubo* CGL_ubo_create()
+{
+    CGL_ubo* ubo = (CGL_ubo*)CGL_malloc(sizeof(CGL_ubo));
+    if(ubo == NULL) return NULL;
+    glGenBuffers(1, &ubo->handle);
+    ubo->size = 0;
+    return ubo;
+}
+
+void CGL_ubo_destroy(CGL_ubo* ubo)
+{
+    glDeleteBuffers(1, &ubo->handle);
+    CGL_free(ubo);
+}
+
+void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32_t binding)
+{
+    CGL_uint index = glGetUniformBlockIndex(shader->handle, name);
+    if(index == GL_INVALID_INDEX) {CGL_log_internal("CGL_ubo_bind: glGetUniformBlockIndex failed");return;}
+    glUniformBlockBinding(shader->handle, index, binding);
+    glBindBufferBase(GL_UNIFORM_BUFFER, binding, ubo->handle);
+    ubo->binding = binding;
+}
+
+void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw)
+{
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
+    glBufferData(GL_UNIFORM_BUFFER, size, data, static_draw ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    ubo->size = size;
+}
+
+void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw)
+{
+    if(offset + size > ubo->size) {CGL_log_internal("CGL_ubo_set_sub_data: offset + size > ubo->size");return;}
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    ubo->size = CGL_util_max(ubo->size, offset + size);
+}
+
+void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data)
+{
+    if(size) *size = ubo->size;
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
+    glGetBufferSubData(GL_UNIFORM_BUFFER, 0, ubo->size, data);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data)
+{
+    if(offset + size > ubo->size) {CGL_log_internal("CGL_ubo_get_sub_data: offset + size > ubo->size");return;}
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
+    glGetBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+void CGL_ubo_set_user_data(CGL_ubo* ubo, void* user_data)
+{
+    ubo->user_data = user_data;
+}
+
+void* CGL_ubo_get_user_data(CGL_ubo* ubo)
+{
+    return ubo->user_data;
+}
+
+size_t CGL_ubo_get_size(CGL_ubo* ubo)
+{
+    return ubo->size;
+}
+
 
 // gl
 // clear 
