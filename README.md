@@ -5,11 +5,14 @@
 
 <p align="center">
 
-![GitHub PR Open](https://img.shields.io/github/issues-pr/Jaysmito101/cgl?style=for-the-badge&color=aqua)
-![Github Repo Size](https://img.shields.io/github/repo-size/Jaysmito101/cgl?style=for-the-badge&color=aqua)
-<img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2022?style=for-the-badge">
+<img src="https://img.shields.io/github/issues-pr/Jaysmito101/cgl?style=for-the-badge" />
+<img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/Jaysmito101/cgl?style=for-the-badge" />
+<img src="https://img.shields.io/github/repo-size/Jaysmito101/cgl?style=for-the-badge" />
+<img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2022?style=for-the-badge" />
 <a href="https://patreon.com/jaysmito101"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Djaysmito101%26type%3Dpledges&style=for-the-badge" alt="Support me on Patreon" /></a>
+
 </p>
+
 <br/>
 
 
@@ -104,6 +107,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 * Toon Post Processor
   - Outline Effect
   - Toon Shading Effect
+  - Hatching Effect
   - All in a single post process call ( no per object calculation)
   - Completely implemented in Compute Shader
   - Customizable
@@ -121,6 +125,11 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Render your own nodes & links type API
   - Zoom In/Out
   - Global Offsets
+ 
+* CGL Audio API
+  - Cross Platform (OpenAL backend)
+  - Simple API
+  - WAV File Loader/Sampler  
 
 * CGL Widgets (Optional)
   - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
@@ -157,6 +166,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Texture (2D / 2D Array / Cube map) 
   - Framebuffers
   - SSBO (Shader Storage Buffer Object)
+  - UBO (Uniform Buffer Object)
   - Shaders 
     - Vertex & Fragment (Geometry Shader not included as its not very widely used)
     - Compute Shader API 
