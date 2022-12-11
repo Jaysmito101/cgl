@@ -1142,8 +1142,10 @@ typedef struct CGL_mesh_vertex CGL_mesh_vertex;
 struct CGL_mesh_cpu
 {
     size_t index_count;
+    size_t index_count_used;
     uint32_t* indices;
     size_t vertex_count;
+    size_t vertex_count_used;
     CGL_mesh_vertex* vertices;
 };
 typedef struct CGL_mesh_cpu CGL_mesh_cpu;
@@ -1227,6 +1229,12 @@ CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords);
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
+
+CGL_mesh_cpu* CGL_mesh_cpu_add_triangle(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
+CGL_mesh_cpu* CGL_mesh_cpu_add_quad(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
+CGL_mesh_cpu* CGL_mesh_cpu_add_from_parametric_function(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
+CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v);
+
 void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name);
 void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
 
@@ -1827,6 +1835,45 @@ void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up);
 
 #endif
 
+
+#ifndef CGL_EXCLUDE_TRAIL_RENDERER
+
+struct CGL_trail_point
+{
+    CGL_vec3 position;
+    struct CGL_trail_point* next;
+    void* user_data;
+    CGL_int index;
+    CGL_float lifespan;
+    CGL_float thickness;
+    CGL_float distance;
+};
+typedef struct CGL_trail_point CGL_trail_point;
+
+struct CGL_trail;
+typedef struct CGL_trail CGL_trail;
+
+typedef CGL_bool(*CGL_trail_point_update_function)(CGL_trail*, CGL_trail_point*);
+
+CGL_trail* CGL_trail_create();
+void CGL_trail_destroy(CGL_trail* trail);
+void CGL_trail_render(CGL_trail* trail, CGL_mat4* view, CGL_mat4* projection, CGL_shader* shader);
+void CGL_trail_add_point(CGL_trail* trail, CGL_vec3 point, CGL_float lifespan, CGL_float thickness);
+void CGL_trail_set_resolution(CGL_trail* trail, CGL_int resolution);
+void CGL_trail_update(CGL_trail* trail, CGL_float delta_time);
+void CGL_trail_bake_mesh(CGL_trail* trail);
+void CGL_trail_clear(CGL_trail* trail);
+void CGL_trail_calculate_distances(CGL_trail* trail);
+void CGL_trail_set_point_update_function(CGL_trail* trail, CGL_trail_point_update_function function);
+void CGL_trail_set_user_data(CGL_trail* trail, void* user_data);
+void* CGL_trail_get_user_data(CGL_trail* trail);
+CGL_mesh_gpu* CGL_trail_get_mesh_gpu(CGL_trail* trail);
+CGL_trail_point* CGL_trail_get_first_point(CGL_trail* trail);
+CGL_float CGL_trail_get_length(CGL_trail* trail);
+void CGL_trail_set_max_length(CGL_trail* trail, CGL_float length);
+void CGL_trail_set_min_points_distance(CGL_trail* trail, CGL_float min_points_distance);
+
+#endif
 
 #ifdef CGL_INCLUDE_PASCAL_CASE_TYPES
 typedef CGL_int Integer;
@@ -5465,12 +5512,12 @@ void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
 void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw)
 {
     if(mesh_cpu->index_count <= 0) return;
-    mesh->index_count = mesh_cpu->index_count;
-    mesh->vertex_count = mesh_cpu->vertex_count;
+    mesh->index_count = mesh_cpu->index_count_used;
+    mesh->vertex_count = mesh_cpu->vertex_count_used;
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, mesh_cpu->vertex_count * sizeof(CGL_mesh_vertex), mesh_cpu->vertices, static_draw ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh_cpu->vertex_count_used * sizeof(CGL_mesh_vertex), mesh_cpu->vertices, static_draw ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->index_buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh_cpu->index_count * sizeof(unsigned int), mesh_cpu->indices, static_draw ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh_cpu->index_count_used * sizeof(unsigned int), mesh_cpu->indices, static_draw ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
 }
 
 // set mesh user data
@@ -5497,10 +5544,11 @@ void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh)
 CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
 {
     CGL_mesh_cpu* mesh = (CGL_mesh_cpu*)malloc(sizeof(CGL_mesh_cpu));
-    if(mesh == NULL)
-        return NULL;
+    if(mesh == NULL) return NULL;
     mesh->vertex_count = vertex_count;
     mesh->index_count = index_count;
+    mesh->vertex_count_used = 0;
+    mesh->index_count_used = 0;
     mesh->vertices = (CGL_mesh_vertex*)malloc(mesh->vertex_count * sizeof(CGL_mesh_vertex));
     if(mesh->vertices == NULL)
     {
@@ -5514,6 +5562,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
         free(mesh);
         return NULL;
     }
+    for(CGL_sizei i = 0 ; i < index_count ; i++ ) mesh->indices[i] = (CGL_uint)i;
     return mesh;
 }
 
@@ -5648,6 +5697,8 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
     CGL_list_destroy(vertex_positions);
     CGL_list_destroy(vertex_normals);
     CGL_list_destroy(vertex_texture_coordinates);
+    mesh->vertex_count_used = mesh->vertex_count;
+    mesh->index_count_used = mesh->index_count;
     return mesh;
 }
 
@@ -5658,7 +5709,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolut
     CGL_vec3_normalize(right);
     CGL_vec3 up = CGL_vec3_cross(front, right); // up is perpendicular to front and right
     CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(resolution * resolution, (resolution - 1) * (resolution - 1) * 6);
-    CGL_int index = 0;
+    CGL_int index = 0, tri_index = 0;
     CGL_float temp0 = 0.0f, temp1 = 0.0f;
     CGL_vec3 tempv0, tempv1, point_on_plane;
     for(CGL_int y = 0; y < resolution; y++)
@@ -5678,15 +5729,18 @@ CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolut
             mesh->vertices[index].normal = CGL_vec4_init(up.x, up.y, up.z, 0.0f);
             if(x != resolution - 1 && y != resolution - 1)
             {
-                mesh->indices[index * 6 + 0] = index;
-                mesh->indices[index * 6 + 1] = index + resolution + 1;
-                mesh->indices[index * 6 + 2] = index + resolution;
-                mesh->indices[index * 6 + 3] = index;
-                mesh->indices[index * 6 + 4] = index + 1;
-                mesh->indices[index * 6 + 5] = index + resolution + 1;
+                mesh->indices[tri_index + 0] = index;
+                mesh->indices[tri_index + 1] = index + resolution + 1;
+                mesh->indices[tri_index + 2] = index + resolution;
+                mesh->indices[tri_index + 3] = index;
+                mesh->indices[tri_index + 4] = index + 1;
+                mesh->indices[tri_index + 5] = index + resolution + 1;
+                tri_index += 6;
             }
         }
     }
+    mesh->vertex_count_used = mesh->vertex_count;
+    mesh->index_count_used = mesh->index_count;
     return mesh;
 }
 
@@ -5694,31 +5748,49 @@ CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolut
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 {
     CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(3, 3);
-    if(mesh == NULL)
-        return NULL;
-    CGL_vec3 ab = CGL_vec3_sub(b, a);
-    CGL_vec3 ac = CGL_vec3_sub(c, a);
-    CGL_vec3 normal = CGL_vec3_cross(ab, ac);
-    CGL_vec4 normal_4 = CGL_vec4_init(normal.x, normal.y, normal.z, 0.0f);
-    mesh->vertices[0].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
-    mesh->vertices[0].normal = normal_4;
-    mesh->vertices[0].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
-    mesh->vertices[1].position = CGL_vec4_init(b.x, b.y, b.z, 1.0f);
-    mesh->vertices[1].normal = normal_4;
-    mesh->vertices[1].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
-    mesh->vertices[2].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
-    mesh->vertices[2].normal = normal_4;
-    mesh->vertices[2].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
-    mesh->indices[0] = 0;
-    mesh->indices[1] = 1;
-    mesh->indices[2] = 2;
-    return mesh;
+    return CGL_mesh_cpu_add_triangle(mesh, a, b, c);
 }
 
 // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
 {
     CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(6, 6);
+    return CGL_mesh_cpu_add_quad(mesh, a, b, c, d);
+}
+
+// Algorithm from https://stackoverflow.com/a/31326534/14911094
+CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function)
+{
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(res_u * res_v * 4, res_u * res_v * 6);
+    return CGL_mesh_cpu_add_from_parametric_function(mesh, res_u, res_v, start_u, start_v, end_u, end_v, function);
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_add_triangle(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+{
+    if(mesh == NULL) return NULL;
+    CGL_vec3 ab = CGL_vec3_sub(b, a);
+    CGL_vec3 ac = CGL_vec3_sub(c, a);
+    CGL_vec3 normal = CGL_vec3_cross(ab, ac);
+    CGL_vec4 normal_4 = CGL_vec4_init(normal.x, normal.y, normal.z, 0.0f);
+    mesh->vertices[mesh->vertex_count_used + 0].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 0].normal = normal_4;
+    mesh->vertices[mesh->vertex_count_used + 0].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 1].position = CGL_vec4_init(b.x, b.y, b.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 1].normal = normal_4;
+    mesh->vertices[mesh->vertex_count_used + 1].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 2].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 2].normal = normal_4;
+    mesh->vertices[mesh->vertex_count_used + 2].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
+    mesh->vertex_count_used += 3;
+    mesh->indices[mesh->index_count_used + 0] = 0;
+    mesh->indices[mesh->index_count_used + 1] = 1;
+    mesh->indices[mesh->index_count_used + 2] = 2;
+    mesh->index_count_used += 3;
+    return mesh;
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_add_quad(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+{
     if(mesh == NULL) return NULL;
     CGL_vec3 ab = CGL_vec3_sub(b, a);
     CGL_vec3 ac = CGL_vec3_sub(c, a);
@@ -5726,47 +5798,33 @@ CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
     CGL_vec3 normal_abc = CGL_vec3_cross(ab, ac);
     CGL_vec4 normal_abc_4 = CGL_vec4_init(normal_abc.x, normal_abc.y, normal_abc.z, 0.0f);
 
-
-    mesh->vertices[0].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
-    mesh->vertices[0].normal = normal_abc_4;
-    mesh->vertices[0].texture_coordinates = CGL_vec4_init(1.0f, 1.0f, 0.0f, 1.0f);
-
-    mesh->vertices[1].position = CGL_vec4_init(b.x, b.y, b.z, 1.0f);
-    mesh->vertices[1].normal = normal_abc_4;
-    mesh->vertices[1].texture_coordinates = CGL_vec4_init(1.0f, 0.0f, 0.0f, 1.0f);
-    
-    mesh->vertices[2].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
-    mesh->vertices[2].normal = normal_abc_4;
-    mesh->vertices[2].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
-    
-    mesh->vertices[3].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
-    mesh->vertices[3].normal = normal_abc_4;
-    mesh->vertices[3].texture_coordinates = CGL_vec4_init(1.0f, 1.0f, 0.0f, 1.0f);
-    
-    mesh->vertices[4].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
-    mesh->vertices[4].normal = normal_abc_4;
-    mesh->vertices[4].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
-    
-    mesh->vertices[5].position = CGL_vec4_init(d.x, d.y, d.z, 1.0f);
-    mesh->vertices[5].normal = normal_abc_4;
-    mesh->vertices[5].texture_coordinates = CGL_vec4_init(0.0f, 1.0f, 0.0f, 1.0f);
-    
-
-    mesh->indices[0] = 0;
-    mesh->indices[1] = 1;
-    mesh->indices[2] = 2;
-    mesh->indices[3] = 3;
-    mesh->indices[4] = 4;
-    mesh->indices[5] = 5;
+    mesh->vertices[mesh->vertex_count_used + 0].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 0].normal = normal_abc_4;
+    mesh->vertices[mesh->vertex_count_used + 0].texture_coordinates = CGL_vec4_init(1.0f, 1.0f, 0.0f, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 1].position = CGL_vec4_init(b.x, b.y, b.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 1].normal = normal_abc_4;
+    mesh->vertices[mesh->vertex_count_used + 1].texture_coordinates = CGL_vec4_init(1.0f, 0.0f, 0.0f, 1.0f);    
+    mesh->vertices[mesh->vertex_count_used + 2].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 2].normal = normal_abc_4;
+    mesh->vertices[mesh->vertex_count_used + 2].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);    
+    mesh->vertices[mesh->vertex_count_used + 3].position = CGL_vec4_init(a.x, a.y, a.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 3].normal = normal_abc_4;
+    mesh->vertices[mesh->vertex_count_used + 3].texture_coordinates = CGL_vec4_init(1.0f, 1.0f, 0.0f, 1.0f);    
+    mesh->vertices[mesh->vertex_count_used + 4].position = CGL_vec4_init(c.x, c.y, c.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 4].normal = normal_abc_4;
+    mesh->vertices[mesh->vertex_count_used + 4].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);    
+    mesh->vertices[mesh->vertex_count_used + 5].position = CGL_vec4_init(d.x, d.y, d.z, 1.0f);
+    mesh->vertices[mesh->vertex_count_used + 5].normal = normal_abc_4;
+    mesh->vertices[mesh->vertex_count_used + 5].texture_coordinates = CGL_vec4_init(0.0f, 1.0f, 0.0f, 1.0f);
+    mesh->vertex_count_used += 6;
+    for(CGL_int i = 0; i < 6; i++) mesh->indices[mesh->index_count_used + i] = (CGL_uint)mesh->index_count_used + (CGL_uint)i;
+    mesh->index_count_used += 6;
     return mesh;
 }
 
-// Algorithm from https://stackoverflow.com/a/31326534/14911094
-CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function)
+CGL_mesh_cpu* CGL_mesh_cpu_add_from_parametric_function(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function)
 {
-    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(res_u * res_v * 4, res_u * res_v * 6);
-    if(mesh == NULL)
-        return  NULL;
+    if(mesh == NULL) return NULL;
     CGL_float step_u = (end_u - start_u) / res_u;
     CGL_float step_v = (end_v - start_v) / res_v;
     size_t vertex_index = 0;
@@ -5785,42 +5843,49 @@ CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_in
             CGL_vec3 p1 = function(u, vn);
             CGL_vec3 p2 = function(un, v);
             CGL_vec3 p3 = function(un, vn);
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 1.0f);
-            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(u, v, 0.0f, 0.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 1.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(u, v, 0.0f, 0.0f);
             vertex_index += 1;
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p1.x, p1.y, p1.z, 1.0f);
-            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(u, vn, 0.0f, 0.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p1.x, p1.y, p1.z, 1.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(u, vn, 0.0f, 0.0f);
             vertex_index += 1;
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p2.x, p2.y, p2.z, 1.0f);
-            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(un, v, 0.0f, 0.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p2.x, p2.y, p2.z, 1.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(un, v, 0.0f, 0.0f);
             vertex_index += 1;
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p3.x, p3.y, p3.z, 1.0f);
-            mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(un, vn, 0.0f, 0.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p3.x, p3.y, p3.z, 1.0f);
+            mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(un, vn, 0.0f, 0.0f);
             vertex_index += 1;
             // Output the first triangle of this grid square
             // triangle(p0, p2, p1)
-            mesh->indices[index_index++] = (uint32_t)vertex_index - 4; // p0
-            mesh->indices[index_index++] = (uint32_t)vertex_index - 2; // p2
-            mesh->indices[index_index++] = (uint32_t)vertex_index - 3; // p1
+            mesh->indices[mesh->index_count_used + index_index++] = (uint32_t)(mesh->vertex_count_used + vertex_index) - 4; // p0
+            mesh->indices[mesh->index_count_used + index_index++] = (uint32_t)(mesh->vertex_count_used + vertex_index) - 2; // p2
+            mesh->indices[mesh->index_count_used + index_index++] = (uint32_t)(mesh->vertex_count_used + vertex_index) - 3; // p1
             // Output the other triangle of this grid square
             // triangle(p3, p1, p2) 
-            mesh->indices[index_index++] = (uint32_t)vertex_index - 1; // p3
-            mesh->indices[index_index++] = (uint32_t)vertex_index - 3; // p1
-            mesh->indices[index_index++] = (uint32_t)vertex_index - 2; // p2
+            mesh->indices[mesh->index_count_used + index_index++] = (uint32_t)(mesh->vertex_count_used + vertex_index) - 1; // p3
+            mesh->indices[mesh->index_count_used + index_index++] = (uint32_t)(mesh->vertex_count_used + vertex_index) - 3; // p1
+            mesh->indices[mesh->index_count_used + index_index++] = (uint32_t)(mesh->vertex_count_used + vertex_index) - 2; // p2
         }
     }
+    mesh->vertex_count_used += res_u * res_v * 4;
+    mesh->index_count_used += res_u * res_v * 6;
     return mesh;
 }
+
 
 static CGL_vec3 __CGL_mesh_cpu_sphere_parametric_function(CGL_float u, CGL_float v)
 {
     return CGL_vec3_init(cosf(u)*sinf(v), cosf(v), sinf(u)*sinf(v));
 }
 
+CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v)
+{
+    return CGL_mesh_cpu_add_from_parametric_function(mesh, res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function);
+}
+
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v)
 {
-    return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function
-    );
+    return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function);
 }
 
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords)
@@ -5937,6 +6002,8 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords)
     mesh->vertices[35].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[35].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     for(CGL_int i = 0 ; i < 36 ; i++) mesh->indices[i] = i;
+    mesh->vertex_count_used = 36;
+    mesh->index_count_used = 36;
     return mesh;       
 }
 
@@ -10661,6 +10728,297 @@ void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up)
     alListenerfv(AL_ORIENTATION, orientation);
 }
 
+
+#endif
+
+
+
+#ifndef CGL_EXCLUDE_TRAIL_RENDERER
+
+#ifndef CGL_TRAIL_MAX_POINTS
+#define CGL_TRAIL_MAX_POINTS 1024
+#endif
+
+/*
+struct CGL_trail_point
+{
+    CGL_vec3 position;
+    CGL_trail_point* next;
+    void* user_data;
+    CGL_int index;
+    CGL_float lifespan;
+    CGL_float thickness;
+    CGL_float distance;
+};
+*/
+
+static const char* __CGL_TRAIL_DEFAULT_VERTEX_SHADER = "#version 430 core\n"
+"\n"
+"layout (location = 0) in vec4 position;\n" // w is lifespan
+"layout (location = 1) in vec4 normal;\n" // w is distance
+"layout (location = 2) in vec4 texcoord;\n" // zw is reserved for future use
+"\n"
+"out vec3 Position;\n"
+"out vec2 TexCoord;\n"
+"out float Distance;\n"
+"\n"
+"uniform mat4 projection;\n"
+"uniform mat4 view;\n"
+"\n"
+"void main()\n"
+"{\n"
+"	gl_Position = projection * view * vec4(position.xyz, 1.0f);\n"
+"	Position = position.xyz;\n"
+"	TexCoord = texcoord.xy;\n"
+"   Distance = normal.w;\n"
+"}\n";
+
+static const char* __CGL_TRAIL_DEFAULT_FRAGMENT_SHADER = "#version 430 core\n"
+"\n"
+"out vec4 FragColor;\n"
+"\n"
+"in vec3 Position;\n"
+"in vec2 TexCoord;\n"
+"in float Distance;\n"
+"\n"
+"void main()\n"
+"{\n"
+"	FragColor = vec4(vec3(1.0f - 0.0f), 1.0f);\n"
+"}\n";
+
+
+struct CGL_trail
+{
+    CGL_trail_point points[CGL_TRAIL_MAX_POINTS];
+    CGL_trail_point* first;
+    CGL_trail_point* last;
+    CGL_shader* shader;
+    CGL_mesh_gpu* mesh;
+    void* user_data;
+    CGL_trail_point_update_function trail_point_func;
+    CGL_int point_count;
+    CGL_int resolution;
+    CGL_float min_points_distance;
+    CGL_float max_length;
+    CGL_float length;
+};
+
+CGL_int __CGL_trail_get_next_index(CGL_trail* trail)
+{
+    CGL_int index = -1;
+    for(CGL_int i = 0; i < CGL_TRAIL_MAX_POINTS; i++)
+    {
+        if(trail->points[i].index == -1)
+        {
+            index = i;
+            break;
+        }
+    }
+    return index;
+}
+
+CGL_trail* CGL_trail_create()
+{
+    CGL_trail* trail = (CGL_trail*)CGL_malloc(sizeof(CGL_trail));
+    if(!trail) { CGL_log_internal("Trail: Failed to allocate memory"); return NULL; }
+    for(CGL_int i = 0; i < CGL_TRAIL_MAX_POINTS; i++) trail->points[i].index = -1;
+    trail->first = NULL;
+    trail->last = NULL;
+    trail->user_data = NULL;
+    trail->trail_point_func = NULL;
+    trail->point_count = 0;
+    trail->min_points_distance = 0.0f;
+    trail->max_length = 1000000000.0f;
+    trail->length = 0.0f;
+    trail->resolution = 3;
+    trail->mesh = CGL_mesh_gpu_create();
+    trail->shader = CGL_shader_create(__CGL_TRAIL_DEFAULT_VERTEX_SHADER, __CGL_TRAIL_DEFAULT_FRAGMENT_SHADER, NULL);
+    return trail;
+}
+
+void CGL_trail_destroy(CGL_trail* trail)
+{
+    CGL_mesh_gpu_destroy(trail->mesh);
+    CGL_shader_destroy(trail->shader);
+    CGL_free(trail);
+}
+
+void CGL_trail_render(CGL_trail* trail, CGL_mat4* view, CGL_mat4* projection, CGL_shader* shader)
+{
+    if(!trail->mesh) return;
+    if(!shader) { shader = trail->shader; CGL_shader_bind(shader);}
+    CGL_shader_set_uniform_mat4(shader, CGL_shader_get_uniform_location(shader, "projection"), projection);
+    CGL_shader_set_uniform_mat4(shader, CGL_shader_get_uniform_location(shader, "view"), view);
+    CGL_shader_set_uniform_float(shader, CGL_shader_get_uniform_location(shader, "total_length"), trail->length);
+    CGL_mesh_gpu_render(trail->mesh);
+}
+
+void CGL_trail_add_point(CGL_trail* trail, CGL_vec3 point, CGL_float lifespan, CGL_float thickness)
+{
+    if(trail->last)
+    {
+        CGL_float dist = sqrtf(powf(point.x - trail->last->position.x, 2) + powf(point.y - trail->last->position.y, 2) + powf(point.z - trail->last->position.z, 2));
+        if(dist < trail->min_points_distance) return;
+    }
+    CGL_int index = __CGL_trail_get_next_index(trail);
+    if(index == -1) { CGL_log_internal("Trail: Failed to add point, trail is full"); return; }
+    CGL_trail_point* new_point = &trail->points[index];
+    new_point->position = point;
+    new_point->lifespan = lifespan;
+    new_point->thickness = thickness;
+    new_point->distance = 0.0f;
+    new_point->user_data = NULL;
+    new_point->index = index;
+    new_point->next = trail->first;
+    trail->first = new_point;
+    trail->last = new_point;
+    trail->point_count++;    
+    CGL_trail_calculate_distances(trail);
+}
+
+void CGL_trail_calculate_distances(CGL_trail* trail)
+{
+    CGL_trail_point* point = trail->first;
+    CGL_trail_point* previous = NULL;
+    CGL_float distance = 0.0f;
+    while(point)
+    {
+        if(previous) { distance += sqrtf(powf(point->position.x - previous->position.x, 2) + powf(point->position.y - previous->position.y, 2) + powf(point->position.z - previous->position.z, 2)); }
+        point->distance = distance;
+        previous = point;
+        point = point->next;
+    }
+    trail->length = distance;
+}
+
+void CGL_trail_set_resolution(CGL_trail* trail, CGL_int resolution)
+{
+    trail->resolution = resolution; // to be implemented in the future
+}
+
+void CGL_trail_update(CGL_trail* trail, CGL_float delta_time)
+{
+    CGL_trail_point* point = trail->first;
+    CGL_trail_point* previous = NULL;
+    CGL_bool remove = false;
+    while(point)
+    {
+        remove = false;
+        point->lifespan -= delta_time;
+        if(trail->trail_point_func) remove = trail->trail_point_func(trail, point);
+        if(point->lifespan <= 0.0f || remove || point->distance > trail->max_length)
+        {
+            if(previous) previous->next = point->next;
+            else trail->first = point->next;
+            point->index = -1;
+            trail->point_count--;
+        }
+        previous = point;
+        if(!point) break;
+        point = point->next;
+    }
+}
+
+void CGL_trail_bake_mesh(CGL_trail* trail)
+{
+    if(trail->point_count < 2) return;
+    CGL_int vertex_count = 3;
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(trail->point_count * trail->resolution * 6, trail->point_count * trail->resolution * 6);
+    
+    CGL_vec3 rt, tp, front, a0, a1, b0, b1, tmp0, tmp1;
+    CGL_float angle0, angle1, angle_step = 360.0f / trail->resolution;
+    CGL_trail_point* point = trail->first;
+    while(point->next)
+    {
+        front = CGL_vec3_sub(point->next->position, point->position);
+        CGL_vec3_normalize(front);
+        if(front.x != 0.0f) rt = CGL_vec3_init(-front.y / front.x, 1.0f, 0.0f);
+        else if(front.y != 0.0f) rt = CGL_vec3_init(0.0f, -front.z / front.y, 1.0f);
+        else rt = CGL_vec3_init(1.0f, 0.0f, -front.x / front.z);
+        tp = CGL_vec3_cross(front, rt);
+        CGL_vec3_normalize(rt);
+        CGL_vec3_normalize(tp);
+
+        for(CGL_int i = 0 ; i < trail->resolution; i ++)
+        {
+            angle0 = angle_step * i;
+            CGL_float c0 = cosf(angle0) * point->thickness; CGL_float s0 = sinf(angle0) * point->thickness;
+            a0 = CGL_vec3_scale(rt, s0);
+            tmp0 = CGL_vec3_scale(tp, c0);
+            a0 = CGL_vec3_add(a0, tmp0);
+            a1 = CGL_vec3_add(a0, point->next->position);
+            a0 = CGL_vec3_add(a0, point->position);
+
+
+            angle1 = angle_step * ((i + 1) % trail->resolution);
+            CGL_float c1 = cosf(angle1) * point->thickness; CGL_float s1 = sinf(angle1) * point->thickness;
+            b0 = CGL_vec3_scale(rt, s1);
+            tmp1 = CGL_vec3_scale(tp, c1);
+            b0 = CGL_vec3_add(b0, tmp1);
+            b1 = CGL_vec3_add(b0, point->next->position);
+            b0 = CGL_vec3_add(b0, point->position);
+
+            CGL_mesh_cpu_add_quad(mesh, a0, b0, b1, a1);
+            for(CGL_int j = 0 ; j < 6 ; j++)
+            {
+                mesh->vertices[mesh->vertex_count_used - 6 + j].position.w = point->lifespan;
+                mesh->vertices[mesh->vertex_count_used - 6 + j].normal.w = point->distance;
+            }
+        }   
+
+        point = point->next;
+    }
+
+    CGL_mesh_gpu_upload(trail->mesh, mesh, false);
+    CGL_mesh_cpu_destroy(mesh);
+}
+
+void CGL_trail_clear(CGL_trail* trail)
+{
+    for(CGL_int i = 0; i < CGL_TRAIL_MAX_POINTS; i++) trail->points[i].index = -1;
+    trail->first = NULL;
+    trail->point_count = 0;
+}
+
+void CGL_trail_set_point_update_function(CGL_trail* trail, CGL_trail_point_update_function function)
+{
+    trail->trail_point_func = function;
+}
+
+CGL_mesh_gpu* CGL_trail_get_mesh_gpu(CGL_trail* trail)
+{
+    return trail->mesh;
+}
+
+CGL_trail_point* CGL_trail_get_first_point(CGL_trail* trail)
+{
+    return trail->first;
+}
+
+void CGL_trail_set_user_data(CGL_trail* trail, void* user_data)
+{
+    trail->user_data = user_data;
+}
+
+void* CGL_trail_get_user_data(CGL_trail* trail)
+{
+    return trail->user_data;
+}
+
+CGL_float CGL_trail_get_length(CGL_trail* trail)
+{
+    return trail->length;
+}
+
+void CGL_trail_set_max_length(CGL_trail* trail, CGL_float length)
+{
+    trail->max_length = length;
+}
+
+void CGL_trail_set_min_points_distance(CGL_trail* trail, CGL_float min_points_distance)
+{
+    trail->min_points_distance = min_points_distance;
+}
 
 #endif
 
