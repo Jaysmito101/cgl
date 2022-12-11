@@ -1222,6 +1222,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count);
 CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh);
 CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
+CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolution, CGL_float scale); // generate plane mesh
 CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords);
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v);
@@ -5269,11 +5270,19 @@ void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_o
 }
 
 
+
+struct CGL_shader
+{
+    GLuint handle;
+    void* user_data;
+};
+
 struct CGL_ubo
 {
     CGL_sizei size;
     CGL_uint handle;
     CGL_uint binding;
+    void* user_data;
 };
 
 CGL_ubo* CGL_ubo_create()
@@ -5314,7 +5323,7 @@ void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, 
     glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    ubo->size = CGL_util_max(ubo->size, offset + size);
+    ubo->size = CGL_utils_max(ubo->size, offset + size);
 }
 
 void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data)
@@ -5564,7 +5573,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
     if(file_size == 0) return NULL;
     char* line = strtok(file_data, "\n");
     CGL_int object_count = 0;
-    CGL_float item_data[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    CGL_float item_data[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
     uint32_t index = 0;
     while(line != NULL)
     {
@@ -5639,6 +5648,45 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
     CGL_list_destroy(vertex_positions);
     CGL_list_destroy(vertex_normals);
     CGL_list_destroy(vertex_texture_coordinates);
+    return mesh;
+}
+
+// generate plane mesh
+CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolution, CGL_float scale)
+{
+    CGL_vec3_normalize(front);
+    CGL_vec3_normalize(right);
+    CGL_vec3 up = CGL_vec3_cross(front, right); // up is perpendicular to front and right
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(resolution * resolution, (resolution - 1) * (resolution - 1) * 6);
+    CGL_int index = 0;
+    CGL_float temp0 = 0.0f, temp1 = 0.0f;
+    CGL_vec3 tempv0, tempv1, point_on_plane;
+    for(CGL_int y = 0; y < resolution; y++)
+    {
+        for (CGL_int x = 0; x < resolution; x++)
+        {
+            index = x + y * resolution;
+            CGL_vec2 percent = CGL_vec2_init((float)x / ((float)resolution - 1), (float)y / ((float)resolution - 1));
+            temp0 = (percent.x - 0.5f) * 2.0f;
+            temp1 = (percent.y - 0.5f) * 2.0f;
+            tempv0 = CGL_vec3_scale(right, temp0);
+            tempv1 = CGL_vec3_scale(front, temp1);
+            point_on_plane = CGL_vec3_add(tempv0, tempv1);
+            point_on_plane = CGL_vec3_scale(point_on_plane, scale);
+            mesh->vertices[index].position = CGL_vec4_init(point_on_plane.x, point_on_plane.y, point_on_plane.z, 1.0f);
+            mesh->vertices[index].texture_coordinates = CGL_vec4_init(percent.x, percent.y, 0.0f, 0.0f);
+            mesh->vertices[index].normal = CGL_vec4_init(up.x, up.y, up.z, 0.0f);
+            if(x != resolution - 1 && y != resolution - 1)
+            {
+                mesh->indices[index * 6 + 0] = index;
+                mesh->indices[index * 6 + 1] = index + resolution + 1;
+                mesh->indices[index * 6 + 2] = index + resolution;
+                mesh->indices[index * 6 + 3] = index;
+                mesh->indices[index * 6 + 4] = index + 1;
+                mesh->indices[index * 6 + 5] = index + resolution + 1;
+            }
+        }
+    }
     return mesh;
 }
 
@@ -5737,16 +5785,16 @@ CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_in
             CGL_vec3 p1 = function(u, vn);
             CGL_vec3 p2 = function(un, v);
             CGL_vec3 p3 = function(un, vn);
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 0.0f);
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 1.0f);
             mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(u, v, 0.0f, 0.0f);
             vertex_index += 1;
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p1.x, p1.y, p1.z, 0.0f);
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p1.x, p1.y, p1.z, 1.0f);
             mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(u, vn, 0.0f, 0.0f);
             vertex_index += 1;
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p2.x, p2.y, p2.z, 0.0f);
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p2.x, p2.y, p2.z, 1.0f);
             mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(un, v, 0.0f, 0.0f);
             vertex_index += 1;
-            mesh->vertices[vertex_index].position = CGL_vec4_init(p3.x, p3.y, p3.z, 0.0f);
+            mesh->vertices[vertex_index].position = CGL_vec4_init(p3.x, p3.y, p3.z, 1.0f);
             mesh->vertices[vertex_index].texture_coordinates = CGL_vec4_init(un, vn, 0.0f, 0.0f);
             vertex_index += 1;
             // Output the first triangle of this grid square
@@ -5780,118 +5828,115 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords)
     CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(36, 36);
     if(mesh == NULL)
         return NULL;
-    mesh->vertices[0].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[0].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[0].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[0].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[1].position = CGL_vec4_init(-1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[1].position = CGL_vec4_init(-1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[1].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[1].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[2].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[2].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[2].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[2].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[3].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[3].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[3].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[3].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[4].position = CGL_vec4_init( 1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[4].position = CGL_vec4_init( 1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[4].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[4].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[5].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[5].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[5].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[5].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[6].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[6].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[6].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[6].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[7].position = CGL_vec4_init(-1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[7].position = CGL_vec4_init(-1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[7].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[7].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[8].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[8].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[8].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[8].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[9].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[9].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[9].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[9].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[10].position = CGL_vec4_init(-1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[10].position = CGL_vec4_init(-1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[10].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[10].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[11].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[11].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[11].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[11].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[12].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[12].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[12].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[12].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[13].position = CGL_vec4_init( 1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[13].position = CGL_vec4_init( 1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[13].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[13].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[14].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[14].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[14].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[14].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[15].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[15].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[15].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[15].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[16].position = CGL_vec4_init( 1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[16].position = CGL_vec4_init( 1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[16].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[16].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[17].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[17].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[17].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[17].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[18].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[18].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[18].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[18].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[19].position = CGL_vec4_init(-1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[19].position = CGL_vec4_init(-1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[19].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[19].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[20].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[20].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[20].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[20].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[21].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[21].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[21].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[21].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[22].position = CGL_vec4_init( 1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[22].position = CGL_vec4_init( 1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[22].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[22].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[23].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[23].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[23].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[23].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[24].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[24].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[24].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[24].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[25].position = CGL_vec4_init( 1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[25].position = CGL_vec4_init( 1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[25].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[25].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[26].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[26].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[26].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[26].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[27].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[27].position = CGL_vec4_init( 1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[27].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[27].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[28].position = CGL_vec4_init(-1.0f,  1.0f,  1.0f, 0.0f);
+    mesh->vertices[28].position = CGL_vec4_init(-1.0f,  1.0f,  1.0f, 1.0f);
     mesh->vertices[28].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[28].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[29].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f);
+    mesh->vertices[29].position = CGL_vec4_init(-1.0f,  1.0f, -1.0f, 1.0f);
     mesh->vertices[29].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f,  1.0f, -1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[29].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[30].position = CGL_vec4_init(-1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[30].position = CGL_vec4_init(-1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[30].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[30].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[31].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[31].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[31].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[31].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[32].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[32].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[32].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[32].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[33].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f);
+    mesh->vertices[33].position = CGL_vec4_init( 1.0f, -1.0f, -1.0f, 1.0f);
     mesh->vertices[33].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f, -1.0f, 0.0f) : CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[33].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[34].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f);
+    mesh->vertices[34].position = CGL_vec4_init(-1.0f, -1.0f,  1.0f, 1.0f);
     mesh->vertices[34].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init(-1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f));
     mesh->vertices[34].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    mesh->vertices[35].position = CGL_vec4_init( 1.0f, -1.0f, 1.0f, 0.0f);
+    mesh->vertices[35].position = CGL_vec4_init( 1.0f, -1.0f, 1.0f, 1.0f);
     mesh->vertices[35].texture_coordinates = (use_3d_tex_coords ? CGL_vec4_init( 1.0f, -1.0f,  1.0f, 0.0f) : CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f));
     mesh->vertices[35].normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    
-    for(CGL_int i = 0 ; i < 36 ; i++)
-        mesh->indices[i] = i;
-
+    for(CGL_int i = 0 ; i < 36 ; i++) mesh->indices[i] = i;
     return mesh;       
 }
 
@@ -5929,12 +5974,6 @@ void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffe
 }
 
 // shader
-
-struct CGL_shader
-{
-    GLuint handle;
-    void* user_data;
-};
 
 bool __CGL_shader_compile(const char* source, GLenum type, GLuint* handle, char** error)
 {    
