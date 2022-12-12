@@ -3269,11 +3269,13 @@ float CGL_utils_get_time()
 {
 #ifndef CGL_WASM
 #if defined(_WIN32) || defined(_WIN64)
-    LARGE_INTEGER frequency, starting_time;
+    static LARGE_INTEGER starting_time;
+    LARGE_INTEGER frequency, time;
+    if(starting_time.QuadPart == 0) QueryPerformanceCounter(&starting_time);
     QueryPerformanceFrequency(&frequency); 
-    QueryPerformanceCounter(&starting_time);
-    CGL_float time = starting_time.QuadPart / (float)frequency.QuadPart;
-    return time;
+    QueryPerformanceCounter(&time);
+    CGL_float ftime = (CGL_float)(time.QuadPart - starting_time.QuadPart) / (CGL_float)frequency.QuadPart;
+    return ftime;
 #else // for POSIX
     struct timespec spec;
     if (clock_gettime(1, &spec) == -1)
