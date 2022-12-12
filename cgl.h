@@ -567,7 +567,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec3_elem_set(a, i, v) (((float*)&a)[i] = v)
 CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n);
 CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
-
+void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc);
 
 
 #ifdef __cplusplus
@@ -833,6 +833,56 @@ void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, CGL_floa
 CGL_mat4 CGL_quat_to_mat4(CGL_quat quat);
 CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale);
 CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const CGL_float* rotation, const CGL_vec2* scale);
+
+#ifndef CGL_EXCLUDE_MATH_FUNCTIONS
+// vec2 
+CGL_vec2 CGL_vec2_add_(CGL_vec2 a, CGL_vec2 b);
+CGL_vec2 CGL_vec2_sub_(CGL_vec2 a, CGL_vec2 b);
+CGL_vec2 CGL_vec2_mul_(CGL_vec2 a, CGL_vec2 b);
+CGL_vec2 CGL_vec2_div_(CGL_vec2 a, CGL_vec2 b);
+CGL_vec2 CGL_vec2_add_scalar_(CGL_vec2 a, CGL_float b);
+CGL_vec2 CGL_vec2_sub_scalar_(CGL_vec2 a, CGL_float b);
+CGL_vec2 CGL_vec2_scale_(CGL_vec2 a, CGL_float b);
+CGL_vec2 CGL_vec2_normalize_(CGL_vec2 a);
+CGL_float CGL_vec2_dot_(CGL_vec2 a, CGL_vec2 b);
+CGL_float CGL_vec2_length_(CGL_vec2 a);
+CGL_float CGL_vec2_cross_(CGL_vec2 a, CGL_vec2 b);
+CGL_vec2 CGL_vec2_reflect_(CGL_vec2 a, CGL_vec2 b);
+CGL_vec2 CGL_vec2_refract_(CGL_vec2 a, CGL_vec2 b, CGL_float eta);
+CGL_vec2 CGL_vec2_rotate_(CGL_vec2 a, CGL_float angle);
+CGL_vec2 CGL_vec2_lerp_(CGL_vec2 a, CGL_vec2 b, CGL_float t);
+
+// vec3
+CGL_vec3 CGL_vec3_add_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_add3_(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
+CGL_vec3 CGL_vec3_sub_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_mul_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_div_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_add_scalar_(CGL_vec3 a, CGL_float b);
+CGL_vec3 CGL_vec3_sub_scalar_(CGL_vec3 a, CGL_float b);
+CGL_vec3 CGL_vec3_scale_(CGL_vec3 a, CGL_float b);
+CGL_vec3 CGL_vec3_normalize_(CGL_vec3 a);
+CGL_float CGL_vec3_dot_(CGL_vec3 a, CGL_vec3 b);
+CGL_float CGL_vec3_length_(CGL_vec3 a);
+CGL_vec3 CGL_vec3_cross_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_reflect_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_refract_(CGL_vec3 a, CGL_vec3 b, CGL_float eta);
+CGL_vec3 CGL_vec3_lerp_(CGL_vec3 a, CGL_vec3 b, CGL_float t);
+
+// vec4
+CGL_vec4 CGL_vec4_add_(CGL_vec4 a, CGL_vec4 b);
+CGL_vec4 CGL_vec4_sub_(CGL_vec4 a, CGL_vec4 b);
+CGL_vec4 CGL_vec4_mul_(CGL_vec4 a, CGL_vec4 b);
+CGL_vec4 CGL_vec4_div_(CGL_vec4 a, CGL_vec4 b);
+CGL_vec4 CGL_vec4_add_scalar_(CGL_vec4 a, CGL_float b);
+CGL_vec4 CGL_vec4_sub_scalar_(CGL_vec4 a, CGL_float b);
+CGL_vec4 CGL_vec4_scale_(CGL_vec4 a, CGL_float b);
+CGL_vec4 CGL_vec4_normalize_(CGL_vec4 a);
+CGL_float CGL_vec4_dot_(CGL_vec4 a, CGL_vec4 b);
+CGL_float CGL_vec4_length_(CGL_vec4 a);
+CGL_vec4 CGL_vec4_lerp_(CGL_vec4 a, CGL_vec4 b, CGL_float t);
+
+#endif
 
 
 #endif
@@ -1229,11 +1279,20 @@ CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
 CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords);
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
+CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
 
 CGL_mesh_cpu* CGL_mesh_cpu_add_triangle(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_add_quad(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d); // generate quad mesh
 CGL_mesh_cpu* CGL_mesh_cpu_add_from_parametric_function(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v);
+CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
+
+CGL_mesh_cpu* CGL_mesh_cpu_offset_vertices(CGL_mesh_cpu* mesh, CGL_vec3 offset);
+CGL_mesh_cpu* CGL_mesh_cpu_scale_vertices(CGL_mesh_cpu* mesh, CGL_float scale);
+CGL_mesh_cpu* CGL_mesh_cpu_rotate_vertices(CGL_mesh_cpu* mesh, CGL_quat rotation);
+CGL_mesh_cpu* CGL_mesh_cpu_transform_vertices(CGL_mesh_cpu* mesh, CGL_mat4 transform);
+
+
 
 void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name);
 void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
@@ -3801,6 +3860,19 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta)
     return result;
 }
 
+void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc)
+{
+    CGL_vec3 b = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    CGL_vec3 c = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    if(a.x != 0.0f) b = CGL_vec3_init(-a.y/a.x, 1.0f, 0.0f);
+    else if(a.y != 0.0f) b = CGL_vec3_init(0.0f, -a.z/a.y, 1.0f);
+    else b = CGL_vec3_init(1.0f, 0.0f, -a.x/a.z);
+    CGL_vec3_normalize(b);
+    CGL_vec3_normalize(c);
+    if(pb) *pb = b;
+    if(pc) *pc = c;
+}
+
 CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n)
 {
     CGL_float dot = CGL_vec3_dot(a, n);
@@ -4157,7 +4229,7 @@ CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* trans
     return original;
 }
 
-CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const float* rotation, const CGL_vec2* scale)
+CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const CGL_float* rotation, const CGL_vec2* scale)
 {
     CGL_vec2 zero = CGL_vec2_init(0.0f, 0.0f);
     if(rotation) CGL_vec2_rotate_about_point(original, zero, (*rotation));
@@ -4165,6 +4237,231 @@ CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* trans
     if(translation) original = CGL_vec2_sub(original, (*translation));
     return original;
 }
+
+#ifndef CGL_EXCLUDE_MATH_FUNCTIONS
+// vec2 
+CGL_vec2 CGL_vec2_add_(CGL_vec2 a, CGL_vec2 b)
+{
+    return CGL_vec2_init(a.x + b.x, a.y + b.y);
+}
+
+CGL_vec2 CGL_vec2_sub_(CGL_vec2 a, CGL_vec2 b)
+{
+    return CGL_vec2_init(a.x - b.x, a.y - b.y);
+}
+
+CGL_vec2 CGL_vec2_mul_(CGL_vec2 a, CGL_vec2 b)
+{
+    return CGL_vec2_init(a.x * b.x, a.y * b.y);
+}
+
+CGL_vec2 CGL_vec2_div_(CGL_vec2 a, CGL_vec2 b)
+{
+    return CGL_vec2_init(a.x / b.x, a.y / b.y);
+}
+
+CGL_vec2 CGL_vec2_add_scalar_(CGL_vec2 a, CGL_float b)
+{
+    return CGL_vec2_init(a.x + b, a.y + b);
+}
+
+CGL_vec2 CGL_vec2_sub_scalar_(CGL_vec2 a, CGL_float b)
+{
+    return CGL_vec2_init(a.x - b, a.y - b);
+}
+
+CGL_vec2 CGL_vec2_scale_(CGL_vec2 a, CGL_float b)
+{
+    return CGL_vec2_init(a.x * b, a.y * b);
+}
+
+CGL_vec2 CGL_vec2_normalize_(CGL_vec2 a)
+{
+    CGL_float length = CGL_vec2_length_(a);
+    return CGL_vec2_init(a.x / length, a.y / length);
+}
+
+CGL_float CGL_vec2_dot_(CGL_vec2 a, CGL_vec2 b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+
+CGL_float CGL_vec2_length_(CGL_vec2 a)
+{
+    return sqrtf(CGL_vec2_dot_(a, a));
+}
+
+CGL_float CGL_vec2_cross_(CGL_vec2 a, CGL_vec2 b)
+{
+    return a.x * b.y - a.y * b.x;
+}
+
+CGL_vec2 CGL_vec2_reflect_(CGL_vec2 a, CGL_vec2 b)
+{
+    CGL_float dot = CGL_vec2_dot_(a, b);
+    return CGL_vec2_init(a.x - 2.0f * dot * b.x, a.y - 2.0f * dot * b.y);
+}
+
+CGL_vec2 CGL_vec2_refract_(CGL_vec2 a, CGL_vec2 b, CGL_float eta)
+{
+    CGL_float dot = CGL_vec2_dot_(a, b);
+    CGL_float k = 1.0f - eta * eta * (1.0f - dot * dot);
+    if(k < 0.0f) return CGL_vec2_init(0.0f, 0.0f);
+    return CGL_vec2_init(eta * a.x - (eta * dot + sqrtf(k)) * b.x, eta * a.y - (eta * dot + sqrtf(k)) * b.y);
+}
+
+CGL_vec2 CGL_vec2_rotate_(CGL_vec2 a, CGL_float angle)
+{
+    CGL_float s = sinf(angle);
+    CGL_float c = cosf(angle);
+    return CGL_vec2_init(a.x * c - a.y * s, a.x * s + a.y * c);
+}
+
+CGL_vec2 CGL_vec2_lerp_(CGL_vec2 a, CGL_vec2 b, CGL_float t)
+{
+    return CGL_vec2_init(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y));
+}
+
+// vec3
+CGL_vec3 CGL_vec3_add_(CGL_vec3 a, CGL_vec3 b)
+{
+    return CGL_vec3_init(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+CGL_vec3 CGL_vec3_add3_(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+{
+    return CGL_vec3_init(a.x + b.x + c.x, a.y + b.y + c.y, a.z + b.z + c.z);
+}
+
+CGL_vec3 CGL_vec3_sub_(CGL_vec3 a, CGL_vec3 b)
+{
+    return CGL_vec3_init(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+CGL_vec3 CGL_vec3_mul_(CGL_vec3 a, CGL_vec3 b)
+{
+    return CGL_vec3_init(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+CGL_vec3 CGL_vec3_div_(CGL_vec3 a, CGL_vec3 b)
+{
+    return CGL_vec3_init(a.x / b.x, a.y / b.y, a.z / b.z);
+}
+
+CGL_vec3 CGL_vec3_add_scalar_(CGL_vec3 a, CGL_float b)
+{
+    return CGL_vec3_init(a.x + b, a.y + b, a.z + b);
+}
+
+CGL_vec3 CGL_vec3_sub_scalar_(CGL_vec3 a, CGL_float b)
+{
+    return CGL_vec3_init(a.x - b, a.y - b, a.z - b);
+}
+
+CGL_vec3 CGL_vec3_scale_(CGL_vec3 a, CGL_float b)
+{
+    return CGL_vec3_init(a.x * b, a.y * b, a.z * b);
+}
+
+CGL_vec3 CGL_vec3_normalize_(CGL_vec3 a)
+{
+    CGL_float length = CGL_vec3_length_(a);
+    return CGL_vec3_init(a.x / length, a.y / length, a.z / length);
+}
+
+CGL_float CGL_vec3_dot_(CGL_vec3 a, CGL_vec3 b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+CGL_float CGL_vec3_length_(CGL_vec3 a)
+{
+    return sqrtf(CGL_vec3_dot_(a, a));
+}
+
+CGL_vec3 CGL_vec3_cross_(CGL_vec3 a, CGL_vec3 b)
+{
+    return CGL_vec3_init(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+}
+
+CGL_vec3 CGL_vec3_reflect_(CGL_vec3 a, CGL_vec3 b)
+{
+    CGL_float dot = CGL_vec3_dot_(a, b);
+    return CGL_vec3_init(a.x - 2.0f * dot * b.x, a.y - 2.0f * dot * b.y, a.z - 2.0f * dot * b.z);
+}
+
+CGL_vec3 CGL_vec3_refract_(CGL_vec3 a, CGL_vec3 b, CGL_float eta)
+{
+    CGL_float dot = CGL_vec3_dot_(a, b);
+    CGL_float k = 1.0f - eta * eta * (1.0f - dot * dot);
+    if(k < 0.0f) return CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    return CGL_vec3_init(eta * a.x - (eta * dot + sqrtf(k)) * b.x, eta * a.y - (eta * dot + sqrtf(k)) * b.y, eta * a.z - (eta * dot + sqrtf(k)) * b.z);
+}
+
+CGL_vec3 CGL_vec3_lerp_(CGL_vec3 a, CGL_vec3 b, CGL_float t)
+{
+    return CGL_vec3_init(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y), a.z + t * (b.z - a.z));
+}
+
+// vec4
+CGL_vec4 CGL_vec4_add_(CGL_vec4 a, CGL_vec4 b)
+{
+    return CGL_vec4_init(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+}
+
+CGL_vec4 CGL_vec4_sub_(CGL_vec4 a, CGL_vec4 b)
+{
+    return CGL_vec4_init(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+}
+
+CGL_vec4 CGL_vec4_mul_(CGL_vec4 a, CGL_vec4 b)
+{
+    return CGL_vec4_init(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
+}
+
+CGL_vec4 CGL_vec4_div_(CGL_vec4 a, CGL_vec4 b)
+{
+    return CGL_vec4_init(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w);
+}
+
+CGL_vec4 CGL_vec4_add_scalar_(CGL_vec4 a, CGL_float b)
+{
+    return CGL_vec4_init(a.x + b, a.y + b, a.z + b, a.w + b);
+}
+
+CGL_vec4 CGL_vec4_sub_scalar_(CGL_vec4 a, CGL_float b)
+{
+    return CGL_vec4_init(a.x - b, a.y - b, a.z - b, a.w - b);
+}
+
+CGL_vec4 CGL_vec4_scale_(CGL_vec4 a, CGL_float b)
+{
+    return CGL_vec4_init(a.x * b, a.y * b, a.z * b, a.w * b);
+}
+
+CGL_vec4 CGL_vec4_normalize_(CGL_vec4 a)
+{
+    CGL_float length = CGL_vec4_length_(a);
+    return CGL_vec4_init(a.x / length, a.y / length, a.z / length, a.w / length);
+}
+
+CGL_float CGL_vec4_dot_(CGL_vec4 a, CGL_vec4 b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+CGL_float CGL_vec4_length_(CGL_vec4 a)
+{
+    return sqrtf(CGL_vec4_dot_(a, a));
+}
+
+CGL_vec4 CGL_vec4_lerp_(CGL_vec4 a, CGL_vec4 b, CGL_float t)
+{
+    return CGL_vec4_init(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y), a.z + t * (b.z - a.z), a.w + t * (b.w - a.w));
+}
+
+#endif
+
 
 struct CGL_context
 {
@@ -5883,6 +6180,99 @@ static CGL_vec3 __CGL_mesh_cpu_sphere_parametric_function(CGL_float u, CGL_float
 CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v)
 {
     return CGL_mesh_cpu_add_from_parametric_function(mesh, res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function);
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution)
+{
+    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(resolution * 2 * 3, resolution * 2 * 3);
+    CGL_mesh_cpu_add_cylinder(mesh, start, end, radius0, radius1, resolution);
+    CGL_mesh_cpu_recalculate_normals(mesh);
+    return mesh;
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution)
+{
+    if(mesh == NULL) return NULL;
+    if(resolution < 3) return NULL;
+    
+    CGL_vec3 direction = CGL_vec3_sub(end, start);
+    CGL_float length = CGL_vec3_length(direction);
+    CGL_vec3_normalize(direction);
+    CGL_vec3 right = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    CGL_vec3 top = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    CGL_vec3_calculate_orthonormal_basis_from_one_vector(direction, &right, &top);
+    CGL_float angle = 0.0f;
+    CGL_float angle_step = 3.14f * 2.0f / (CGL_float)resolution;
+    CGL_int vertex_index = 0;
+    CGL_int index_index = 0;
+    for(CGL_int i = 0; i < resolution ; i++)
+    {
+        CGL_vec3 p0 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle) * radius0), CGL_vec3_scale_(top, sinf(angle) * radius0));
+        CGL_vec3 p1 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle + angle_step) * radius0), CGL_vec3_scale_(top, sinf(angle + angle_step) * radius0));
+        CGL_vec3 p2 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle) * radius1), CGL_vec3_scale_(top, sinf(angle) * radius1));
+        CGL_vec3 p3 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle + angle_step) * radius1), CGL_vec3_scale_(top, sinf(angle + angle_step) * radius1));
+        angle += angle_step;
+        // Output the first triangle of this grid square
+        // triangle(p0, p2, p1)
+        mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 1.0f);
+        mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+        vertex_index += 1;
+        mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p2.x, p2.y, p2.z, 1.0f);
+        mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f);
+        vertex_index += 1;
+        mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p1.x, p1.y, p1.z, 1.0f);
+        mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f);
+        vertex_index += 1;
+        // Output the second triangle of this grid square
+        // triangle(p1, p2, p3)
+        mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p1.x, p1.y, p1.z, 1.0f);
+        mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(1.0f, 0.0f, 0.0f, 0.0f);
+        vertex_index += 1;
+        mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p2.x, p2.y, p2.z, 1.0f);
+        mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(0.0f, 1.0f, 0.0f, 0.0f);
+        vertex_index += 1;
+        mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p3.x, p3.y, p3.z, 1.0f);
+        mesh->vertices[mesh->vertex_count_used + vertex_index].texture_coordinates = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
+        vertex_index += 1;
+        // Output the indices for this grid square
+        mesh->indices[mesh->index_count_used + index_index] = (CGL_uint)mesh->vertex_count_used + vertex_index - 6; index_index += 1;
+        mesh->indices[mesh->index_count_used + index_index] = (CGL_uint)mesh->vertex_count_used + vertex_index - 5; index_index += 1;
+        mesh->indices[mesh->index_count_used + index_index] = (CGL_uint)mesh->vertex_count_used + vertex_index - 4; index_index += 1;
+        mesh->indices[mesh->index_count_used + index_index] = (CGL_uint)mesh->vertex_count_used + vertex_index - 3; index_index += 1;
+        mesh->indices[mesh->index_count_used + index_index] = (CGL_uint)mesh->vertex_count_used + vertex_index - 2; index_index += 1;
+        mesh->indices[mesh->index_count_used + index_index] = (CGL_uint)mesh->vertex_count_used + vertex_index - 1; index_index += 1;
+    }
+    mesh->vertex_count_used += vertex_index;
+    mesh->index_count_used += index_index;
+    return mesh;
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_offset_vertices(CGL_mesh_cpu* mesh, CGL_vec3 offset)
+{
+    CGL_mat4 offset_mat = CGL_mat4_translate(offset.x, offset.y, offset.z);
+    return CGL_mesh_cpu_transform_vertices(mesh, offset_mat);
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_scale_vertices(CGL_mesh_cpu* mesh, CGL_float scale)
+{
+    CGL_mat4 scale_mat = CGL_mat4_scale(scale, scale, scale);
+    return CGL_mesh_cpu_transform_vertices(mesh, scale_mat);
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_rotate_vertices(CGL_mesh_cpu* mesh, CGL_quat rotation)
+{
+    CGL_mat4 rot_mat = CGL_quat_to_mat4(rotation);
+    return CGL_mesh_cpu_transform_vertices(mesh, rot_mat);
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_transform_vertices(CGL_mesh_cpu* mesh, CGL_mat4 transform)
+{
+    for(CGL_int i = 0; i < mesh->vertex_count_used; i++)
+    {
+        mesh->vertices[i].position.w = 1.0f;
+        mesh->vertices[i].position = CGL_mat4_mul_vec4(transform, mesh->vertices[i].position);
+    }
+    return mesh;
 }
 
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v)
