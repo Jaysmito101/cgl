@@ -3862,13 +3862,14 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta)
 
 void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc)
 {
+    CGL_vec3_normalize(a);
     CGL_vec3 b = CGL_vec3_init(0.0f, 0.0f, 0.0f);
     CGL_vec3 c = CGL_vec3_init(0.0f, 0.0f, 0.0f);
     if(a.x != 0.0f) b = CGL_vec3_init(-a.y/a.x, 1.0f, 0.0f);
     else if(a.y != 0.0f) b = CGL_vec3_init(0.0f, -a.z/a.y, 1.0f);
     else b = CGL_vec3_init(1.0f, 0.0f, -a.x/a.z);
     CGL_vec3_normalize(b);
-    CGL_vec3_normalize(c);
+    c = CGL_vec3_cross(a, b);
     if(pb) *pb = b;
     if(pc) *pc = c;
 }
@@ -11330,7 +11331,6 @@ void CGL_trail_bake_mesh(CGL_trail* trail)
         tp = CGL_vec3_cross(front, rt);
         CGL_vec3_normalize(rt);
         CGL_vec3_normalize(tp);
-
         for(CGL_int i = 0 ; i < trail->resolution; i ++)
         {
             angle0 = angle_step * i;
@@ -11350,14 +11350,39 @@ void CGL_trail_bake_mesh(CGL_trail* trail)
             b1 = CGL_vec3_add(b0, point->next->position);
             b0 = CGL_vec3_add(b0, point->position);
 
-            CGL_mesh_cpu_add_quad(mesh, a0, b0, b1, a1);
-            for(CGL_int j = 0 ; j < 6 ; j++)
+            //CGL_mesh_cpu_add_quad(mesh, a0, b0, b1, a1);
+
+            // triangle 1
+            mesh->vertices[mesh->vertex_count_used + 0].position = CGL_vec4_init(a0.x, a0.y, a0.z, point->lifespan);
+            mesh->vertices[mesh->vertex_count_used + 0].normal = CGL_vec4_init(a0.x, a0.y, a0.z, point->distance);
+
+            mesh->vertices[mesh->vertex_count_used + 1].position = CGL_vec4_init(b0.x, b0.y, b0.z, point->lifespan);
+            mesh->vertices[mesh->vertex_count_used + 1].normal = CGL_vec4_init(b0.x, b0.y, b0.z, point->distance);
+
+            mesh->vertices[mesh->vertex_count_used + 2].position = CGL_vec4_init(b1.x, b1.y, b1.z, point->lifespan);
+            mesh->vertices[mesh->vertex_count_used + 2].normal = CGL_vec4_init(b1.x, b1.y, b1.z, point->distance);
+
+            // triangle 2
+            mesh->vertices[mesh->vertex_count_used + 3].position = CGL_vec4_init(a0.x, a0.y, a0.z, point->lifespan);
+            mesh->vertices[mesh->vertex_count_used + 3].normal = CGL_vec4_init(a0.x, a0.y, a0.z, point->distance);
+
+            mesh->vertices[mesh->vertex_count_used + 4].position = CGL_vec4_init(b1.x, b1.y, b1.z, point->lifespan);
+            mesh->vertices[mesh->vertex_count_used + 4].normal = CGL_vec4_init(b1.x, b1.y, b1.z, point->distance);
+
+            mesh->vertices[mesh->vertex_count_used + 5].position = CGL_vec4_init(a1.x, a1.y, a1.z, point->lifespan);
+            mesh->vertices[mesh->vertex_count_used + 5].normal = CGL_vec4_init(a1.x, a1.y, a1.z, point->distance);
+            
+            mesh->vertex_count_used += 6;
+            mesh->index_count_used += 6;
+
+
+//            for(CGL_int j = 0 ; j < 6 ; j++)
             {
-                mesh->vertices[mesh->vertex_count_used - 6 + j].position.w = point->lifespan;
-                mesh->vertices[mesh->vertex_count_used - 6 + j].normal.w = point->distance;
+  //              mesh->vertices[mesh->vertex_count_used - 6 + j].position.w = point->lifespan;
+    //            mesh->vertices[mesh->vertex_count_used - 6 + j].normal.w = point->distance;
             }
         }   
-
+        
         point = point->next;
     }
 
