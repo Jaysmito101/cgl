@@ -1,7 +1,7 @@
 // Copyright Jaysmito Mukherjee, 2023
 // I am the sole copyright owner of this Work.
 // You cannot host, display, distribute or share this Work neither
-// as it is or altered, here on Shadertoy or anywhere else, in any
+// as it is or altered, anywhere else, in any
 // form including physical and digital. You cannot use this Work in any
 // commercial or non-commercial product, website or project. You cannot
 // sell this Work and you cannot mint an NFTs of it or train a neural
