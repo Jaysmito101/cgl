@@ -158,7 +158,9 @@ void CGL_net_ssl_log_errors();
 #if 1
 // CGL utils
 
+void CGL_utils_sleep(const CGL_sizei milis);
 CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
+CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);
 CGL_bool CGL_utils_append_file(const CGL_byte* path, const CGL_byte* data, size_t size);
 CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); // write data to file
 CGL_float CGL_utils_get_time();
@@ -4499,26 +4501,67 @@ void CGL_shutdown()
 
 #if 1 // just to use code folding in ide
 
-// read file into memory
-char* CGL_utils_read_file(const char* path, size_t* size_ptr)
+#if defined(_WIN32) || defined(_WIN64)
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
+
+
+CGL_sizei CGL_utils_get_file_size(const CGL_byte* path)
 {
-    FILE* file = fopen(path, "r");
-    if(file == NULL)
-        return NULL;
-    fseek(file, 0, SEEK_END);
-    size_t size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    char* data = (char*)malloc(size + 1);
-    memset(data, 0, size + 1);
-    if(data == NULL)
-    {
-        fclose(file);
-        return NULL;
-    }
-    fread(data, 1, size, file);
-    fclose(file);
-    if(size_ptr) *size_ptr = size;
+#if defined(_WIN32) || defined(_WIN64)
+    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if(file == INVALID_HANDLE_VALUE) return -1;
+    LARGE_INTEGER size;
+    if(GetFileSizeEx(file, &size) == 0) return -1;
+    CloseHandle(file);
+    return size.QuadPart;
+#else
+    struct stat st;
+    if(stat(path, &st) == 0) return st.st_size;
+    return -1;
+#endif
+}
+
+void CGL_utils_sleep(const CGL_sizei milis)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    Sleep((DWORD)milis);
+#else
+    usleep(milis * 1000);
+#endif
+}
+
+// read file into memory
+CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size_ptr)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if(file == INVALID_HANDLE_VALUE) return NULL;
+    LARGE_INTEGER size;
+    if(GetFileSizeEx(file, &size) == 0) return NULL;
+    CGL_byte* data = (CGL_byte*)malloc(size.QuadPart + 1);
+    if(data == NULL) return NULL;
+    DWORD read = 0;
+    if(ReadFile(file, data, (DWORD)size.QuadPart, &read, NULL) == 0) return NULL;
+    CloseHandle(file);
+    data[size.QuadPart] = 0;
+    if(size_ptr != NULL) *size_ptr = size.QuadPart;
     return data;
+#else
+    struct stat st;
+    if(stat(path, &st) != 0) return NULL;
+    CGL_byte* data = (CGL_byte*)malloc(st.st_size + 1);
+    if(data == NULL) return NULL;
+    FILE* file = fopen(path, "r");
+    if(file == NULL) return NULL;
+    fread(data, 1, st.st_size, file);
+    fclose(file);
+    data[st.st_size] = 0;
+    if(size_ptr != NULL) *size_ptr = st.st_size;
+    return data;
+#endif
 }
 
 // write data to file
