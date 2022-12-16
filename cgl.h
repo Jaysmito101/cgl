@@ -11230,6 +11230,7 @@ struct CGL_trail
     CGL_trail_point* last;
     CGL_shader* shader;
     CGL_mesh_gpu* mesh;
+    CGL_mesh_cpu* mesh_cpu;
     void* user_data;
     CGL_trail_point_update_function trail_point_func;
     CGL_int point_count;
@@ -11246,6 +11247,9 @@ CGL_int __CGL_trail_get_next_index(CGL_trail* trail)
     {
         if(trail->points[i].index == -1)
         {
+            trail->points[i].distance = 0.0f;
+            trail->points[i].next = NULL;
+            trail->points[i].lifespan = 0.0f;
             index = i;
             break;
         }
@@ -11268,12 +11272,14 @@ CGL_trail* CGL_trail_create()
     trail->length = 0.0f;
     trail->resolution = 3;
     trail->mesh = CGL_mesh_gpu_create();
+    trail->mesh_cpu = CGL_mesh_cpu_create(1024, 1024);
     trail->shader = CGL_shader_create(__CGL_TRAIL_DEFAULT_VERTEX_SHADER, __CGL_TRAIL_DEFAULT_FRAGMENT_SHADER, NULL);
     return trail;
 }
 
 void CGL_trail_destroy(CGL_trail* trail)
 {
+    CGL_mesh_cpu_destroy(trail->mesh_cpu);
     CGL_mesh_gpu_destroy(trail->mesh);
     CGL_shader_destroy(trail->shader);
     CGL_free(trail);
@@ -11348,18 +11354,30 @@ void CGL_trail_update(CGL_trail* trail, CGL_float delta_time)
             else trail->first = point->next;
             point->index = -1;
             trail->point_count--;
+            point = point->next;
         }
-        previous = point;
         if(!point) break;
+        previous = point;
         point = point->next;
     }
 }
 
 void CGL_trail_bake_mesh(CGL_trail* trail)
 {
-    if(trail->point_count < 2) return;
-    CGL_int vertex_count = 3;
-    CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(trail->point_count * trail->resolution * 6, trail->point_count * trail->resolution * 6);
+    if(trail->point_count < 2) return;    
+    CGL_mesh_cpu* mesh = trail->mesh_cpu;
+
+    if (mesh->index_count < trail->point_count * trail->resolution * 6 || mesh->vertex_count < trail->point_count * trail->resolution * 6)
+    {
+        CGL_sizei vct = mesh->vertex_count;
+        CGL_sizei ict = mesh->index_count;
+        CGL_mesh_cpu_destroy(mesh);
+        mesh = CGL_mesh_cpu_create(
+            CGL_utils_max(trail->point_count * trail->resolution * 6, vct),
+            CGL_utils_max(trail->point_count * trail->resolution * 6, ict));
+        trail->mesh_cpu = mesh;
+    }
+    mesh->vertex_count_used = mesh->index_count_used = 0;
     
     CGL_vec3 rt, tp, front, a0, a1, b0, b1, tmp0, tmp1;
     CGL_float angle0, angle1, angle_step = 360.0f / trail->resolution;
@@ -11414,29 +11432,23 @@ void CGL_trail_bake_mesh(CGL_trail* trail)
 
             mesh->vertices[mesh->vertex_count_used + 5].position = CGL_vec4_init(a1.x, a1.y, a1.z, point->lifespan);
             mesh->vertices[mesh->vertex_count_used + 5].normal = CGL_vec4_init(a1.x, a1.y, a1.z, point->distance);
-            
+
             mesh->vertex_count_used += 6;
             mesh->index_count_used += 6;
-
-
-//            for(CGL_int j = 0 ; j < 6 ; j++)
-            {
-  //              mesh->vertices[mesh->vertex_count_used - 6 + j].position.w = point->lifespan;
-    //            mesh->vertices[mesh->vertex_count_used - 6 + j].normal.w = point->distance;
-            }
         }   
         
         point = point->next;
     }
 
+
     CGL_mesh_gpu_upload(trail->mesh, mesh, false);
-    CGL_mesh_cpu_destroy(mesh);
 }
 
 void CGL_trail_clear(CGL_trail* trail)
 {
     for(CGL_int i = 0; i < CGL_TRAIL_MAX_POINTS; i++) trail->points[i].index = -1;
     trail->first = NULL;
+    trail->last = NULL;
     trail->point_count = 0;
 }
 
