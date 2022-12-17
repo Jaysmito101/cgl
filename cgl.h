@@ -535,6 +535,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec2_create_from_higher_dimension(a) CGL_vec2_init(a.x, a.y)
 #define CGL_vec2_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec2_elem_set(a, i, v) (((float*)&a)[i] = v)
+CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 
 #ifdef __cplusplus
 #define CGL_vec3_init(x, y, z) CGL_vec3(x, y, z)
@@ -569,8 +570,8 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec3_elem_set(a, i, v) (((float*)&a)[i] = v)
 CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n);
 CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
+CGL_vec3 CGL_vec3_triple_product(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
 void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc);
-
 
 #ifdef __cplusplus
 #define CGL_vec4_init(x, y, z, w) CGL_vec4(x, y, z, w)
@@ -594,6 +595,7 @@ void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* 
 #define CGL_vec4_from_vec2(a, z, w) CGL_vec4_init(a.x, a.y, z, w)
 #define CGL_vec4_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec4_elem_set(a, i, v) (((float*)&a)[i] = v)
+CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c);
 
 #ifdef __cplusplus
 #define CGL_mat3_init(a, b, c, d, e, f, g, h, i) CGL_mat3(a, b, c, d, e, f, g, h, i)
@@ -924,10 +926,26 @@ void CGL_shape_destroy(CGL_shape* shape);
 #endif
 
 bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount);
-bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, float* overlap_amount);
+bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector);
 void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count);
+CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 
-bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
+
+// GJK collision detection & EPA collision resolution
+
+#ifndef CGL_GJK_EPA_MAX_POLYTOPE_VERTICES
+#define CGL_GJK_EPA_MAX_POLYTOPE_VERTICES 256
+#endif
+
+#ifndef CGL_GJK_EPA_TOLERANCE
+#define CGL_GJK_EPA_TOLERANCE 0.001f
+#endif
+
+CGL_vec3 CGL_gjk_shape_default_support(CGL_shape* a, CGL_vec3 d);
+CGL_vec3 CGL_gjk_default_support(CGL_shape* a, CGL_shape* b, CGL_vec3 d);
+CGL_bool CGL_gjk_check_collision_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex_out);
+CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex);
+
 
 // window
 #if 1 // Just to use code folding
@@ -3449,12 +3467,11 @@ bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis
 
     )
     {
-        CGL_float a_range = a_max - a_min;
-        CGL_float b_range = b_max - b_min;
-        CGL_float a_middle = a_min + a_range / 2.0f;
-        CGL_float b_middle = b_min + b_range / 2.0f;
-        CGL_float middle_distance = fabsf(a_middle - b_middle);
-        CGL_float overlap = CGL_utils_min(a_range, b_range) / 2.0f - middle_distance;
+        CGL_float overlap = 0.0f;
+        if(a_max > b_max && a_min < b_min) overlap = CGL_utils_min(a_max - b_min, b_max - a_min);
+        else if(a_max > b_max) overlap = b_max - a_min;
+        else if(a_min < b_min) overlap = a_max - b_min;
+        else overlap = CGL_utils_min(a_max - b_min, b_max - a_min);
         if(overlap_amount) *overlap_amount = overlap;
         return true;
     }
@@ -3462,16 +3479,19 @@ bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis
     return false;    
 }
 
-bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, float* overlap_amount)
+bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector)
 {
     static CGL_vec2 sat_axes_a[CGL_SAT_COLLISION_MAX_COLLISIONS];
     static CGL_vec2 sat_axes_b[CGL_SAT_COLLISION_MAX_COLLISIONS];
     CGL_sat_collision_calculate_axes(a, sat_axes_a, NULL);    
     CGL_sat_collision_calculate_axes(b, sat_axes_b, NULL);
     CGL_float overlap = FLT_MAX, ov = FLT_MAX;
-    for(size_t i = 0; i < a->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_a[i], &ov)) return false; overlap = CGL_utils_min(overlap, ov); }
-    for(size_t i = 0; i < b->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_b[i], &ov)) return false; overlap = CGL_utils_min(overlap, ov); }
-    if(overlap_amount) *overlap_amount = overlap;
+    CGL_vec2 n = CGL_vec2_init(0.0f, 0.0f);
+    for(size_t i = 0; i < a->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_a[i], &ov)) return false; if(ov < overlap) { overlap = ov; n = sat_axes_a[i]; } }
+    for(size_t i = 0; i < b->vertices_count; i++) { if(!CGL_sat_collision_overlap_on_axis(a, b, sat_axes_b[i], &ov)) return false; if(ov < overlap) { overlap = ov; n = sat_axes_b[i]; } }
+    //if(overlap_amount) *overlap_amount = overlap;
+    n = CGL_vec2_scale(n, overlap);
+    if(n_vector) *n_vector = n;
     return true;
 }
 
@@ -3489,13 +3509,164 @@ void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int*
 }
 
 // algorithm from https://stackoverflow.com/a/23186198/14911094
-bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 p0, CGL_vec2 p1, CGL_vec2 p2)
+CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 p0, CGL_vec2 p1, CGL_vec2 p2)
 {
     CGL_float s = (p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y);
     CGL_float t = (p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y);
     if (s <= 0 || t <= 0) return false;
     CGL_float A = (-p1.y * p2.x + p0.y * (-p1.x + p2.x) + p0.x * (p1.y - p2.y) + p1.x * p2.y);
     return (s + t) < A;
+}
+
+// GJK & EPA 
+
+CGL_vec3 CGL_gjk_shape_default_support(CGL_shape* a, CGL_vec3 d)
+{
+    CGL_float max_dp = -FLT_MAX, dp = 0.0f;
+    CGL_vec3 support = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    CGL_vec3 vertex_pos = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    for(CGL_int i = 0 ; i < a->vertices_count ; i++)
+    {
+        vertex_pos = CGL_vec3_apply_transformations(a->vertices[i], &a->position, &a->rotation, &a->scale);
+        dp = CGL_vec3_dot(vertex_pos, d);
+        if(dp > max_dp) { max_dp = dp; support = vertex_pos;}
+    }
+    return support;
+}
+
+// the default support function 
+CGL_vec3 CGL_gjk_default_support(CGL_shape* a, CGL_shape* b, CGL_vec3 d)
+{
+    CGL_vec3 a_support = CGL_gjk_shape_default_support(a, d);
+    CGL_vec3 b_support = CGL_gjk_shape_default_support(b, CGL_vec3_scale_(d, -1.0f));
+    return CGL_vec3_sub(a_support, b_support);
+}
+
+// Implementation inspired from
+//
+// https://github.com/kroitor/gjk.c/blob/master/gjk.c
+// https://observablehq.com/@esperanc/2d-gjk-and-epa-algorithms
+CGL_bool CGL_gjk_check_collision_2d(CGL_shape* sa, CGL_shape* sb, CGL_vec3* simplex_out)
+{
+    CGL_int index = 0;
+    CGL_vec3 simplex[3];
+    CGL_vec3  a, b, c;
+    CGL_vec3 dir, ao, ab, ac, ab_perp, ac_perp;
+
+    // initial direction is from a to b
+    dir = CGL_vec3_sub(sa->position, sb->position);
+
+    // if the direction is 0 (which means a and b are at same position), set it to (1, 0, 0) (x-axis)
+    if(dir.x == 0 && dir.y == 0) dir = CGL_vec3_init(1.0f, 0.0f, 0.0f);
+
+    // get the first point of the simplex
+    a = simplex[0] = CGL_gjk_default_support(sa, sb, dir);
+
+    if(CGL_vec3_dot(a, dir) < 0) return false; // no collision
+
+    // set the direction to the opposite of the first point (towards origin)
+    dir = CGL_vec3_scale(dir, -1.0f);
+
+    while(true)
+    {
+        a = simplex[++index] = CGL_gjk_default_support(sa, sb, dir);
+
+        // origin lies beyond the support point in the direction of the origin
+        // thus the minkowski difference does not contain the origin
+        if(CGL_vec3_dot(a, dir) < 0) return false; // no collision
+
+        // vector from A to origin
+        ao = CGL_vec3_scale(a, -1.0f);
+
+        if(index < 2)
+        {
+            b = simplex[0];
+            ab = CGL_vec3_sub(b, a); // vector from A to B
+            dir = CGL_vec3_triple_product(ab, ao, ab); // perpendicular to AB towards origin
+            if(CGL_vec3_dot(dir, dir) == 0) dir = CGL_vec3_init(dir.y, -dir.x, 0.0f); // perpendicular to AB
+            continue;
+        }
+
+        // we reach here when index == 2 (3 points in the simplex)
+        b = simplex[1];
+        c = simplex[0];
+        // a is already the last point added to the simplex
+        ab = CGL_vec3_sub(b, a);
+        ac = CGL_vec3_sub(c, a);
+        ac_perp = CGL_vec3_triple_product(ab, ac, ac);
+        if(CGL_vec3_dot(ac_perp, ao) >= 0) dir = ac_perp;
+        else
+        {
+            ab_perp = CGL_vec3_triple_product(ac, ab, ab);
+            if(CGL_vec3_dot(ab_perp, ao) < 0)
+            {
+                if(simplex_out != NULL)
+                {
+                    simplex_out[0] = simplex[0];
+                    simplex_out[1] = simplex[1];
+                    simplex_out[2] = simplex[2];
+                }
+                return true; // collision
+            }
+            simplex[0] = simplex[1]; // swap
+            dir = ab_perp;
+        }
+        simplex[1] = simplex[2]; // swap
+        index -= 1;
+    }
+    return false; // no collision
+}
+
+// From https://blog.winter.dev/2020/epa-algorithm/
+CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex)
+{
+    CGL_int min_index = -1;
+    CGL_float min_dist = FLT_MAX;
+    CGL_vec3 min_normal = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    static CGL_vec3 polytope[CGL_GJK_EPA_MAX_POLYTOPE_VERTICES];
+    static CGL_vec3 polytope_copy[CGL_GJK_EPA_MAX_POLYTOPE_VERTICES];
+    CGL_int polytope_size = 3;
+    CGL_vec3 vti, vtj, vtedge, normal, support;
+    CGL_float dist = 0.0f;
+    for(CGL_int i = 0 ; i < 3 ; i++) polytope[i] = simplex[i];
+    
+    while(min_dist >= FLT_MAX)
+    {
+        for(CGL_int i = 0 ; i < polytope_size ; i++)
+        {
+            CGL_int j = (i + 1) % polytope_size;
+            vti = polytope[i];
+            vtj = polytope[j];
+            vtedge = CGL_vec3_sub(vtj, vti);
+            normal = CGL_vec3_init(vtedge.y, -vtedge.x, 0.0f);
+            CGL_vec3_normalize(normal);
+            dist = CGL_vec3_dot(normal, vti);
+            if(dist < 0)
+            {
+                dist *= -1;
+                normal = CGL_vec3_scale(normal, -1.0f);
+            }
+            if(dist < min_dist)
+            {
+                min_dist = dist;
+                min_normal = normal;
+                min_index = j;
+            }
+        }
+        support = CGL_gjk_default_support(a, b, min_normal);
+        dist = CGL_vec3_dot(min_normal, support);
+        if(polytope_size == CGL_GJK_EPA_MAX_POLYTOPE_VERTICES) break; // max reached
+        if(fabsf(dist - min_dist) > CGL_GJK_EPA_TOLERANCE)
+        {
+            min_dist = FLT_MAX;
+            CGL_int amt_len = polytope_size - min_index;
+            for(CGL_int i = polytope_size - 1 ; i >= min_index ; i--) polytope_copy[i + 1] = polytope[i];
+            polytope[min_index] = support;
+            polytope_size += 1;
+        }
+    }
+    min_normal = CGL_vec3_scale(min_normal, min_dist);
+    return min_normal;
 }
 
 /*
@@ -3861,6 +4032,29 @@ CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta)
     result = CGL_vec3_add(result, temp);
     return result;
 }
+
+// vector triple product
+CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
+{
+    CGL_vec2 tmp0 = CGL_vec2_scale_(b, CGL_vec2_dot(a, c));
+    CGL_vec2 tmp1 = CGL_vec2_scale_(a, CGL_vec2_dot(b, c));
+    return CGL_vec2_sub(tmp0, tmp1);
+}
+
+CGL_vec3 CGL_vec3_triple_product(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+{
+    CGL_vec3 tmp0 = CGL_vec3_scale_(b, CGL_vec3_dot(a, c));
+    CGL_vec3 tmp1 = CGL_vec3_scale_(a, CGL_vec3_dot(b, c));
+    return CGL_vec3_sub(tmp0, tmp1);
+}
+
+CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c)
+{
+    CGL_vec4 tmp0 = CGL_vec4_scale_(b, CGL_vec4_dot(a, c));
+    CGL_vec4 tmp1 = CGL_vec4_scale_(a, CGL_vec4_dot(b, c));
+    return CGL_vec4_sub(tmp0, tmp1);        
+}
+
 
 void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc)
 {
@@ -4228,7 +4422,7 @@ CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* trans
         original = CGL_vec3_rotate_z(original, rotation->z);                
     }
     if(scale) original = CGL_vec3_mul(original, (*scale));
-    if(translation) original = CGL_vec3_sub(original, (*translation));
+    if(translation) original = CGL_vec3_add(original, (*translation));
     return original;
 }
 
@@ -4237,7 +4431,7 @@ CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* trans
     CGL_vec2 zero = CGL_vec2_init(0.0f, 0.0f);
     if(rotation) CGL_vec2_rotate_about_point(original, zero, (*rotation));
     if(scale) original = CGL_vec2_mul(original, (*scale));
-    if(translation) original = CGL_vec2_sub(original, (*translation));
+    if(translation) original = CGL_vec2_add(original, (*translation));
     return original;
 }
 
