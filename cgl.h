@@ -934,7 +934,7 @@ CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_
 // GJK collision detection & EPA collision resolution
 
 #ifndef CGL_GJK_EPA_MAX_POLYTOPE_VERTICES
-#define CGL_GJK_EPA_MAX_POLYTOPE_VERTICES 256
+#define CGL_GJK_EPA_MAX_POLYTOPE_VERTICES 64
 #endif
 
 #ifndef CGL_GJK_EPA_TOLERANCE
@@ -1248,6 +1248,7 @@ void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
 void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data); // set texture data
 void CGL_texture_set_user_data(CGL_texture* texture, void* user_data); // set texture user data
 void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
+CGL_uint CGL_texture_get_internal_handle(CGL_texture* texture); // get texture user data
 void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height); // get texture size
 void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method);
 void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
@@ -3655,7 +3656,7 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex)
         }
         support = CGL_gjk_default_support(a, b, min_normal);
         dist = CGL_vec3_dot(min_normal, support);
-        if(polytope_size == CGL_GJK_EPA_MAX_POLYTOPE_VERTICES) break; // max reached
+        if(polytope_size == CGL_GJK_EPA_MAX_POLYTOPE_VERTICES - 2) break; // max reached
         if(fabsf(dist - min_dist) > CGL_GJK_EPA_TOLERANCE)
         {
             min_dist = FLT_MAX;
@@ -5390,6 +5391,11 @@ void* CGL_texture_get_user_data(CGL_texture* texture)
     return texture->user_data;
 }
 
+CGL_uint CGL_texture_get_internal_handle(CGL_texture* texture)
+{
+    return (CGL_uint)texture->handle;
+}
+
 // get texture size
 void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height)
 {
@@ -6978,7 +6984,7 @@ struct CGL_bloom
     CGL_int cs_u_offset;
 };
 
-const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430\n"
+const char* __CGL_BLOOM_SHADER_SOURCE = "#version 430 core\n"
 "layout(local_size_x = 16, local_size_y = 16) in;\n"
 "layout(rgba32f, binding = 0) uniform image2D tex_src;\n"
 "layout(rgba32f, binding = 1) uniform image2D tex_dst;\n"
