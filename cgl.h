@@ -1679,6 +1679,7 @@ void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius);
 void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius);
 void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
 void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y);
+void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution);
 CGL_bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 void CGL_widgets_add_shape_out_line(CGL_shape* shape);
@@ -1689,7 +1690,10 @@ void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 
 void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
 void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
 
-
+void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
+void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
+void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution);
+void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color, CGL_bool vertical);
 
 #endif
 #endif
@@ -9439,6 +9443,44 @@ void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x
     else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius_x, radius_y));
 }
 
+static void __CGL_widgets_add_arc_filled2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
+{
+    CGL_float x = 0.0f, y = 0.0f;
+    CGL_float angle = start_angle;
+    CGL_float angle_step = (end_angle - start_angle) / resolution;
+    for(CGL_int i = 0; i < resolution; i++)
+    {
+        x = radius * cosf(angle); y = radius * sinf(angle);
+        CGL_widgets_add_vertex_p3f(x + pos_x, y + pos_y, 0.0f);
+        angle += angle_step;
+        x = radius * cosf(angle); y = radius * sinf(angle);
+        CGL_widgets_add_vertex_p3f(x + pos_x, y + pos_y, 0.0f);
+        CGL_widgets_add_vertex_p3f(pos_x, pos_y, 0.0f);
+    }
+}
+
+static void __CGL_widgets_add_arc_stroked2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
+{
+    CGL_float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
+    CGL_float angle = start_angle;
+    CGL_float angle_step = (end_angle - start_angle) / resolution;
+    CGL_widgets_add_line2f(pos_x, pos_y, pos_x + radius * cosf(start_angle), pos_y + radius * sinf(start_angle));
+    CGL_widgets_add_line2f(pos_x, pos_y, pos_x + radius * cosf(end_angle), pos_y + radius * sinf(end_angle));
+    for(CGL_int i = 0; i < resolution; i++)
+    {
+        x0 = radius * cosf(angle); y0 = radius * sinf(angle);
+        angle += angle_step;
+        x1 = radius * cosf(angle); y1 = radius * sinf(angle);
+        CGL_widgets_add_line2f(pos_x + x0, pos_y + y0, pos_x + x1, pos_y + y1);
+    }
+}
+
+void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_arc_filled2f(pos_x, pos_y, radius, start_angle, end_angle, resolution);
+    else __CGL_widgets_add_arc_stroked2f(pos_x, pos_y, radius, start_angle, end_angle, resolution);
+}
+
 
 void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius)
 {
@@ -9940,6 +9982,163 @@ void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y,
         CGL_vec3_init(control_2_x, control_2_y, 0.0f),
         resolution
     );
+}
+
+void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
+{
+    CGL_float step_size = (x_max - x_min) / (CGL_float)num_samples;
+    CGL_float step_size_plot = size_x / (CGL_float)num_samples;
+    
+    CGL_vec2 prev_point = CGL_vec2_init(0.0f, 0.0f);
+    CGL_vec2 curr_point = CGL_vec2_init(0.0f, 0.0f);
+
+    prev_point.x = x_min;
+    prev_point.y = func_to_plot(x_min);
+
+    CGL_widgets_set_stroke_colorf(plot_color.x, plot_color.y, plot_color.z, 1.0f);
+    CGL_widgets_set_stroke_thicnkess(plot_thickness);
+    for(CGL_int i = 1 ; i < num_samples; i++)
+    {
+        curr_point.x = x_min + (step_size * (CGL_float)i);
+        curr_point.y = CGL_utils_clamp(func_to_plot(curr_point.x), y_min, y_max);
+
+        CGL_widgets_add_line2f(
+            start_x + (step_size_plot * (CGL_float)i),
+            start_y + (size_y * (prev_point.y - y_min) / (y_max - y_min)),
+            start_x + (step_size_plot * (CGL_float)(i + 1)),
+            start_y + (size_y * (curr_point.y - y_min) / (y_max - y_min))
+        );
+
+        prev_point = curr_point;
+    }
+
+
+    if(draw_axes)
+    {
+        CGL_widgets_set_stroke_colorf(axes_color.x, axes_color.y, axes_color.z, 1.0f);
+        CGL_widgets_set_stroke_thicnkess(plot_thickness);
+        if(y_min < 0.0f && y_max > 0.0f)
+        {
+            CGL_widgets_add_line2f(
+                start_x,
+                start_y + (size_y * fabsf(y_min) / (y_max - y_min)),
+                start_x + size_x,
+                start_y + (size_y * fabsf(y_min) / (y_max - y_min))
+            );
+        }
+        if(x_min < 0.0f && x_max > 0.0f)
+        {
+            CGL_widgets_add_line2f(
+                start_x + (size_x * fabsf(x_min) / (x_max - x_min)),
+                start_y,
+                start_x + (size_x * fabsf(x_min) / (x_max - x_min)),
+                start_y + size_y
+            );
+        }
+    }
+}
+
+void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
+{
+    CGL_vec2 x_min_max = CGL_vec2_init(values[0].x, values[0].x);
+    CGL_vec2 y_min_max = CGL_vec2_init(values[0].y, values[0].y);
+    for(CGL_sizei i = 1; i < count; i++)
+    {
+        x_min_max.x = CGL_utils_min(x_min_max.x, values[i].x);
+        x_min_max.y = CGL_utils_max(x_min_max.y, values[i].x);
+        y_min_max.x = CGL_utils_min(y_min_max.x, values[i].y);
+        y_min_max.y = CGL_utils_max(y_min_max.y, values[i].y);
+    }
+
+    CGL_widgets_set_fill_colorf(marker_color.x, marker_color.y, marker_color.z, 1.0f);
+    for(CGL_sizei i = 0; i < count; i++)
+    {
+        CGL_widgets_add_rect2f(
+            start_x + (size_x * (values[i].x - x_min_max.x) / (x_min_max.y - x_min_max.x)),
+            start_y + (size_y * (values[i].y - y_min_max.x) / (y_min_max.y - y_min_max.x)),
+            marker_size, marker_size
+        );
+    }
+
+    if(draw_axes)
+    {
+        CGL_widgets_set_stroke_colorf(axes_color.x, axes_color.y, axes_color.z, 1.0f);
+        CGL_widgets_set_stroke_thicnkess(axes_thickness);
+        if(y_min_max.x < 0.0f && y_min_max.y > 0.0f)
+        {
+            CGL_widgets_add_line2f(
+                start_x,
+                start_y + (size_y * fabsf(y_min_max.x) / (y_min_max.y - y_min_max.x)),
+                start_x + size_x,
+                start_y + (size_y * fabsf(y_min_max.x) / (y_min_max.y - y_min_max.x))
+            );
+        }
+        if(x_min_max.x < 0.0f && x_min_max.y > 0.0f)
+        {
+            CGL_widgets_add_line2f(
+                start_x + (size_x * fabsf(x_min_max.x) / (x_min_max.y - x_min_max.x)),
+                start_y,
+                start_x + (size_x * fabsf(x_min_max.x) / (x_min_max.y - x_min_max.x)),
+                start_y + size_y
+            );
+        }
+    }
+    
+}
+
+void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution)
+{
+    CGL_float total = 0.0f;
+    for(CGL_sizei i = 0; i < count; i++)
+    {
+        total += values[i];
+    }
+
+    CGL_float curr_angle = 0.0f;
+    for(CGL_sizei i = 0; i < count; i++)
+    {
+        CGL_widgets_set_fill_colorf(colors[i].x, colors[i].y, colors[i].z, 1.0f);
+        CGL_widgets_add_arc2f(
+            start_x, start_y, radius, curr_angle, curr_angle + (values[i] / total) * CGL_2PI, (CGL_int)(resolution * (values[i] / total) + 1.0f)
+        );
+        curr_angle += (values[i] / total) * CGL_2PI;
+    }
+}
+
+void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color, CGL_bool vertical)
+{
+    CGL_float max_value = values[0];
+    for(CGL_sizei i = 1; i < count; i++) max_value = CGL_utils_max(max_value, values[i]);
+
+    CGL_float bar_width = ((vertical ? size_x : size_y) / (CGL_float)(count + 2)) * 0.8f;
+    CGL_float bar_spacing = ((vertical ? size_x : size_y) / (CGL_float)(count + 2)) * 0.2f;
+
+    CGL_float curr_x = start_x + bar_spacing;
+    CGL_float curr_y = start_y + bar_spacing;
+    CGL_float total_spacing = bar_spacing;
+
+    for(CGL_sizei i = 0; i < count; i++)
+    {
+        CGL_widgets_set_fill_colorf(colors[i].x, colors[i].y, colors[i].z, 1.0f);
+        if(vertical)
+        {
+            CGL_widgets_add_rect2f(curr_x, start_y + bar_spacing, bar_width, (size_y - bar_spacing * 2.0f) * (values[i] / max_value));
+            curr_x += bar_width + bar_spacing;
+        }
+        else
+        {
+            CGL_widgets_add_rect2f(start_x + bar_spacing, curr_y, (size_x - bar_spacing * 2.0f) * (values[i] / max_value), bar_width);
+            curr_y += bar_width + bar_spacing;
+        }
+    }
+
+    if(draw_axes)
+    {
+        CGL_widgets_set_stroke_colorf(axes_color.x, axes_color.y, axes_color.z, 1.0f);
+        CGL_widgets_set_stroke_thicnkess(axes_thickness);
+        CGL_widgets_add_line2f(start_x + bar_spacing, start_y, start_x + bar_spacing, start_y + size_y);
+        CGL_widgets_add_line2f(start_x, start_y + bar_spacing, start_x + size_x, start_y + bar_spacing);
+    }
 }
 
 #endif
