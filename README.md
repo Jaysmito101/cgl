@@ -98,6 +98,9 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Detect collisions between 2D polygons
   - Generate Seperating Axes for polygons
   - Get Overlap distance
+  - GJK (Gilbert–Johnson–Keerthi distance algorithm)
+  - EPA (Expanding Polytope Algorithm)
+  - SAT (Seperate Axis Theorem)
 
 * Marching Square
   - Fully Customizablt Marcher
@@ -143,6 +146,12 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
     - line [`CGL_widgets_add_line`]
     - circle [`CGL_widgets_add_circle` `CGL_widgets_add_circle2f`]
     - oval [`CGL_widgets_add_oval`, `CGL_widgets_add_oval2f`]
+    - arc 
+  - Plot 
+    - Scatter plot
+    - Bar Graph (vertical/horizontal)
+    - Pie Chart
+    - Plot a function
   - Advanced Bezier Curve( lines or dotted) widget
   - Add individual vertices
   - Adjust stroke color/thickness
@@ -159,6 +168,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Rotation Matrices using Goldman's Method
   - look_at matrix 
   - Quaternion math
+  - Transform vectors
   - **NOTE:** Most of math functions are implemented via macros so will be **totally inclined** and quite fast without any unnecessary function calls
 
 * High Level OpenGL API for (Optional)
@@ -179,9 +189,15 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
       - generate quad
       - load OBJ (beta)
       - generate cube
+      - generate plane
+      - generate  cylinder
       - generate sphere
       - generate mesh out of any parametric surface function [refer here](https://stackoverflow.com/a/31326534/14911094)
-      - calculate normals (TODO)
+      - calculate normals 
+      - perform operation on meshes
+        - add 2 meshes
+        - offset vertices
+        - etc .
     - GPU mesh -> the pointer to the data stored on GPU side (internally handles the Vertex buffer, Index buffer, Vertex Array) and can used for
       - render
       - render instanced
@@ -199,6 +215,12 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Load Fonts from `.ttf` files
   - Bake bitmaps for characters
   - Bake textures from strings
+
+* Trail Renderer
+  - Fast 3D Trail Renderer
+  - Bake to mesh
+  - Custom Shader support
+  - Fully customizable
   
  
 * Sky Renderer (Optional)
