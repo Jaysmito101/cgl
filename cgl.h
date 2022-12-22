@@ -1397,6 +1397,7 @@ void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val);
 float CGL_bloom_get_knee(CGL_bloom* bloom);
 void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y);
 void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex);
+void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_dst);
 int CGL_bloom_get_iterations(CGL_bloom* bloom);
 CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, CGL_int index);
 CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom);
@@ -7169,12 +7170,12 @@ void CGL_bloom_destroy(CGL_bloom* bloom)
     CGL_free(bloom);
 }
 
-void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
+void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_dst)
 {
     CGL_shader_bind(bloom->compute);
 
     // prefilter
-    glBindImageTexture(0, tex->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(0, tex_src->handle, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
     glBindImageTexture(1, bloom->prefiltered->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_PREFILTER);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
@@ -7218,13 +7219,18 @@ void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
 
     // composite
     glBindImageTexture(0, bloom->tex_lod[bloom->iterations * 2 - 1]->handle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-    glBindImageTexture(1, tex->handle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+    glBindImageTexture(1, tex_dst->handle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
     CGL_shader_set_uniform_int(bloom->compute, bloom->cs_u_mode, CGL_BLOOM_SHADER_MODE_COMPOSITE);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_src_size, (float)bloom->width, (float)bloom->height);
     CGL_shader_set_uniform_vec2v(bloom->compute, bloom->cs_u_dst_size, (float)bloom->width, (float)bloom->height);
     CGL_shader_set_uniform_ivec2v(bloom->compute, bloom->cs_u_offset, (int)bloom->offset_x, (int)bloom->offset_y);
     CGL_shader_compute_dispatch(bloom->compute, bloom->width / 16 + 1, bloom->height / 16 + 1, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
+{
+    CGL_bloom_apply2(bloom, tex, tex);
 }
 
 CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, CGL_int index)
