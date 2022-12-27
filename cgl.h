@@ -1149,8 +1149,9 @@ void CGL_window_make_context_current(CGL_window* window); // make opengl context
 GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window);
 
 // inputs
-int CGL_window_get_key(CGL_window* window, CGL_int key); // get key state
-int CGL_window_get_mouse_button(CGL_window* window, CGL_int button); // get mouse button state
+CGL_int CGL_window_get_key(CGL_window* window, CGL_int key); // get key state
+CGL_bool CGL_window_is_key_pressed(CGL_window* window, CGL_int key); // check if key is pressed
+CGL_int CGL_window_get_mouse_button(CGL_window* window, CGL_int button); // get mouse button state
 void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypos); // get mouse position
 
 #endif
@@ -1206,6 +1207,8 @@ struct CGL_mesh_vertex
     CGL_vec4 position;
     CGL_vec4 normal;
     CGL_vec4 texture_coordinates;
+    CGL_vec4 bone_wieghts;
+    CGL_ivec4 bone_ids;
 };
 typedef struct CGL_mesh_vertex CGL_mesh_vertex;
 
@@ -1239,6 +1242,7 @@ typedef struct CGL_ubo CGL_ubo;
 CGL_texture* CGL_texture_create(CGL_image* image);
 CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum format, GLenum internal_format, GLenum type); // create texture
 CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int layers, GLenum format, GLenum internal_format, GLenum type);
+CGL_texture* CGL_texture_create_3d(CGL_int width, CGL_int height, CGL_int depth, GLenum format, GLenum internal_format, GLenum type);
 CGL_texture* CGL_texture_create_cubemap();
 void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image);
 void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data);
@@ -2024,8 +2028,8 @@ CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity)
 
 void CGL_list_destroy(CGL_list* list)
 {
-    free(list->data);
-    free(list);
+    CGL_free(list->data);
+    CGL_free(list);
 }
 
 void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor)
@@ -5138,13 +5142,19 @@ void CGL_window_resecure_callbacks(CGL_window* window)
 }
 
 // get key state
-int CGL_window_get_key(CGL_window* window, CGL_int key)
+CGL_int CGL_window_get_key(CGL_window* window, CGL_int key)
 {
     return glfwGetKey(window->handle, key);
 }
 
+// check if key is pressed
+CGL_bool CGL_window_is_key_pressed(CGL_window* window, CGL_int key)
+{
+    return glfwGetKey(window->handle, key) == GLFW_PRESS;
+}
+
 // get mouse button state
-int CGL_window_get_mouse_button(CGL_window* window, CGL_int button)
+CGL_int CGL_window_get_mouse_button(CGL_window* window, CGL_int button)
 {
     return glfwGetMouseButton(window->handle, button);
 }
@@ -5275,6 +5285,31 @@ CGL_texture* CGL_texture_create_cubemap()
 	glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 #endif
 	glBindTexture(texture->target, 0);
+    return texture;
+}
+
+CGL_texture* CGL_texture_create_3d(CGL_int width, CGL_int height, CGL_int depth, GLenum format, GLenum internal_format, GLenum type)
+{
+    CGL_texture* texture = (CGL_texture*)CGL_malloc(sizeof(CGL_texture));
+    texture->width = width;
+    texture->height = height;
+    texture->depth = depth;
+    texture->format = format;
+    texture->internal_format = internal_format;
+    texture->type = type;
+    texture->target = GL_TEXTURE_3D;
+    texture->user_data = NULL;
+    glGenTextures(1, &texture->handle);
+    glBindTexture(texture->target, texture->handle);
+    glTexImage3D(texture->target, 0, texture->internal_format, width, height, depth, 0, texture->format, texture->type, NULL);
+    glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_T, GL_REPEAT);
+#ifndef CGL_WASM
+    glTexParameteri(texture->target, GL_TEXTURE_WRAP_R, GL_REPEAT);
+#endif
+    glBindTexture(texture->target, 0);
     return texture;
 }
 
@@ -6027,6 +6062,10 @@ CGL_mesh_gpu* CGL_mesh_gpu_create()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, texture_coordinates));
     glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_wieghts));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 4, GL_INT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_ids));
+    glEnableVertexAttribArray(4);
     mesh->user_data = NULL;    
     return mesh;
 }
@@ -6100,14 +6139,14 @@ CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
     mesh->vertices = (CGL_mesh_vertex*)malloc(mesh->vertex_count * sizeof(CGL_mesh_vertex));
     if(mesh->vertices == NULL)
     {
-        free(mesh);
+        CGL_free(mesh);
         return NULL;
     }
     mesh->indices = (uint32_t*)malloc(mesh->index_count * sizeof(uint32_t));
     if(mesh->indices == NULL)
     {
-        free(mesh->vertices);
-        free(mesh);
+        CGL_free(mesh->vertices);
+        CGL_free(mesh);
         return NULL;
     }
     for(CGL_sizei i = 0 ; i < index_count ; i++ ) mesh->indices[i] = (CGL_uint)i;
@@ -6697,10 +6736,8 @@ bool __CGL_shader_compile(const char* source, GLenum type, GLuint* handle, char*
         char* log = (char*)malloc(log_length);
         glGetShaderInfoLog(shader, log_length, NULL, log);
         CGL_log_internal("%s\n", log);
-        if(error)
-            *error = log;
-        else
-            free(log);
+        if(error) *error = log;
+        else CGL_free(log);
         glDeleteShader(shader);
         return false;
     }
@@ -6721,7 +6758,7 @@ CGL_shader* CGL_shader_compute_create(const char* compute_shader_source, char** 
     GLuint compute_shader = 0;
     if(!__CGL_shader_compile(compute_shader_source, GL_COMPUTE_SHADER, &compute_shader, error))
     {
-        free(shader);
+        CGL_free(shader);
         return NULL;
     }
 
@@ -6737,13 +6774,11 @@ CGL_shader* CGL_shader_compute_create(const char* compute_shader_source, char** 
         char* log = (char*)malloc(log_length);
         glGetProgramInfoLog(program, log_length, NULL, log);
         CGL_log_internal("%s\n", log);
-        if(error)
-            *error = log;
-        else
-            free(log);
+        if(error) *error = log;
+        else CGL_free(log);
         glDeleteProgram(program);
         glDeleteShader(compute_shader);
-        free(shader);
+        CGL_free(shader);
         return NULL;
     }
     glDetachShader(program, compute_shader);
@@ -6762,7 +6797,7 @@ CGL_shader* CGL_shader_compute_create_from_files(const char* compute_shader_file
         return NULL;
     }
     CGL_shader* shader = CGL_shader_compute_create(compute_shader_source, error);
-    free(compute_shader_source);
+    CGL_free(compute_shader_source);
     return shader;
 }
 
@@ -6780,14 +6815,14 @@ CGL_shader* CGL_shader_create(const char* vertex_shader_source, const char* frag
     GLuint fragment_shader = 0;
     if(!__CGL_shader_compile(vertex_shader_source, GL_VERTEX_SHADER, &vertex_shader, error))
     {
-        free(shader);
+        CGL_free(shader);
         return NULL;
     }
 
     if(!__CGL_shader_compile(fragment_shader_source, GL_FRAGMENT_SHADER, &fragment_shader, error))
     {
         glDeleteShader(vertex_shader);
-        free(shader);
+        CGL_free(shader);
         return NULL;
     }
 
@@ -6804,14 +6839,12 @@ CGL_shader* CGL_shader_create(const char* vertex_shader_source, const char* frag
         char* log = (char*)malloc(log_length);
         glGetProgramInfoLog(program, log_length, NULL, log);
         CGL_log_internal("%s\n", log);
-        if(error)
-            *error = log;
-        else
-            free(log);
+        if(error)  *error = log;
+        else CGL_free(log);
         glDeleteProgram(program);
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
-        free(shader);
+        CGL_free(shader);
         return NULL;
     }
 
@@ -6840,12 +6873,12 @@ CGL_shader* CGL_shader_create_from_files(const char* vertex_shader_file, const c
     if(fragment_shader_source == NULL)
     {
         CGL_log_internal("Failed to read fragment shader file %s\n", fragment_shader_file);
-        free(vertex_shader_source);
+        CGL_free(vertex_shader_source);
         return NULL;
     }
     CGL_shader* shader = CGL_shader_create(vertex_shader_source, fragment_shader_source, error);
-    free(vertex_shader_source);
-    free(fragment_shader_source);
+    CGL_free(vertex_shader_source);
+    CGL_free(fragment_shader_source);
     return shader;
 }
 
@@ -6853,7 +6886,7 @@ CGL_shader* CGL_shader_create_from_files(const char* vertex_shader_file, const c
 void CGL_shader_destroy(CGL_shader* shader)
 {
     glDeleteProgram(shader->handle);
-    free(shader);
+    CGL_free(shader);
 }
 
 // dispatch compute shader
@@ -8383,8 +8416,8 @@ void CGL_tilemap_destroy(CGL_tilemap* tilemap)
     CGL_ssbo_destroy(tilemap->ssbo);
     CGL_shader_destroy(tilemap->shader);
     CGL_mesh_gpu_destroy(tilemap->mesh);
-    free(tilemap->tile_data);
-    free(tilemap);
+    CGL_free(tilemap->tile_data);
+    CGL_free(tilemap);
 }
 
 void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value)
