@@ -6064,7 +6064,7 @@ CGL_mesh_gpu* CGL_mesh_gpu_create()
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_wieghts));
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 4, GL_INT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_ids));
+    glVertexAttribIPointer(4, 4, GL_INT, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_ids));
     glEnableVertexAttribArray(4);
     mesh->user_data = NULL;    
     return mesh;
