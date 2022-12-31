@@ -158,6 +158,10 @@ void CGL_net_ssl_log_errors();
 #if 1
 // CGL utils
 
+#ifndef CGL_RAND_GEN_WITH_PROBABILITY_MAX_COUNT
+#define CGL_RAND_GEN_WITH_PROBABILITY_MAX_COUNT 100000
+#endif
+
 void CGL_utils_sleep(const CGL_sizei milis);
 CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
 CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);
@@ -166,12 +170,14 @@ CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t
 CGL_float CGL_utils_get_time();
 void CGL_utils_get_timestamp(char* buffer);
 CGL_bool CGL_utils_is_little_endian();
+CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count);
 void CGL_utils_reverse_bytes(void* data, size_t size);
 void CGL_utils_little_endian_to_current(void* data, size_t size);
 void CGL_utils_big_endian_to_current(void* data, size_t size);
 
 #define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy))
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
+#define CGL_utils_random_float_in_range(min, max) (CGL_utils_random_float() * (max - min) + min)
 #define CGL_utils_random_int(min, max) (rand() % (max - min + 1) + min)
 #define CGL_utils_random_bool() (rand() % 2)
 #define CGL_utils_random_vec2(min, max) (CGL_vec2_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y))
@@ -3382,6 +3388,16 @@ float CGL_utils_get_time()
 #else 
     return 0.0f;
 #endif
+}
+
+CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count)
+{
+    static CGL_float prefix[CGL_RAND_GEN_WITH_PROBABILITY_MAX_COUNT];
+    prefix[0] = probabilities[0];
+    for(CGL_sizei i = 1; i < count; i++) prefix[i] = prefix[i - 1] + probabilities[i];
+    CGL_float r = CGL_utils_random_float() * prefix[count - 1];
+    for(CGL_sizei i = 0; i < count; i++) if(r < prefix[i]) return i;
+    return count - 1;
 }
 
 void CGL_utils_get_timestamp(char* buffer)
