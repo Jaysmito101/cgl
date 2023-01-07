@@ -286,9 +286,3 @@ https://user-images.githubusercontent.com/73700725/208747347-6f0c0d49-c11c-4bf0-
 **For more see [Examples](./examples) and [Showreel](./showreels)**
 
 <br>
-
-## Contributors
-
-<a href="https://github.com/Jaysmito101/cgl/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Jaysmito101/cgl" />
-</a>
