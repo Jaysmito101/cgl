@@ -9252,7 +9252,7 @@ bool CGL_widgets_end()
 
 bool CGL_widgets_flush()
 {
-    if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
+    //if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
     if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count == 0 || __CGL_WIDGETS_CURRENT_CONTEXT->indices_count == 0) return false;
     // first upload the data
     glBindBuffer(GL_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->vertex_buffer);
@@ -9271,7 +9271,7 @@ bool CGL_widgets_flush()
 
 bool CGL_widgets_flush_if_required()
 {
-    if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
+    //if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
     if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count >= (__CGL_WIDGETS_CURRENT_CONTEXT->max_vertices - 10) && __CGL_WIDGETS_CURRENT_CONTEXT->indices_count % 3 == 0) return CGL_widgets_flush();
     return false;
 }
