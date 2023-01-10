@@ -189,6 +189,7 @@ void CGL_utils_big_endian_to_current(void* data, size_t size);
 #define CGL_utils_max(a, b) ( ((a) > (b)) ? (a) : (b) )
 #define CGL_utils_min(a, b) ( ((a) < (b)) ? (a) : (b) )
 #define CGL_utils_mix(x, y, f) (x * f + y * (1.0f - f))
+#define CGL_utils_lerp(a, b, t) (a + (b - a) * t)
 
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
@@ -1257,6 +1258,7 @@ void CGL_texture_destroy(CGL_texture* texture); // destroy texture
 void CGL_texture_bind(CGL_texture* texture, CGL_int unit); // bind texture to unit
 void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
 void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data); // set texture data
+void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data); // set texture data at pixel
 void CGL_texture_set_user_data(CGL_texture* texture, void* user_data); // set texture user data
 void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
 CGL_uint CGL_texture_get_internal_handle(CGL_texture* texture); // get texture user data
@@ -1349,6 +1351,7 @@ void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2*
 void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value); // set uniform int
 void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value); // set uniform bool
 void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value); // set uniform float
+void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value); // set uniform double
 void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y); // set uniform vector
 void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z); // set uniform vector
 void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w); // set uniform vector
@@ -1990,6 +1993,58 @@ typedef CGL_quat Quaternion;
 typedef CGL_color Color;
 #endif
 
+
+#ifndef CGL_EXCLUDE_NOISE_API
+
+#ifndef CGL_NOISE_DATA_TYPE
+#define CGL_NOISE_DATA_TYPE CGL_float
+#endif
+
+typedef CGL_NOISE_DATA_TYPE CGL_noise_data_type;
+
+#define CGL_NOISE_TYPE_PERLIN           0
+#define CGL_NOISE_TYPE_OPENSIMPLEX      1
+#define CGL_NOISE_TYPE_OPENSIMPLEX2S    2
+#define CGL_NOISE_TYPE_VALUE            3
+#define CGL_NOISE_TYPE_VALUECUBIC       4
+#define CGL_NOISE_TYPE_WORLEY           5
+#define CGL_NOISE_TYPE_COUNT            6
+
+#define CGL_NOISE_FRACTAL_TYPE_NONE     0
+#define CGL_NOISE_FRACTAL_TYPE_FBM      1
+#define CGL_NOISE_FRACTAL_TYPE_BILLOW   2
+#define CGL_NOISE_FRACTAL_TYPE_RIGID    3
+#define CGL_NOISE_FRACTAL_TYPE_PINGPONG 4
+#define CGL_NOISE_FRACTAL_TYPE_COUNT    5
+
+
+
+struct CGL_noise_params
+{
+    CGL_int type;
+    CGL_int fractal_type;
+    CGL_int octaves;
+    CGL_noise_data_type frequency;
+    CGL_noise_data_type lacunarity;
+    CGL_noise_data_type gain;
+    CGL_noise_data_type weighted_strength;
+    CGL_noise_data_type ping_pong_strength;
+};
+typedef struct CGL_noise_params CGL_noise_params;
+
+void CGL_noise_init();
+void CGL_noise_shutdown();
+CGL_noise_data_type CGL_noise_perlin(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
+CGL_noise_data_type CGL_noise_opensimplex(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
+CGL_noise_data_type CGL_noise_opensimplex2s(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
+CGL_noise_data_type CGL_noise_value(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
+CGL_noise_data_type CGL_noise_valuecubic(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
+CGL_noise_data_type CGL_noise_worley(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
+void CGL_noise_params_default(CGL_noise_params* params);
+CGL_noise_data_type CGL_noise_get(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
+
+
+#endif
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -5447,6 +5502,15 @@ void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offs
     glBindTexture(texture->target, 0);
 }
 
+void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data)
+{
+    glBindTexture(texture->target, texture->handle);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexSubImage2D(texture->target, 0, (GLint)x, (GLint)y, (GLsizei)1, (GLsizei)1, texture->format, texture->type, data);
+    glBindTexture(texture->target, 0);
+}
+
 // set texture user data
 void CGL_texture_set_user_data(CGL_texture* texture, void* user_data)
 {
@@ -7011,6 +7075,12 @@ void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int va
 void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value)
 {
     glUniform1f(location, value);
+}
+
+// set uniform double
+void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value)
+{
+    glUniform1d(location, value);
 }
 
 // set uniform vector
@@ -11994,6 +12064,280 @@ void CGL_trail_set_min_points_distance(CGL_trail* trail, CGL_float min_points_di
 #endif
 
 
+
+#ifndef CGL_EXCLUDE_NOISE_API
+
+
+// ---------------- PERLIN ----------------
+// From: https://mrl.cs.nyu.edu/~perlin/noise/
+
+
+
+static CGL_int __CGL_NOISE_PERLIN_PERMUTATION_TABLE[512] = { 
+    151,160,137,91,90,15, 131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+    190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,
+    20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,
+    230,220,105,92,41,55,46,245,40,244,102,143,54, 65,25,63,161, 1,216,80,73,209,76,132,187,208, 89,
+    18,169,200,196, 135,130,116,188,159,86,164,100,109,198,173,186, 3,64,52,217,226,250,124,123,5,
+    202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,
+    248,152, 2,44,154,163, 70,221,153,101,155,167, 43,172,9, 129,22,39,253, 19,98,108,110,79,113,
+    224,232,178,185, 112,104,218,246,97,228, 251,34,242,193,238,210,144,12,191,179,162,241, 81,51,
+    145,235,249,14,239,107,49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
+    138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180,
+// Repeat
+    151,160,137,91,90,15, 131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+    190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,
+    20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,
+    230,220,105,92,41,55,46,245,40,244,102,143,54, 65,25,63,161, 1,216,80,73,209,76,132,187,208, 89,
+    18,169,200,196, 135,130,116,188,159,86,164,100,109,198,173,186, 3,64,52,217,226,250,124,123,5,
+    202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,
+    248,152, 2,44,154,163, 70,221,153,101,155,167, 43,172,9, 129,22,39,253, 19,98,108,110,79,113,
+    224,232,178,185, 112,104,218,246,97,228, 251,34,242,193,238,210,144,12,191,179,162,241, 81,51,
+    145,235,249,14,239,107,49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
+    138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180,
+};
+
+static CGL_noise_data_type __CGL_noise_perlin_fade(CGL_noise_data_type t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+static CGL_noise_data_type __CGL_noise_perlin_lerp(CGL_noise_data_type t, CGL_noise_data_type a, CGL_noise_data_type b) { return a + t * (b - a); }
+static CGL_noise_data_type __CGL_noise_perlin_grad(CGL_int hash, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z) 
+{
+    // convert lo 4 bits of hash code into 12 gradient directions
+    CGL_int h = hash % 15;
+    CGL_noise_data_type u = (h < 8 ? x : y), v = (h < 4 ? y : h == 12 || h == 14 ? x : z);
+    return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+}
+
+CGL_noise_data_type CGL_noise_perlin(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    // find unit cube that contains the point
+    CGL_int X = (CGL_int)floor(x) & 255, Y = (CGL_int)floor(y) & 255, Z = (CGL_int)floor(z) & 255;
+    // find the relative x, y, z cordinates of the point in the cube
+    x -= (CGL_noise_data_type)floor(x); y -= (CGL_noise_data_type)floor(y); z -= (CGL_noise_data_type)floor(z);
+    // compute the fade curves for each of x, y, z
+    CGL_noise_data_type u = __CGL_noise_perlin_fade(x), v = __CGL_noise_perlin_fade(y), w = __CGL_noise_perlin_fade(z);
+    // hash coordinates of the 8 cube corners
+    CGL_int A = __CGL_NOISE_PERLIN_PERMUTATION_TABLE[X] + Y, B = __CGL_NOISE_PERLIN_PERMUTATION_TABLE[X + 1] + Y, AA = __CGL_NOISE_PERLIN_PERMUTATION_TABLE[A] + Z,
+            BA = __CGL_NOISE_PERLIN_PERMUTATION_TABLE[B] + Z, AB = __CGL_NOISE_PERLIN_PERMUTATION_TABLE[A + 1] + Z, BB = __CGL_NOISE_PERLIN_PERMUTATION_TABLE[B + 1] + Z;
+    static CGL_noise_data_type tmp0, tmp1, tmp2, tmp3, tmp4;
+    tmp0 = __CGL_noise_perlin_lerp(u, __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[AA], x, y, z), __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[BA], x-1, y, z));
+    tmp1 = __CGL_noise_perlin_lerp(u, __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[AB], x, y-1, z), __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[BB], x-1, y-1, z));
+    tmp2 = __CGL_noise_perlin_lerp(u, __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[AA+1], x, y, z-1), __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[BA+1], x-1, y, z-1 ));
+    tmp3 = __CGL_noise_perlin_lerp(u, __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[AB+1], x, y-1, z-1),  __CGL_noise_perlin_grad(__CGL_NOISE_PERLIN_PERMUTATION_TABLE[BB+1], x-1, y-1, z-1 ));
+    return __CGL_noise_perlin_lerp(w, __CGL_noise_perlin_lerp(v, tmp0, tmp1), __CGL_noise_perlin_lerp(v, tmp2, tmp3));
+}
+
+// ---------------- PERLIN ----------------
+
+// ---------------- OPENSIMPLEX ----------------
+CGL_noise_data_type CGL_noise_opensimplex(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    return (CGL_noise_data_type)0.0;
+}
+
+// ---------------- OPENSIMPLEX ----------------
+
+// ---------------- OPENSIMPLEX2S ----------------
+
+CGL_noise_data_type CGL_noise_opensimplex2s(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    return (CGL_noise_data_type)0.0;
+}
+
+// ---------------- OPENSIMPLEX2S ----------------
+
+// ---------------- VALUE  ----------------
+CGL_noise_data_type CGL_noise_value(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    return (CGL_noise_data_type)0.0;
+}
+
+// ---------------- VALUE  ----------------
+
+// ---------------- VALUE CUBIC  ----------------
+
+CGL_noise_data_type CGL_noise_valuecubic(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    return (CGL_noise_data_type)0.0;
+}
+
+// ---------------- VALUE CUBIC  ----------------
+
+// ---------------- WORLEY  ----------------
+
+static CGL_int __CGL_NOISE_WORLEY_RAND_SEED = 45;
+
+static CGL_noise_data_type __CGL_noise_worley_rand()
+{
+    __CGL_NOISE_WORLEY_RAND_SEED = (214013*__CGL_NOISE_WORLEY_RAND_SEED+2531011);
+    return (CGL_noise_data_type)(((__CGL_NOISE_WORLEY_RAND_SEED>>16)&0x7FFF) / 32767.0);
+}
+
+CGL_noise_data_type CGL_noise_worley(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    CGL_int X = (CGL_int)floor(x), Y = (CGL_int)floor(y), Z = (CGL_int)floor(z), noise_points_index = 0;
+    //x -= (CGL_noise_data_type)floor(x); y -= (CGL_noise_data_type)floor(y); z -= (CGL_noise_data_type)floor(z);
+    static CGL_noise_data_type rand_points[27][3], vec[3], dist, max_dist = (CGL_noise_data_type)-1.0, min_dist = (CGL_noise_data_type)10000000.0;
+    max_dist = (CGL_noise_data_type)-1.0; min_dist = (CGL_noise_data_type)10000000.0;
+    for(CGL_int i = -1 ; i <= 1 ; i++) for(CGL_int j = -1 ; j <= 1 ; j++) for(CGL_int k = -1 ; k <= 1 ; k++)
+    {
+        CGL_int sx = X + i, sy = Y + j, sz = Z + k;
+        __CGL_NOISE_WORLEY_RAND_SEED = (sx * 73856093 ^ sy * 19349663 ^ sz * 83492791);
+        vec[0] = __CGL_noise_worley_rand() + sx; vec[1] = __CGL_noise_worley_rand() + sy; vec[2] = __CGL_noise_worley_rand() + sz;
+        dist = (CGL_noise_data_type)((vec[0] - x) * (vec[0] - x) + (vec[1] - y) * (vec[1] - y) + (vec[2] - z) * (vec[2] - z));
+        /*if(dist > max_dist) max_dist = dist; */ if(dist < min_dist) min_dist = dist;
+    }
+    return (CGL_noise_data_type)sqrt(min_dist);
+}
+// ---------------- WORLEY  ----------------
+
+void CGL_noise_params_default(CGL_noise_params* params)
+{
+    params->octaves = 3;
+    params->fractal_type = CGL_NOISE_FRACTAL_TYPE_NONE;
+    params->type = CGL_NOISE_TYPE_PERLIN;
+    params->lacunarity = 2.0f;
+    params->gain = 0.5f;
+    params->frequency = 1.0f;
+    params->weighted_strength = 0.0f;
+    params->ping_pong_strength = 2.0f;
+}
+
+static void __CGL_noise_transform_coordinates(CGL_noise_params* params, CGL_noise_data_type* x, CGL_noise_data_type* y, CGL_noise_data_type* z)
+{
+    *x *= params->frequency; *y *= params->frequency; *z *= params->frequency;
+    if(params->type == CGL_NOISE_TYPE_OPENSIMPLEX2S || params->type == CGL_NOISE_TYPE_OPENSIMPLEX)
+    {
+        const CGL_noise_data_type R3 = (CGL_noise_data_type)(2.0 / 3.0);
+        CGL_noise_data_type r = (*x + *y + *z) * R3; // Rotation, not skew
+        *x = r - *x; *y = r - *y; *z = r - *z;
+    }
+}
+
+static CGL_noise_data_type __CGL_pingpong(CGL_noise_data_type t)
+{
+    t -= (CGL_int)(t * 0.5) * 2;
+    return t < 1 ? t : 2 - t;
+}
+
+static CGL_noise_data_type __CGL_noise_calculate_fractal_bounding(CGL_noise_params* params)
+{
+    CGL_noise_data_type gain = (CGL_noise_data_type)fabs(params->gain);
+    CGL_noise_data_type amp = gain, amp_fractal = (CGL_noise_data_type)1.0;
+    for(CGL_int i = 1; i < params->octaves; i++)
+    {
+        amp_fractal += amp;
+        amp *= gain;
+    }
+    return (CGL_noise_data_type)1.0 / amp_fractal;
+}
+
+static CGL_noise_data_type __CGL_noise_get_plain(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    switch(params->type)
+    {
+        case CGL_NOISE_TYPE_PERLIN:
+            return CGL_noise_perlin(x, y, z);
+        case CGL_NOISE_TYPE_OPENSIMPLEX:
+            return CGL_noise_opensimplex(x, y, z);
+        case CGL_NOISE_TYPE_OPENSIMPLEX2S:
+            return CGL_noise_opensimplex2s(x, y, z);
+        case CGL_NOISE_TYPE_VALUE:
+            return CGL_noise_value(x, y, z);
+        case CGL_NOISE_TYPE_VALUECUBIC:
+            return CGL_noise_valuecubic(x, y, z);
+        case CGL_NOISE_TYPE_WORLEY:    
+            return CGL_noise_worley(x, y, z);
+        default:
+            return 0.0f;
+    };
+    return (CGL_noise_data_type)0.0;
+}
+
+
+static CGL_noise_data_type __CGL_noise_get_fbm(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    CGL_noise_data_type sum = 0.0f, amp = __CGL_noise_calculate_fractal_bounding(params), noise_val;
+    for(CGL_int i = 0 ; i < params->octaves ; i++)
+    {
+        noise_val = __CGL_noise_get_plain(params, x, y, z);
+        sum += noise_val * amp;
+        amp *= (CGL_noise_data_type)CGL_utils_lerp(1.0, (CGL_noise_data_type)(CGL_utils_min(noise_val + 1.0, 2.0) * 0.5), params->weighted_strength);
+        x *= params->lacunarity; y *= params->lacunarity; z *= params->lacunarity;
+        amp *= params->gain;
+    }
+    return sum;
+}
+
+static CGL_noise_data_type __CGL_noise_get_billow(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    CGL_noise_data_type sum = 0.0f, amp = __CGL_noise_calculate_fractal_bounding(params), noise_val;
+    for(CGL_int i = 0 ; i < params->octaves ; i++)
+    {
+        noise_val = __CGL_noise_get_plain(params, x, y, z);
+        sum += (CGL_noise_data_type)(fabs(noise_val) * 2.0 - 1.0) * amp;
+        amp *= (CGL_noise_data_type)CGL_utils_lerp(1.0, (CGL_noise_data_type)(CGL_utils_min(noise_val + 1.0, 2.0) * 0.5), params->weighted_strength);
+        x *= params->lacunarity; y *= params->lacunarity; z *= params->lacunarity;
+        amp *= params->gain;
+    }
+    return sum;
+}
+
+static CGL_noise_data_type __CGL_noise_get_riged(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    CGL_noise_data_type sum = 0.0f, amp = __CGL_noise_calculate_fractal_bounding(params), noise_val;
+    for(CGL_int i = 0 ; i < params->octaves ; i++)
+    {
+        noise_val = (CGL_noise_data_type)fabs(__CGL_noise_get_plain(params, x, y, z));
+        sum += (CGL_noise_data_type)(noise_val * -2.0 + 1.0) * amp;
+        amp *= (CGL_noise_data_type)CGL_utils_lerp(1.0, 1.0 - noise_val, params->weighted_strength);
+        x *= params->lacunarity; y *= params->lacunarity; z *= params->lacunarity;
+        amp *= params->gain;
+    }
+    return sum;
+}
+
+static CGL_noise_data_type __CGL_noise_get_pingpong(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    CGL_noise_data_type sum = 0.0f, amp = __CGL_noise_calculate_fractal_bounding(params), noise_val;
+    for(CGL_int i = 0 ; i < params->octaves ; i++)
+    {
+        noise_val = (CGL_noise_data_type)fabs(__CGL_noise_get_plain(params, x, y, z));
+        sum += (CGL_noise_data_type)((noise_val - 0.5) * 2.0) * amp;
+        amp *= (CGL_noise_data_type)CGL_utils_lerp(1.0, noise_val, params->weighted_strength);
+        x *= params->lacunarity; y *= params->lacunarity; z *= params->lacunarity;
+        amp *= params->gain;
+    }
+    return sum;
+}
+
+CGL_noise_data_type CGL_noise_get(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+{
+    __CGL_noise_transform_coordinates(params, &x, &y, &z);
+    switch(params->fractal_type)
+    {
+        case CGL_NOISE_FRACTAL_TYPE_NONE: return __CGL_noise_get_plain(params, x, y, z);
+        case CGL_NOISE_FRACTAL_TYPE_FBM: return __CGL_noise_get_fbm(params, x, y, z);
+        case CGL_NOISE_FRACTAL_TYPE_BILLOW: return __CGL_noise_get_billow(params, x, y, z);
+        case CGL_NOISE_FRACTAL_TYPE_RIGID: return __CGL_noise_get_riged(params, x, y, z);
+        case CGL_NOISE_FRACTAL_TYPE_PINGPONG: return __CGL_noise_get_pingpong(params, x, y, z);
+        default: return 0.0f;
+    }
+}
+
+
+void CGL_noise_init()
+{
+}
+
+void CGL_noise_shutdown()
+{
+
+}
+
+
+#endif
+
+
 #endif // CGL_IMPLEMENTATION
 
-#endif // CGL_H
+#endif // CGL_H 
