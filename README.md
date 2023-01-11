@@ -58,6 +58,16 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Point/Triangle intersection check
   - TODO: [ MD5 / SHA 256 / SHA 128 / AES ]
 
+* Noise API
+  - Multiple faster Alternatives to libc's rand
+  - Procedural Coherent Noise Algorithms
+    - Perlin's Noise (Improved Version)
+    - OpenSimplex2
+    - Value Noise
+    - Worley Noise (or Cellular Noise)
+  - Fractals like FBm, Rigid, Billow, PingPong
+  - Parameters for Octaves/Lacunarity/Weighted Strength/Gain
+
 * Data structures
   - List(dynamic array) + Stack (implemented together)
   - Hashtable -> This hastable is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
