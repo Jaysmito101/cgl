@@ -162,6 +162,8 @@ void CGL_net_ssl_log_errors();
 #define CGL_RAND_GEN_WITH_PROBABILITY_MAX_COUNT 100000
 #endif
 
+#define CGL_UTILS_FAST_RAND_MAX 32767
+
 void CGL_utils_sleep(const CGL_sizei milis);
 CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
 CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);
@@ -174,6 +176,11 @@ CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_si
 void CGL_utils_reverse_bytes(void* data, size_t size);
 void CGL_utils_little_endian_to_current(void* data, size_t size);
 void CGL_utils_big_endian_to_current(void* data, size_t size);
+void CGL_utils_fast_srand(CGL_int seed);
+CGL_int CGL_utils_fast_rand();
+CGL_ulong CGL_utils_xorshf96();
+void CGL_utils_srand31(CGL_uint seed);
+CGL_uint CGL_utils_rand31();
 
 #define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy))
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
@@ -3490,6 +3497,55 @@ void CGL_utils_big_endian_to_current(void* data, size_t size)
 {
     if(!CGL_utils_is_little_endian()) return;
     CGL_utils_reverse_bytes(data, size);
+}
+
+// From: https://stackoverflow.com/a/3747462/14911094
+static CGL_int __CGL_UTILS_FAST_RAND_SEED = 42;
+
+void CGL_utils_fast_srand(CGL_int seed)
+{
+    __CGL_UTILS_FAST_RAND_SEED = seed;
+}
+
+CGL_int CGL_utils_fast_rand()
+{
+    __CGL_UTILS_FAST_RAND_SEED = (214013*__CGL_UTILS_FAST_RAND_SEED+2531011);
+    return ((__CGL_UTILS_FAST_RAND_SEED>>16)&0x7FFF);
+}
+
+// From: https://stackoverflow.com/a/1640399/14911094
+CGL_ulong CGL_utils_xorshf96()
+{
+    static CGL_ulong x=123456789, y=362436069, z=521288629, t;
+    x ^= x << 16; x ^= x >> 5; x ^= x << 1;
+    t = x; x = y; y = z;
+    z = t ^ x ^ y;
+    return z;
+}
+
+static CGL_uint __CGL_UTILS_RAND31_SEED = 42;
+
+void CGL_utils_srand31(CGL_uint seed)
+{
+    __CGL_UTILS_RAND31_SEED = seed;
+}
+
+// From https://www.firstpr.com.au/dsp/rand31/
+/*
+Park-Miller "minimal standard" 31 bit
+pseudo-random number generator, implemented
+with David G. Carta's optimization : with
+32 bit math and without division
+*/
+CGL_uint CGL_utils_rand31()
+{
+    CGL_uint hi, lo;
+    lo = 16807 * (__CGL_UTILS_RAND31_SEED & 0xFFFF);
+    hi = 16807 * (__CGL_UTILS_RAND31_SEED >> 16);
+    lo += (hi & 0x7FFF) << 16;
+    lo += hi >> 15;
+    if (lo > 0x7FFFFFFF) lo -= 0x7FFFFFFF;
+    return (__CGL_UTILS_RAND31_SEED = lo);
 }
 
 void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
@@ -12131,24 +12187,236 @@ CGL_noise_data_type CGL_noise_perlin(CGL_noise_data_type x, CGL_noise_data_type 
 // ---------------- OPENSIMPLEX ----------------
 CGL_noise_data_type CGL_noise_opensimplex(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
 {
-    return (CGL_noise_data_type)0.0;
+    // This is redirected to CGL_noise_opensimplex2s
+    return CGL_noise_opensimplex2s(x, y, z);
 }
 
 // ---------------- OPENSIMPLEX ----------------
 
 // ---------------- OPENSIMPLEX2S ----------------
+// I have not implemented this
+// This implementation is taken from : https://github.com/Auburn/FastNoiseLite/blob/master/C/FastNoiseLite.h
+// Liscence to the above linked file : https://github.com/Auburn/FastNoiseLite/blob/master/LICENSE  (MIT)
+
+#define CGL_NOISE_OPENSIMPLEX2_PRIME_X 501125321
+#define CGL_NOISE_OPENSIMPLEX2_PRIME_Y 1136930381
+#define CGL_NOISE_OPENSIMPLEX2_PRIME_Z 1720413743
+
+static const CGL_float __CGL_NOISE_OPENSIMPLEX2_GRADIENTS_3D[] = 
+{
+    0, 1, 1, 0,  0,-1, 1, 0,  0, 1,-1, 0,  0,-1,-1, 0,
+    1, 0, 1, 0, -1, 0, 1, 0,  1, 0,-1, 0, -1, 0,-1, 0,
+    1, 1, 0, 0, -1, 1, 0, 0,  1,-1, 0, 0, -1,-1, 0, 0,
+    0, 1, 1, 0,  0,-1, 1, 0,  0, 1,-1, 0,  0,-1,-1, 0,
+    1, 0, 1, 0, -1, 0, 1, 0,  1, 0,-1, 0, -1, 0,-1, 0,
+    1, 1, 0, 0, -1, 1, 0, 0,  1,-1, 0, 0, -1,-1, 0, 0,
+    0, 1, 1, 0,  0,-1, 1, 0,  0, 1,-1, 0,  0,-1,-1, 0,
+    1, 0, 1, 0, -1, 0, 1, 0,  1, 0,-1, 0, -1, 0,-1, 0,
+    1, 1, 0, 0, -1, 1, 0, 0,  1,-1, 0, 0, -1,-1, 0, 0,
+    0, 1, 1, 0,  0,-1, 1, 0,  0, 1,-1, 0,  0,-1,-1, 0,
+    1, 0, 1, 0, -1, 0, 1, 0,  1, 0,-1, 0, -1, 0,-1, 0,
+    1, 1, 0, 0, -1, 1, 0, 0,  1,-1, 0, 0, -1,-1, 0, 0,
+    0, 1, 1, 0,  0,-1, 1, 0,  0, 1,-1, 0,  0,-1,-1, 0,
+    1, 0, 1, 0, -1, 0, 1, 0,  1, 0,-1, 0, -1, 0,-1, 0,
+    1, 1, 0, 0, -1, 1, 0, 0,  1,-1, 0, 0, -1,-1, 0, 0,
+    1, 1, 0, 0,  0,-1, 1, 0, -1, 1, 0, 0,  0,-1,-1, 0
+};
+
+static CGL_int __CGL_noise_opensimplex2_hash3d(CGL_int seed, CGL_int xPrimed, CGL_int yPrimed, CGL_int zPrimed)
+{
+    CGL_int hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;
+    hash *= 0x27d4eb2d;
+    return hash;
+}
+
+static CGL_float __CGL_noise_opensimplex2_grad_coor3d(CGL_int seed, CGL_int xPrimed, CGL_int yPrimed, CGL_int zPrimed, CGL_float xd, CGL_float yd, CGL_float zd)
+{
+    CGL_int hash = __CGL_noise_opensimplex2_hash3d(seed, xPrimed, yPrimed, zPrimed);
+    hash ^= hash >> 15; hash &= 63 << 2;
+    return xd * __CGL_NOISE_OPENSIMPLEX2_GRADIENTS_3D[hash] + yd * __CGL_NOISE_OPENSIMPLEX2_GRADIENTS_3D[hash | 1] + zd * __CGL_NOISE_OPENSIMPLEX2_GRADIENTS_3D[hash | 2];
+}
+
 
 CGL_noise_data_type CGL_noise_opensimplex2s(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
 {
-    return (CGL_noise_data_type)0.0;
+    CGL_int i = (CGL_int)floor(x), j = (CGL_int)floor(y), k = (CGL_int)floor(z);
+    static CGL_int PRIME_X = CGL_NOISE_OPENSIMPLEX2_PRIME_X, PRIME_Y = CGL_NOISE_OPENSIMPLEX2_PRIME_Y, PRIME_Z = CGL_NOISE_OPENSIMPLEX2_PRIME_Z, seed = 42;
+    
+    CGL_noise_data_type xi = (CGL_noise_data_type)(x - i), yi = (CGL_noise_data_type)(y - j), zi = (CGL_noise_data_type)(z - k);
+
+    i *= PRIME_X; j *= PRIME_Y; k *= PRIME_Z;
+    CGL_int seed2 = seed + 1293373;
+
+    CGL_int xNMask = (CGL_int)(-0.5 - xi);
+    CGL_int yNMask = (CGL_int)(-0.5 - yi);
+    CGL_int zNMask = (CGL_int)(-0.5 - zi);
+
+    CGL_noise_data_type x0 = xi + xNMask, y0 = yi + yNMask, z0 = zi + zNMask;
+    CGL_noise_data_type a0 = 0.75f - x0 * x0 - y0 * y0 - z0 * z0;
+    CGL_noise_data_type value = (a0 * a0) * (a0 * a0) * __CGL_noise_opensimplex2_grad_coor3d(seed, i + (xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x0, y0, z0);
+
+    CGL_noise_data_type x1 = xi - 0.5f, y1 = yi - 0.5f, z1 = zi - 0.5f;
+    CGL_noise_data_type a1 = 0.75f - x1 * x1 - y1 * y1 - z1 * z1;
+    value += (a1 * a1) * (a1 * a1) * __CGL_noise_opensimplex2_grad_coor3d(seed2, i + PRIME_X, j + PRIME_Y, k + PRIME_Z, x1, y1, z1);
+
+    CGL_noise_data_type xAFlipMask0 = ((xNMask | 1) << 1) * x1;
+    CGL_noise_data_type yAFlipMask0 = ((yNMask | 1) << 1) * y1;
+    CGL_noise_data_type zAFlipMask0 = ((zNMask | 1) << 1) * z1;
+    CGL_noise_data_type xAFlipMask1 = (-2 - (xNMask << 2)) * x1 - 1.0f;
+    CGL_noise_data_type yAFlipMask1 = (-2 - (yNMask << 2)) * y1 - 1.0f;
+    CGL_noise_data_type zAFlipMask1 = (-2 - (zNMask << 2)) * z1 - 1.0f;
+
+    bool skip5 = false;
+    CGL_noise_data_type a2 = xAFlipMask0 + a0;
+    if (a2 > 0)
+    {
+        CGL_noise_data_type x2 = x0 - (xNMask | 1), y2 = y0, z2 = z0;
+        value += (a2 * a2) * (a2 * a2) * __CGL_noise_opensimplex2_grad_coor3d(seed, i + (~xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x2, y2, z2);
+    }
+    else
+    {
+        CGL_noise_data_type a3 = yAFlipMask0 + zAFlipMask0 + a0;
+        if (a3 > 0)
+        {
+            CGL_noise_data_type x3 = x0, y3 = y0 - (yNMask | 1), z3 = z0 - (zNMask | 1);
+            value += (a3 * a3) * (a3 * a3) * __CGL_noise_opensimplex2_grad_coor3d(seed, i + (xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), x3, y3, z3);
+        }
+
+        CGL_noise_data_type a4 = xAFlipMask1 + a1;
+        if (a4 > 0)
+        {
+            CGL_noise_data_type x4 = (xNMask | 1) + x1, y4 = y1, z4 = z1;
+            value += (a4 * a4) * (a4 * a4) * __CGL_noise_opensimplex2_grad_coor3d(seed2, i + (xNMask & (PRIME_X * 2)), j + PRIME_Y, k + PRIME_Z, x4, y4, z4);
+            skip5 = true;
+        }
+    }
+
+    bool skip9 = false;
+    CGL_noise_data_type a6 = yAFlipMask0 + a0;
+    if (a6 > 0)
+    {
+        CGL_noise_data_type x6 = x0, y6 = y0 - (yNMask | 1), z6 = z0;
+        value += (a6 * a6) * (a6 * a6) * __CGL_noise_opensimplex2_grad_coor3d(seed, i + (xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x6, y6, z6);
+    }
+    else
+    {
+        CGL_noise_data_type a7 = xAFlipMask0 + zAFlipMask0 + a0;
+        if (a7 > 0)
+        {
+            CGL_noise_data_type x7 = x0 - (xNMask | 1), y7 = y0, z7 = z0 - (zNMask | 1);
+            value += (a7 * a7) * (a7 * a7) * __CGL_noise_opensimplex2_grad_coor3d(seed, i + (~xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), x7, y7, z7);
+        }
+
+        CGL_noise_data_type a8 = yAFlipMask1 + a1;
+        if (a8 > 0)
+        {
+            CGL_noise_data_type x8 = x1, y8 = (yNMask | 1) + y1, z8 = z1;
+            value += (a8 * a8) * (a8 * a8) * __CGL_noise_opensimplex2_grad_coor3d(seed2, i + PRIME_X, j + (yNMask & (PRIME_Y << 1)), k + PRIME_Z, x8, y8, z8);
+            skip9 = true;
+        }
+    }
+
+    bool skipD = false;
+    CGL_noise_data_type aA = zAFlipMask0 + a0;
+    if (aA > 0)
+    {
+        CGL_noise_data_type xA = x0, yA = y0, zA = z0 - (zNMask | 1);
+        value += (aA * aA) * (aA * aA) * __CGL_noise_opensimplex2_grad_coor3d(seed, i + (xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), xA, yA, zA);
+    }
+    else
+    {
+        CGL_noise_data_type aB = xAFlipMask0 + yAFlipMask0 + a0;
+        if (aB > 0)
+        {
+            CGL_noise_data_type xB = x0 - (xNMask | 1), yB = y0 - (yNMask | 1), zB = z0;
+            value += (aB * aB) * (aB * aB) * __CGL_noise_opensimplex2_grad_coor3d(seed, i + (~xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (zNMask & PRIME_Z), xB, yB, zB);
+        }
+
+        CGL_noise_data_type aC = zAFlipMask1 + a1;
+        if (aC > 0)
+        {
+            CGL_noise_data_type xC = x1, yC = y1, zC = (zNMask | 1) + z1;
+            value += (aC * aC) * (aC * aC) * __CGL_noise_opensimplex2_grad_coor3d(seed2, i + PRIME_X, j + PRIME_Y, k + (zNMask & (PRIME_Z << 1)), xC, yC, zC);
+            skipD = true;
+        }
+    }
+
+    if (!skip5)
+    {
+        CGL_noise_data_type a5 = yAFlipMask1 + zAFlipMask1 + a1;
+        if (a5 > 0)
+        {
+            CGL_noise_data_type x5 = x1, y5 = (yNMask | 1) + y1, z5 = (zNMask | 1) + z1;
+            value += (a5 * a5) * (a5 * a5) * __CGL_noise_opensimplex2_grad_coor3d(seed2, i + PRIME_X, j + (yNMask & (PRIME_Y << 1)), k + (zNMask & (PRIME_Z << 1)), x5, y5, z5);
+        }
+    }
+
+    if (!skip9)
+    {
+        CGL_noise_data_type a9 = xAFlipMask1 + zAFlipMask1 + a1;
+        if (a9 > 0)
+        {
+            CGL_noise_data_type x9 = (xNMask | 1) + x1, y9 = y1, z9 = (zNMask | 1) + z1;
+            value += (a9 * a9) * (a9 * a9) * __CGL_noise_opensimplex2_grad_coor3d(seed2, i + (xNMask & (PRIME_X * 2)), j + PRIME_Y, k + (zNMask & (PRIME_Z << 1)), x9, y9, z9);
+        }
+    }
+
+    if (!skipD)
+    {
+        CGL_noise_data_type aD = xAFlipMask1 + yAFlipMask1 + a1;
+        if (aD > 0)
+        {
+            CGL_noise_data_type xD = (xNMask | 1) + x1, yD = (yNMask | 1) + y1, zD = z1;
+            value += (aD * aD) * (aD * aD) * __CGL_noise_opensimplex2_grad_coor3d(seed2, i + (xNMask & (PRIME_X << 1)), j + (yNMask & (PRIME_Y << 1)), k + PRIME_Z, xD, yD, zD);
+        }
+    }
+
+    return value * 9.046026385208288f;
 }
 
 // ---------------- OPENSIMPLEX2S ----------------
 
 // ---------------- VALUE  ----------------
+
+
+#define CGL_NOISE_VALUE_LERP(t, a, b)  (a + t * (b - a))
+#define CGL_NOISE_VALUE_SMOOTHSTEP(t)  (t * t * (3 - 2 * t))
+#define CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(i, x, y, z)  { \
+    __CGL_NOISE_VALUE_RAND_SEED = (x) * 73856093 ^ (y) * 19349663 ^ (z) * 83492791; \
+    ns[i] = __CGL_noise_value_rand(); \
+}
+
+static CGL_int __CGL_NOISE_VALUE_RAND_SEED = 45;
+
+static CGL_noise_data_type __CGL_noise_value_rand()
+{
+    __CGL_NOISE_VALUE_RAND_SEED = (214013*__CGL_NOISE_VALUE_RAND_SEED+2531011);
+    return (CGL_noise_data_type)(((__CGL_NOISE_VALUE_RAND_SEED>>16)&0x7FFF) / 32767.0);
+}
+
 CGL_noise_data_type CGL_noise_value(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
 {
-    return (CGL_noise_data_type)0.0;
+    static CGL_int X, Y, Z;
+    static CGL_noise_data_type u, v, w, ns[8], tmp0, tmp1, tmp2, tmp3;
+    X = (CGL_int)floor(x), Y = (CGL_int)floor(y), Z = (CGL_int)floor(z);
+    u = x - (CGL_noise_data_type)X, v = y - (CGL_noise_data_type)Y, w = z - (CGL_noise_data_type)Z;
+    u = CGL_NOISE_VALUE_SMOOTHSTEP(u), v = CGL_NOISE_VALUE_SMOOTHSTEP(v), w = CGL_NOISE_VALUE_SMOOTHSTEP(w);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(0, X, Y, Z);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(1, X+1, Y, Z);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(2, X, Y+1, Z);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(3, X+1, Y+1, Z);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(4, X, Y, Z+1);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(5, X+1, Y, Z+1);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(6, X, Y+1, Z+1);
+    CGL_NOISE_VALUE_SAMPLE_NOISE_VALUE(7, X+1, Y+1, Z+1);
+    tmp0 = CGL_NOISE_VALUE_LERP(w, ns[0], ns[4]);
+    tmp1 = CGL_NOISE_VALUE_LERP(w, ns[1], ns[5]);
+    tmp2 = CGL_NOISE_VALUE_LERP(w, ns[2], ns[6]);
+    tmp3 = CGL_NOISE_VALUE_LERP(w, ns[3], ns[7]);
+    tmp0 = CGL_NOISE_VALUE_LERP(u, tmp0, tmp1);
+    tmp1 = CGL_NOISE_VALUE_LERP(u, tmp2, tmp3);
+    tmp0 = CGL_NOISE_VALUE_LERP(v, tmp0, tmp1);    
+    return tmp0;
 }
 
 // ---------------- VALUE  ----------------
@@ -12157,7 +12425,9 @@ CGL_noise_data_type CGL_noise_value(CGL_noise_data_type x, CGL_noise_data_type y
 
 CGL_noise_data_type CGL_noise_valuecubic(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
 {
-    return (CGL_noise_data_type)0.0;
+    // TODO: implement this
+    //CGL_warn("CGL_noise_data_type CGL_noise_valuecubic(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z) is not yet implemented! This call is being redirected to CGL_noise_data_type CGL_noise_value(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)");
+    return CGL_noise_value(x, y, z);
 }
 
 // ---------------- VALUE CUBIC  ----------------
