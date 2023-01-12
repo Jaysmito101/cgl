@@ -59,6 +59,7 @@ SOFTWARE.
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <limits.h>
 #include <float.h>
 #include <ctype.h>
@@ -67,6 +68,9 @@ SOFTWARE.
 #include <locale.h>
 #include <errno.h>
 #include <time.h>
+#if !(defined(_WIN32) || defined(_WIN64))
+#include <unistd.h>
+#endif
 
 typedef unsigned char CGL_ubyte;
 typedef unsigned short CGL_ushort;
@@ -83,6 +87,13 @@ typedef double CGL_double;
 typedef long double CGL_longdouble;
 typedef size_t CGL_sizei;
 typedef bool CGL_bool;
+
+#ifndef max
+#define max(a,b)                                \
+    ({ __typeof__ (a) _a = (a);                 \
+        __typeof__ (b) _b = (b);                \
+     _a > _b ? _a : _b; })
+#endif
 
 #ifdef CGL_LOGGING_ENABLED
 #define CGL_LOG(...) CGL_log_internal(__VA_ARGS__)
@@ -3380,7 +3391,7 @@ void CGL_console_set_color(uint8_t color)
             case 1:  printf("\x1B[31m"); break;
             case 2:  printf("\x1B[32m"); break;
             case 3:  printf("\x1B[33m"); break;
-            case 3:  printf("\x1B[34m"); break;
+            case 4:  printf("\x1B[34m"); break;
             default: break;
         }   
     }
@@ -5829,6 +5840,7 @@ void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer)
     free(framebuffer);
 }
 
+#ifndef CGL_EXCLUDE_WINDOW_API
 // bind framebuffer
 void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
 {
@@ -5875,6 +5887,7 @@ void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_
         if(height)  *height = framebuffer->height;
     }
 }
+#endif
 
 // set framebuffer user data
 void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data)

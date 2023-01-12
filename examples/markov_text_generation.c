@@ -1,10 +1,13 @@
 #define CGL_LOGGING_ENABLED
 #define CGL_EXCLUDE_WINDOW_API
 #define CGL_EXCLUDE_NETWORKING
-#define CGL_EXCLUDE_GRAPHICS_API
+// Bloom requires Graphics
+//#define CGL_EXCLUDE_GRAPHICS_API
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_EXCLUDE_SKY_RENDERER
 #define CGL_EXCLUDE_PHONG_RENDERER
 #define CGL_EXCLUDE_TILEMAP_RENDERER
+#define CGL_EXCLUDE_AUDIO
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
@@ -20,6 +23,7 @@ int main()
     const size_t n_gram_size = 5;
 
     // setup context
+    CGL_init();
     CGL_LOG("Creating Markov Context ... ");
     CGL_markov* mk = CGL_markov_create(n_gram_size, 1);
     CGL_markov_token_function_ngram_text_context* ng_ctx = CGL_markov_token_function_ngram_text_context_create(n_gram_size);
@@ -50,5 +54,6 @@ int main()
 
     // destroy context
     CGL_markov_destroy(mk);
+    CGL_shutdown();
     return 0;
 }

@@ -122,6 +122,7 @@ int main()
     for(int i = 0; i < TRAIL_COUNT; i++)
     {
         trail[i] = CGL_trail_create();
+        assert(trail[i]);
         CGL_trail_set_min_points_distance(trail[i], 0.01f);
         CGL_trail_set_resolution(trail[i], 32);
         CGL_trail_set_point_update_function(trail[i], point_function);
@@ -155,9 +156,11 @@ int main()
             v.z = CGL_float_cubic_lerp(trail_tip_pos[i].z, trail_tip_pos_tar[i].z, trail_tip_pos_trpt[i * 2].z, trail_tip_pos_trpt[i*2+1].z, trail_tip_pos_thresh[i]);
             trail_tip_pos_thresh[i] += 0.005f;
             if(trail_tip_pos_thresh[i] >= 1.0f) {trail_tip_pos_thresh[i] = 0.0f;trail_tip_pos[i] = trail_tip_pos_tar[i]; trail_tip_pos_tar[i] = CGL_vec3_init(CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar); }
-            CGL_trail_add_point(trail[i], v, 10.0f, 0.05f);
-            CGL_trail_update(trail[i], 0.1f);
-            CGL_trail_bake_mesh(trail[i]);
+            if (trail[i]) {
+                CGL_trail_add_point(trail[i], v, 10.0f, 0.05f);
+                CGL_trail_update(trail[i], 0.1f);
+                CGL_trail_bake_mesh(trail[i]);
+            }
         }
         
         glEnable(GL_DEPTH_TEST);
@@ -167,8 +170,10 @@ int main()
         CGL_shader_bind(trail_shader);
         for(CGL_int i = 0; i < TRAIL_COUNT; i++)
         {
-            CGL_shader_set_uniform_vec3v(trail_shader, CGL_shader_get_uniform_location(trail_shader, "color"), trail_color[i].x, trail_color[i].y, trail_color[i].z);
-            CGL_trail_render(trail[i], &view, &projection, trail_shader);
+            if (trail[i]) {
+                CGL_shader_set_uniform_vec3v(trail_shader, CGL_shader_get_uniform_location(trail_shader, "color"), trail_color[i].x, trail_color[i].y, trail_color[i].z);
+                CGL_trail_render(trail[i], &view, &projection, trail_shader);
+            }
         }
 
 
