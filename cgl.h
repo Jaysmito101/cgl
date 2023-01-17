@@ -5344,9 +5344,9 @@ CGL_texture* CGL_texture_create(CGL_image* image)
 {
     GLenum format, internal_format, type;
     if(image->channels == 3)
-        format = internal_format = GL_RGB;
+        format = GL_RGB;
     else if(image->channels == 4)
-        format = internal_format = GL_RGBA;
+        format = GL_RGBA;
     else
     {CGL_error("Invalid channel count for image\n");return NULL;}
     if(image->bytes_per_channel == 8)
@@ -5357,6 +5357,14 @@ CGL_texture* CGL_texture_create(CGL_image* image)
         type = GL_FLOAT;
     else
     {CGL_error("Invalid bit depth for image\n");return NULL;}        
+    // determine internal format
+    if(format == GL_RGB && type == GL_UNSIGNED_BYTE) internal_format = GL_RGB8;
+    else if(format == GL_RGB && type == GL_UNSIGNED_SHORT) internal_format = GL_RGB16;
+    else if(format == GL_RGB && type == GL_FLOAT) internal_format = GL_RGB32F;
+    else if(format == GL_RGBA && type == GL_UNSIGNED_BYTE) internal_format = GL_RGBA8;
+    else if(format == GL_RGBA && type == GL_UNSIGNED_SHORT) internal_format = GL_RGBA16;
+    else if(format == GL_RGBA && type == GL_FLOAT) internal_format = GL_RGBA32F;
+    else {CGL_error("Invalid format for image\n");return NULL;}
     CGL_texture* texture = (CGL_texture*)CGL_malloc(sizeof(CGL_texture));
     texture->width = image->width;
     texture->height = image->height;
