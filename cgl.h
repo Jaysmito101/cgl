@@ -511,6 +511,12 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_2PI (6.28318530717958647692f)
 #define CGL_PI_2 (1.57079632679489661923f)
 #define CGL_E (2.71828182845904523536f)
+#define CGL_SQRT2 (1.41421356237309504880f)
+#define CGL_SQRT3 (1.73205080756887729352f)
+#define CGL_SQRT5 (2.23606797749978969640f)
+#define CGL_SQRT6 (2.44948974278317809820f)
+#define CGL_SQRT7 (2.64575131106459059050f)
+#define CGL_SQRT8 (2.82842712474619009760f)
 #define CGL_deg_to_rad(deg) ((deg) * (CGL_PI / 180.0f))
 #define CGL_rad_to_deg(rad) ((rad) * (180.0f / CGL_PI))
 
@@ -549,6 +555,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec2_create_from_higher_dimension(a) CGL_vec2_init(a.x, a.y)
 #define CGL_vec2_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec2_elem_set(a, i, v) (((float*)&a)[i] = v)
+#define CGL_vec2_distance(a, b) (CGL_float)(sqrtf(((a).x - (b).x) * ((a).x - (b).x) + ((a).y - (b).y) * ((a).y - (b).y)))
 CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 
 #ifdef __cplusplus
@@ -565,6 +572,7 @@ CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 #define CGL_vec3_dot(a, b) (a.x * b.x + a.y * b.y + a.z * b.z)
 #define CGL_vec3_cross(a, b) CGL_vec3_init(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
 #define CGL_vec3_length(a) sqrtf(a.x * a.x + a.y * a.y + a.z * a.z)
+#define CGL_vec3_distance(a, b) (CGL_float)(sqrtf(((a).x - (b).x) * ((a).x - (b).x) + ((a).y - (b).y) * ((a).y - (b).y) + ((a).z - (b).z) * ((a).z - (b).z)))
 #define CGL_vec3_normalize(a) { CGL_float __CGL_vector_length##__LINE__ = 1.0f / CGL_vec3_length(a); a.x *= __CGL_vector_length##__LINE__; a.y *= __CGL_vector_length##__LINE__; a.z *= __CGL_vector_length##__LINE__; }
 #define CGL_vec3_lerp(a, b, t) CGL_vec3_init(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t)
 #define CGL_vec3_min(a, b) CGL_vec3_init(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z)
@@ -944,7 +952,11 @@ bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis
 bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector);
 void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count);
 CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
-
+CGL_bool CGL_utils_is_point_in_circle(CGL_vec2 p, CGL_float r);
+CGL_bool CGL_utils_calculate_circumcircle(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c, CGL_vec2* center, CGL_float* radius);
+CGL_bool CGL_utils_calculate_super_triangle(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_float padding);
+CGL_bool CGL_utils_calculate_bounding_square(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding);
+CGL_bool CGL_utils_calculate_bounding_box(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding);
 
 // GJK collision detection & EPA collision resolution
 
@@ -961,6 +973,11 @@ CGL_vec3 CGL_gjk_default_support(CGL_shape* a, CGL_shape* b, CGL_vec3 d);
 CGL_bool CGL_gjk_check_collision_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex_out);
 CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex);
 
+#ifndef CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES
+#define CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES 4096
+#endif
+
+CGL_bool CGL_triangulate_points_incremental(CGL_vec2* points, CGL_int points_count, CGL_int* triangles_out, CGL_int* triangles_count_out);
 
 // window
 #if 1 // Just to use code folding
@@ -1703,6 +1720,8 @@ void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size);
 void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y);
 void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius);
 void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius);
+void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res);
+void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res);
 void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
 void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y);
 void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution);
@@ -3660,6 +3679,81 @@ CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 p0, CGL_vec2 p1, CG
     return (s + t) < A;
 }
 
+CGL_bool CGL_utils_is_point_in_circle(CGL_vec2 p, CGL_float r)
+{
+    return CGL_vec2_length(p) <= r;
+}
+
+CGL_bool CGL_utils_calculate_circumcircle(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c, CGL_vec2* center, CGL_float* radius)
+{
+    CGL_float d = 2.0f * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+    if(d == 0.0f) d = 0.0000000000001f;
+    CGL_float x = ((a.x * a.x + a.y * a.y) * (b.y - c.y) + (b.x * b.x + b.y * b.y) * (c.y - a.y) + (c.x * c.x + c.y * c.y) * (a.y - b.y)) / d;
+    CGL_float y = ((a.x * a.x + a.y * a.y) * (c.x - b.x) + (b.x * b.x + b.y * b.y) * (a.x - c.x) + (c.x * c.x + c.y * c.y) * (b.x - a.x)) / d;
+    if(center) *center = CGL_vec2_init(x, y);
+    if(radius) *radius = CGL_vec2_distance(a, CGL_vec2_init(x, y));
+    return true;
+}
+
+CGL_bool CGL_utils_calculate_bounding_box(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding)
+{
+    if(!a || !b || !c || !d) return false;
+    CGL_vec4 min_max_val = CGL_vec4_init(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
+    for(CGL_int i = 0 ; i < points_count ; i++)
+    {
+        CGL_vec2 p = points[i];
+        if(p.x < min_max_val.x) min_max_val.x = p.x; if(p.y < min_max_val.y) min_max_val.y = p.y;
+        if(p.x > min_max_val.z) min_max_val.z = p.x; if(p.y > min_max_val.w) min_max_val.w = p.y;
+    }
+    min_max_val.x -= 0.1f; min_max_val.y -= 0.1f; min_max_val.z += 0.1f; min_max_val.w += 0.1f;
+    *a = CGL_vec2_init(min_max_val.x, min_max_val.y); *b = CGL_vec2_init(min_max_val.z, min_max_val.y);
+    *c = CGL_vec2_init(min_max_val.z, min_max_val.w); *d = CGL_vec2_init(min_max_val.x, min_max_val.w);
+    return true;
+}
+
+CGL_bool CGL_utils_calculate_bounding_square(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding)
+{
+    if(!a || !b || !c || !d) return false;
+    CGL_vec2 pa, pb, pc, pd;
+    if(!CGL_utils_calculate_bounding_box(points, points_count, &pa, &pb, &pc, &pd, padding)) return false;
+    CGL_float w = CGL_vec2_distance(pa, pb); CGL_float h = CGL_vec2_distance(pa, pd);
+    CGL_float max = w > h ? w : h;
+    CGL_vec2 center = CGL_vec2_init((pa.x + pb.x + pc.x + pd.x) / 4.0f, (pa.y + pb.y + pc.y + pd.y) / 4.0f);
+    *a = CGL_vec2_init(center.x - max / 2.0f, center.y - max / 2.0f); *b = CGL_vec2_init(center.x + max / 2.0f, center.y - max / 2.0f);
+    *c = CGL_vec2_init(center.x + max / 2.0f, center.y + max / 2.0f); *d = CGL_vec2_init(center.x - max / 2.0f, center.y + max / 2.0f);
+    return true;
+}
+
+/*
+*              P 
+*              *                   
+*             * *
+*            *   *                   
+*           *     *                  
+*          *       *                 
+*         *   mcd   *                 
+*      D *###########* C 
+*       * #         # *    
+*      *  #         #  *  
+*     *   #         #   * 
+*    *    #         #    *
+*   *     ###########     *
+*  *************************
+* Q      A           B       R
+*                                 
+*                                 
+*/
+CGL_bool CGL_utils_calculate_super_triangle(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_float padding)
+{
+    if(!a || !b || !c) return false;
+    CGL_vec2 pa, pb, pc, pd; CGL_float edge_size = 0.0f;
+    if(!CGL_utils_calculate_bounding_square(points, points_count, &pa, &pb, &pc, &pd, padding)) return false;
+    edge_size = CGL_vec2_distance(pa, pb); CGL_vec2 mcd = CGL_vec2_init((pc.x + pd.x) * 0.5f, pc.y);
+    *a = CGL_vec2_init(mcd.x, mcd.y + CGL_SQRT3 * 0.5f * edge_size);
+    *b = CGL_vec2_init(pa.x - edge_size * 0.5f, pa.y); *c = CGL_vec2_init(pb.x + edge_size * 0.5f, pb.y);
+    return true;
+}
+
 // GJK & EPA 
 
 CGL_vec3 CGL_gjk_shape_default_support(CGL_shape* a, CGL_vec3 d)
@@ -3770,30 +3864,19 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex)
     CGL_int polytope_size = 3;
     CGL_vec3 vti, vtj, vtedge, normal, support;
     CGL_float dist = 0.0f;
-    for(CGL_int i = 0 ; i < 3 ; i++) polytope[i] = simplex[i];
-    
+    for(CGL_int i = 0 ; i < 3 ; i++) polytope[i] = simplex[i];    
     while(min_dist >= FLT_MAX)
     {
         for(CGL_int i = 0 ; i < polytope_size ; i++)
         {
             CGL_int j = (i + 1) % polytope_size;
-            vti = polytope[i];
-            vtj = polytope[j];
+            vti = polytope[i]; vtj = polytope[j];
             vtedge = CGL_vec3_sub(vtj, vti);
             normal = CGL_vec3_init(vtedge.y, -vtedge.x, 0.0f);
             CGL_vec3_normalize(normal);
             dist = CGL_vec3_dot(normal, vti);
-            if(dist < 0)
-            {
-                dist *= -1;
-                normal = CGL_vec3_scale(normal, -1.0f);
-            }
-            if(dist < min_dist)
-            {
-                min_dist = dist;
-                min_normal = normal;
-                min_index = j;
-            }
+            if(dist < 0) { dist *= -1; normal = CGL_vec3_scale(normal, -1.0f); }
+            if(dist < min_dist) { min_dist = dist; min_normal = normal;min_index = j; }
         }
         support = CGL_gjk_default_support(a, b, min_normal);
         dist = CGL_vec3_dot(min_normal, support);
@@ -3803,12 +3886,109 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex)
             min_dist = FLT_MAX;
             CGL_int amt_len = polytope_size - min_index;
             for(CGL_int i = polytope_size - 1 ; i >= min_index ; i--) polytope_copy[i + 1] = polytope[i];
-            polytope[min_index] = support;
-            polytope_size += 1;
+            polytope[min_index] = support; polytope_size += 1;
         }
     }
     min_normal = CGL_vec3_scale(min_normal, min_dist);
     return min_normal;
+}
+
+#define CGL_INCREMENTAL_TRIANGULATOR_SET_TRIANGLE(triangles, index, a, b, c) \
+    triangles[index * 3 + 0] = a; \
+    triangles[index * 3 + 1] = b; \
+    triangles[index * 3 + 2] = c;
+
+static void __CGL_triangulate_points_incremental_remove_triangle_at_index(CGL_int* triangles, CGL_int index)
+{
+    CGL_INCREMENTAL_TRIANGULATOR_SET_TRIANGLE(triangles, index, -10, -10, -10);
+}
+
+static CGL_int __CGL_triangulate_points_incremental_add_triangle_at_index(CGL_int* triangles, CGL_int a, CGL_int b, CGL_int c, CGL_int count)
+{
+    for(CGL_int i = 0 ; i < count ; )
+    {
+        if(triangles[i * 3 + 0] == -10) { CGL_INCREMENTAL_TRIANGULATOR_SET_TRIANGLE(triangles, i, a, b, c); return count + 1; }
+        else i++;
+    }
+    CGL_INCREMENTAL_TRIANGULATOR_SET_TRIANGLE(triangles, count, a, b, c);
+    return count + 1;
+}
+
+// Source: https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm
+/*
+* The Bowyer–Watson algorithm is an incremental algorithm.
+* It works by adding points, one at a time, to a valid
+* Delaunay triangulation of a subset of the desired points.
+* After every insertion, any triangles whose circumcircles 
+* contain the new point are deleted, leaving a star-shaped
+* polygonal hole which is then re-triangulated using the
+* new point. By using the connectivity of the triangulation
+* to efficiently locate triangles to remove, the algorithm
+* can take O(N log N) operations to triangulate N points,
+* although special degenerate cases exist where this
+* goes up to O(N2)
+*/
+CGL_bool CGL_triangulate_points_incremental(CGL_vec2* points, CGL_int points_count, CGL_int* triangles_out, CGL_int* triangles_count_out)
+{
+    if(!triangles_count_out || !triangles_out) return false; *triangles_count_out = 0;
+    if(points_count < 3) return false;
+    static CGL_int triangles[CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES * 3]; 
+    static CGL_int bad_triangles[CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES * 3]; 
+    static CGL_int polygon[CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES * 2];
+    CGL_int triangles_count = 0, bad_triangles_count = 0, tmp = 0, polygon_count = 0; 
+    CGL_vec2 a, b, c, p, va, vb, vc, centre; CGL_float rad; CGL_int ta, tb, tc, taa, tbb, tcc;
+    if(!CGL_utils_calculate_super_triangle(points, points_count, &a, &b, &c, 0.01f)) return false;
+    triangles_count = __CGL_triangulate_points_incremental_add_triangle_at_index(triangles, -1, -2, -3, triangles_count);
+    for(CGL_int i = 0 ; i < points_count ; i++)
+    {
+        p = points[i]; bad_triangles_count = 0; tmp = 0;
+        for(CGL_int j = 0, k = 0 ; j < triangles_count ; j++, k++)
+        {
+            ta = triangles[k * 3 + 0]; tb = triangles[k * 3 + 1]; tc = triangles[k * 3 + 2];
+            if(ta < -10) {j--; continue;} // skip empty triangle
+            va = (ta < 0) ? ((ta == -1) ? a : ((ta == -2) ? b : c)) : points[ta];
+            vb = (tb < 0) ? ((tb == -1) ? a : ((tb == -2) ? b : c)) : points[tb];
+            vc = (tc < 0) ? ((tc == -1) ? a : ((tc == -2) ? b : c)) : points[tc];
+            if(!CGL_utils_calculate_circumcircle(va, vb, vc, &centre, &rad)) return false;
+            if(CGL_vec2_distance(centre, p) < rad)
+            {
+                bad_triangles_count = __CGL_triangulate_points_incremental_add_triangle_at_index(bad_triangles, ta, tb, tc, bad_triangles_count);
+                __CGL_triangulate_points_incremental_remove_triangle_at_index(triangles, k);
+            }
+        }
+        triangles_count -= bad_triangles_count; polygon_count = 0;
+        for(CGL_int j = 0 ; j < bad_triangles_count ; j++)
+        {
+            ta = bad_triangles[j * 3 + 0]; tb = bad_triangles[j * 3 + 1]; tc = bad_triangles[j * 3 + 2];
+            CGL_int bd_edges[] = {ta, tb, tb, tc, tc, ta};
+            for(CGL_int u = 0 ; u < 3 ; u++)
+            {
+                CGL_bool is_shared = false;
+                for(CGL_int k = 0 ; k < bad_triangles_count ; k++)
+                {
+                    if(j == k) continue;
+                    taa = bad_triangles[k * 3 + 0]; tbb = bad_triangles[k * 3 + 1]; tcc = bad_triangles[k * 3 + 2];
+                    CGL_int bd_edges2[] = {taa, tbb, tbb, tcc, tcc, taa};
+                    for(CGL_int v = 0 ; v < 3 ; v++) { if((bd_edges[u * 2 + 0] == bd_edges2[v * 2 + 0] && bd_edges[u * 2 + 1] == bd_edges2[v * 2 + 1]) || (bd_edges[u * 2 + 0] == bd_edges2[v * 2 + 1] && bd_edges[u * 2 + 1] == bd_edges2[v * 2 + 0])) {is_shared = true; break; } }
+                    if(is_shared) break;
+                }
+                if(!is_shared) { polygon[polygon_count*2 + 0] = bd_edges[u * 2 + 0]; polygon[polygon_count*2 + 1] = bd_edges[u * 2 + 1]; polygon_count++; }
+            }
+        }
+        for(CGL_int j = 0 ; j < polygon_count ; j++)
+        {
+            ta = polygon[j * 2 + 0]; tb = polygon[j * 2 + 1]; tc = i;
+            triangles_count = __CGL_triangulate_points_incremental_add_triangle_at_index(triangles, ta, tb, tc, triangles_count);
+        }       
+    }
+    *triangles_count_out = 0;
+    for(CGL_int j = 0, k = 0 ; j < triangles_count ; j++, k++)
+    {
+        ta = triangles[k * 3 + 0]; tb = triangles[k * 3 + 1]; tc = triangles[k * 3 + 2];
+        if(ta < 0 || tb < 0 || tc < 0) continue;
+        CGL_INCREMENTAL_TRIANGULATOR_SET_TRIANGLE(triangles_out, *triangles_count_out, ta, tb, tc); *triangles_count_out += 1;
+    }
+    return true;
 }
 
 /*
@@ -9642,12 +9822,9 @@ void __CGL_widgets_add_oval_filled(CGL_vec3 position, CGL_vec2 radius)
     CGL_float x = 0.0f, y = 0.0f;
     for(CGL_float i =0; i <= 360;)
     {
-        x = radius.x * cosf(i);
-        y = radius.y * sinf(i);
+        x = radius.x * cosf(i); y = radius.y * sinf(i);
         CGL_widgets_add_vertex_p3f(x + position.x, y + position.y, position.z);
-        i = i + 0.5f;
-        x = radius.x * cosf(i);
-        y = radius.y * sinf(i);
+        i = i + 0.5f; x = radius.x * cosf(i); y = radius.y * sinf(i);
         CGL_widgets_add_vertex_p3f(x + position.x, y + position.y, position.z);
         CGL_widgets_add_vertex_p3f(position.x, position.y, position.z);
         i = i + 0.5f;
@@ -9663,6 +9840,16 @@ void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
     else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
+}
+
+void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res)
+{
+    CGL_widgets_add_arc2f(position.x, position.y, radius, 0.0f, CGL_2PI, res);
+}
+
+void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res)
+{
+    CGL_widgets_add_circler(CGL_vec3_init(pos_x, pos_y, 0.0f), radius, res);
 }
 
 void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius)
