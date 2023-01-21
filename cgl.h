@@ -1689,16 +1689,17 @@ typedef struct CGL_widgets_context CGL_widgets_context;
 CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_indices);
 void CGL_widgets_context_destroy(CGL_widgets_context* context);
 CGL_widgets_context* CGL_window_get_current_context();
-bool CGL_widgets_init();
+CGL_bool CGL_widgets_init();
 void CGL_widgets_shutdown();
 void CGL_window_set_current_context(CGL_widgets_context* context);
-bool CGL_widgets_begin();
-bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
-bool CGL_widgets_end();
-bool CGL_widgets_flush();
-bool CGL_widgets_flush_if_required();
-bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, uint32_t* indices, size_t index_count);
+CGL_bool CGL_widgets_begin();
+CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
+CGL_bool CGL_widgets_end();
+CGL_bool CGL_widgets_flush();
+CGL_bool CGL_widgets_flush_if_required();
+// bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, uint32_t* indices, size_t index_count); // DEPRECATED
 void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex);
+void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh);
 void CGL_widgets_add_vertex_p(CGL_vec3 position);
 void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z);
 void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord);
@@ -1710,7 +1711,14 @@ void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_fl
 void CGL_widgets_set_stroke_thicnkess(CGL_float thickness);
 void CGL_widgets_set_fill_color(CGL_color color);
 void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
-void CGL_widgets_set_fill_mode(bool is_enabled);
+void CGL_widgets_set_fill_mode(CGL_bool is_enabled);
+void CGL_widgets_set_projection_matrix(CGL_mat4* matrix);
+void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color);
+void CGL_widgets_disable_diffuse_shading();
+void CGL_widgets_set_view_matrix(CGL_mat4* matrix);
+void CGL_widgets_set_model_matrix(CGL_mat4* matrix);
+void CGL_widgets_apply_transformations_on_cpu();
+void CGL_widgets_apply_transformations_on_gpu();
 void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
 void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
 void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy);
@@ -4463,13 +4471,10 @@ CGL_float CGL_mat4_det_by_gauss(CGL_mat4 m)
 CGL_vec4 CGL_mat4_mul_vec4(CGL_mat4 m, CGL_vec4 v)
 {
     CGL_vec4 result = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
-    for (CGL_int i = 0; i < 4; i++)
-    {
-        CGL_float temp = 0.0f;
-        for (CGL_int j = 0; j < 4; j++)
-            temp += CGL_mat4_elem_get(m, i, j) * CGL_vec4_elem_get(v, j);
-        CGL_vec4_elem_set(result, i, temp);
-    }
+    result.x = CGL_mat4_elem_get(m, 0, 0) * v.x + CGL_mat4_elem_get(m, 0, 1) * v.y + CGL_mat4_elem_get(m, 0, 2) * v.z + CGL_mat4_elem_get(m, 0, 3) * v.w;
+    result.y = CGL_mat4_elem_get(m, 1, 0) * v.x + CGL_mat4_elem_get(m, 1, 1) * v.y + CGL_mat4_elem_get(m, 1, 2) * v.z + CGL_mat4_elem_get(m, 1, 3) * v.w;
+    result.z = CGL_mat4_elem_get(m, 2, 0) * v.x + CGL_mat4_elem_get(m, 2, 1) * v.y + CGL_mat4_elem_get(m, 2, 2) * v.z + CGL_mat4_elem_get(m, 2, 3) * v.w;
+    result.w = CGL_mat4_elem_get(m, 3, 0) * v.x + CGL_mat4_elem_get(m, 3, 1) * v.y + CGL_mat4_elem_get(m, 3, 2) * v.z + CGL_mat4_elem_get(m, 3, 3) * v.w;
     return result;
 }
 
@@ -9403,10 +9408,16 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 
 struct CGL_widgets_context
 {
+    CGL_mat4 projection_matrix;
+    CGL_mat4 view_matrix;
+    CGL_mat4 model_matrix;
+    CGL_mat4 view_proj_matrix;
     CGL_vec4 stroke_color;
     CGL_vec4 fill_color;
     CGL_vec4 scale;
     CGL_vec4 offset;
+    CGL_vec3 light_color;
+    CGL_vec3 light_position;
     CGL_mesh_vertex* vertices;
     CGL_shader* shader;    
     uint32_t* indices;
@@ -9419,9 +9430,11 @@ struct CGL_widgets_context
     GLuint vertex_array;
     GLuint vertex_buffer;
     GLuint index_buffer;
-    bool flushed;
-    bool is_fill;
-    bool adjust_for_aspect_ratio;
+    CGL_bool flushed;
+    CGL_bool is_fill;
+    CGL_bool adjust_for_aspect_ratio;
+    CGL_bool transform_points_on_cpu;
+    CGL_bool diffuse_shading_enabled;
 };
 
 static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
@@ -9435,35 +9448,57 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "out vec2 TexCoord; \n"
 "out vec4 Color;\n"
 "\n"
+"uniform bool u_TransformPointsOnCPU;\n"
+"uniform mat4 u_ViewProjMatrix;\n"
+"uniform mat4 u_ModelMatrix;\n"
+"\n"
 "void main()\n"
 "{\n"
-"	gl_Position = vec4(position.xyz, 1.0f);\n"
-"	Position = position.xyz;\n"
-"	Normal = normal.xyz;\n"
-"	TexCoord = texcoord.xy;		\n"
+"   if(u_TransformPointsOnCPU)\n"
+"   {\n"
+"       gl_Position = vec4(position.xyz, 1.0f);\n"
+"       Position = position.xyz;\n"
+"       Normal = normal.xyz;\n"
+"       TexCoord = texcoord.xy;\n"
+"   }\n"
+"	else\n"
+"   {\n"
+"       gl_Position = u_ViewProjMatrix * u_ModelMatrix * vec4(position.xyz, 1.0f);\n"
+"	    Position = (u_ModelMatrix * vec4(position.xyz, 1.0f)).xyz;\n"
+"       mat3 normal_matrix = transpose(inverse(mat3(u_ModelMatrix)));\n"
+"	    Normal = normal_matrix * normal.xyz;\n"
+"	    TexCoord = texcoord.xy;\n"
+"   }\n"
 "	Color = vec4(position.w, texcoord.zw, normal.w);\n"
 "}";
 
 static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "\n"
 "out vec4 FragColor;\n"
-"//out CGL_int MousePick0;\n"
-"//out CGL_int MousePick1;\n"
-"//out CGL_int MousePick2;\n"
 "\n"
 "in vec3 Position;\n"
 "in vec3 Normal;\n"
 "in vec2 TexCoord;\n"
 "in vec4 Color;\n"
 "\n"
+"uniform bool u_DiffuseShadingEnabled;\n"
+"uniform vec3 u_LightColor;\n"
+"uniform vec3 u_LightPosition;\n"
 "\n"
 "void main()\n"
 "{\n"
 "	vec4 color = Color;\n"
+"	if(u_DiffuseShadingEnabled)\n"
+"	{\n"
+"		float ambient_strength = 0.1f;\n"
+"		vec3 ambient = ambient_strength * u_LightColor;\n"
+"		vec3 norm = normalize(Normal);\n"
+"		vec3 light_dir = normalize(u_LightPosition - Position);\n"
+"		float diff = max(dot(norm, light_dir), 0.0);\n"
+"		vec3 diffuse = diff * u_LightColor;\n"
+"		color.rgb = (diffuse + ambient) * color.rgb;\n"
+"	}\n"
 "	FragColor = color;\n"
-"//	MousePick0 = 0;\n"
-"//	MousePick1 = 0;\n"
-"//	MousePick2 = 0;\n"
 "}";
 
 static CGL_widgets_context* __CGL_WIDGETS_CURRENT_CONTEXT = NULL;
@@ -9480,9 +9515,17 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     context->indices_count = 0;
     context->flushed = true;
     context->adjust_for_aspect_ratio = false;
+    context->transform_points_on_cpu = false;
     context->aspect_ratio = 1.0f;
     context->offset = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     context->scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
+    context->projection_matrix = CGL_mat4_identity();
+    context->view_matrix = CGL_mat4_identity();
+    context->model_matrix = CGL_mat4_identity();
+    context->view_proj_matrix = CGL_mat4_identity();
+    context->diffuse_shading_enabled = false;
+    context->light_color = CGL_vec3_init(1.0f, 1.0f, 1.0f);
+    context->light_position = CGL_vec3_init(100.0f, 100.0f, 100.0f);
     glGenVertexArrays(1, &context->vertex_array);
     glBindVertexArray(context->vertex_array);
     glGenBuffers(1, &context->vertex_buffer);
@@ -9526,7 +9569,7 @@ CGL_widgets_context* CGL_window_get_current_context()
     return __CGL_WIDGETS_CURRENT_CONTEXT;   
 }
 
-bool CGL_widgets_init()
+CGL_bool CGL_widgets_init()
 {
     __CGL_WIDGETS_CURRENT_CONTEXT = CGL_widgets_context_create(CGL_WIDGETS_MAX_VERTICES, CGL_WIDGETS_MAX_INDICES);
     return __CGL_WIDGETS_CURRENT_CONTEXT != NULL;
@@ -9542,29 +9585,37 @@ void CGL_window_set_current_context(CGL_widgets_context* context)
     if(context) __CGL_WIDGETS_CURRENT_CONTEXT = context;
 }
 
-bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
+CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->flushed = false;
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = true;
+    __CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu = false;
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix = CGL_mat4_identity();
+    __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix = CGL_mat4_identity();
+    __CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix = CGL_mat4_identity();
+    __CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix = CGL_mat4_identity();
+    __CGL_WIDGETS_CURRENT_CONTEXT->diffuse_shading_enabled = false;
+    __CGL_WIDGETS_CURRENT_CONTEXT->light_color = CGL_vec3_init(1.0f, 1.0f, 1.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->light_position = CGL_vec3_init(100.0f, 100.0f, 100.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = 0.05f;
-    __CGL_WIDGETS_CURRENT_CONTEXT->scale = CGL_vec4_init(scale_x, scale_y, 0.0f, 0.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->scale = CGL_vec4_init(scale_x, scale_y, 1.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->offset = CGL_vec4_init(offset_x, offset_y, 0.0f, 0.0f);
     return true;
 }
 
-bool CGL_widgets_begin()
+CGL_bool CGL_widgets_begin()
 {
     return CGL_widgets_begin_int(1.0f, 1.0f, 0.0f, 0.0f);
 }
 
-bool CGL_widgets_end()
+CGL_bool CGL_widgets_end()
 {
     return CGL_widgets_flush();
 }
 
-bool CGL_widgets_flush()
+CGL_bool CGL_widgets_flush()
 {
     //if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
     if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count == 0 || __CGL_WIDGETS_CURRENT_CONTEXT->indices_count == 0) return false;
@@ -9575,6 +9626,18 @@ bool CGL_widgets_flush()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->indices_count * sizeof(uint32_t), __CGL_WIDGETS_CURRENT_CONTEXT->indices, GL_DYNAMIC_DRAW);
     // render
     CGL_shader_bind(__CGL_WIDGETS_CURRENT_CONTEXT->shader);
+    CGL_shader_set_uniform_bool(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_TransformPointsOnCPU"), __CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu);
+    if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu)
+    {
+        CGL_shader_set_uniform_mat4(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_ViewProjMatrix"), &__CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix);
+        CGL_shader_set_uniform_mat4(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_ModelMatrix"), &__CGL_WIDGETS_CURRENT_CONTEXT->model_matrix);
+    }
+    CGL_shader_set_uniform_bool(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_DiffuseShadingEnabled"), __CGL_WIDGETS_CURRENT_CONTEXT->diffuse_shading_enabled);
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->diffuse_shading_enabled)
+    {
+        CGL_shader_set_uniform_vec3v(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_LightPosition"), __CGL_WIDGETS_CURRENT_CONTEXT->light_position.x, __CGL_WIDGETS_CURRENT_CONTEXT->light_position.y, __CGL_WIDGETS_CURRENT_CONTEXT->light_position.z); 
+        CGL_shader_set_uniform_vec3v(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_LightColor"), __CGL_WIDGETS_CURRENT_CONTEXT->light_color.x, __CGL_WIDGETS_CURRENT_CONTEXT->light_color.y, __CGL_WIDGETS_CURRENT_CONTEXT->light_color.z);         
+    }
     glBindVertexArray(__CGL_WIDGETS_CURRENT_CONTEXT->vertex_array);
     glDrawElements(GL_TRIANGLES, (GLsizei)__CGL_WIDGETS_CURRENT_CONTEXT->indices_count, GL_UNSIGNED_INT, NULL);
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices_count = 0;
@@ -9591,6 +9654,8 @@ bool CGL_widgets_flush_if_required()
 }
 
 
+// NOTE: Deprecated
+/*
 bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, uint32_t* indices, size_t index_count)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count + vertex_count >= (__CGL_WIDGETS_CURRENT_CONTEXT->max_vertices - 10)) return false;
@@ -9603,6 +9668,7 @@ bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, ui
     CGL_widgets_flush_if_required();
     return true;
 }
+*/
 
 void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
 {
@@ -9614,26 +9680,39 @@ void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
         if(scale.x > scale.y) scale.x = scale.y / __CGL_WIDGETS_CURRENT_CONTEXT->aspect_ratio;
         else scale.y = scale.x * __CGL_WIDGETS_CURRENT_CONTEXT->aspect_ratio;
     }
+
+
     vertex->position.x = vertex->position.x * scale.x + __CGL_WIDGETS_CURRENT_CONTEXT->offset.x;
     vertex->position.y = vertex->position.y * scale.y + __CGL_WIDGETS_CURRENT_CONTEXT->offset.y;
     vertex->position.z = vertex->position.z * scale.z + __CGL_WIDGETS_CURRENT_CONTEXT->offset.z; // for future
+
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu)
+    {
+        // BUG: This is not working properly
+        CGL_mat4 transform_matrix = CGL_mat4_mul(__CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix, __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix);
+        vertex->position.w = 1.0f; vertex->position = CGL_mat4_mul_vec4(transform_matrix, vertex->position);
+        vertex->normal.w = 0.0f; vertex->normal = CGL_mat4_mul_vec4(transform_matrix, vertex->normal);
+    }
     
 
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count++] = *vertex;
     __CGL_WIDGETS_CURRENT_CONTEXT->indices[__CGL_WIDGETS_CURRENT_CONTEXT->indices_count++] = (uint32_t)(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1);
-    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill)
+    CGL_vec4 vt_color = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color;
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) vt_color = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color;
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = vt_color.x;
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = vt_color.y;
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = vt_color.z;
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].normal.w = vt_color.w;
+}
+
+void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh)
+{
+    for(size_t i = 0 ; i < mesh->index_count_used / 3 ; i++)
     {
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.x;
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.y;
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.z;
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].normal.w = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color.w;
-    }
-    else
-    {
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.x;
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.y;
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.z;
-        __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].normal.w = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color.w;
+        CGL_int fa = mesh->indices[i * 3], fb = mesh->indices[i * 3 + 1], fc = mesh->indices[i * 3 + 2];
+        CGL_widgets_add_vertex(&mesh->vertices[fa]);
+        CGL_widgets_add_vertex(&mesh->vertices[fb]);
+        CGL_widgets_add_vertex(&mesh->vertices[fc]);
     }
 }
 
@@ -9711,6 +9790,64 @@ void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_floa
 void CGL_widgets_set_fill_mode(bool is_enabled)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = is_enabled;
+}
+
+void CGL_widgets_set_projection_matrix(CGL_mat4* matrix)
+{
+    if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu) CGL_widgets_flush();
+    if(matrix == NULL) 
+    {
+        __CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix = CGL_mat4_identity();
+        __CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix = CGL_mat4_mul(__CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix, __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix);
+        return;
+    }
+    __CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix = *matrix;
+    __CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix = CGL_mat4_mul(__CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix, __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix);
+}
+
+void CGL_widgets_set_view_matrix(CGL_mat4* matrix)
+{
+    if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu) CGL_widgets_flush();
+    if(matrix == NULL) 
+    {
+        __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix = CGL_mat4_identity();
+        __CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix = CGL_mat4_mul(__CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix, __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix);
+        return;
+    }
+    __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix = *matrix;
+    __CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix = CGL_mat4_mul(__CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix, __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix);
+}
+
+void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
+{
+    if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu) CGL_widgets_flush();
+    if(matrix == NULL)  { __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix = CGL_mat4_identity(); return; }
+    __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix = *matrix;
+}
+
+void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color)
+{
+    CGL_widgets_flush();
+    __CGL_WIDGETS_CURRENT_CONTEXT->diffuse_shading_enabled = true;
+    __CGL_WIDGETS_CURRENT_CONTEXT->light_position = light_position;
+    __CGL_WIDGETS_CURRENT_CONTEXT->light_color = light_color;
+}
+
+void CGL_widgets_disable_diffuse_shading()
+{
+    CGL_widgets_flush();
+    __CGL_WIDGETS_CURRENT_CONTEXT->diffuse_shading_enabled = false;
+}
+
+void CGL_widgets_apply_transformations_on_cpu()
+{
+    CGL_widgets_flush();
+    __CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu = true;
+}
+void CGL_widgets_apply_transformations_on_gpu()
+{
+    CGL_widgets_flush();
+    __CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu = false;
 }
 
 void __CGL_widgets_add_triangle_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
