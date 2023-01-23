@@ -67,6 +67,12 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
     - Worley Noise (or Cellular Noise)
   - Fractals like FBm, Rigid, Billow, PingPong
   - Parameters for Octaves/Lacunarity/Weighted Strength/Gain
+ 
+* Triangulation
+   - Bower Watson Algorithm for Delaunay Triangulator
+   
+* Artificial Intelligence
+  - Neural Netowrks
 
 * Data structures
   - List(dynamic array) + Stack (implemented together)
