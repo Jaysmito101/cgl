@@ -197,6 +197,14 @@ CGL_uint CGL_utils_rand31();
 #define CGL_utils_min(a, b) ( ((a) < (b)) ? (a) : (b) )
 #define CGL_utils_mix(x, y, f) (x * f + y * (1.0f - f))
 #define CGL_utils_lerp(a, b, t) (a + (b - a) * t)
+#define CGL_utils_sigmoid(x) (1.0f / (1.0f + expf(-x)))
+#define CGL_utils_sigmoid_derivative(x) (x * (1.0f - x))
+#define CGL_utils_relu(x) (x < 0.0f ? 0.0f : x)
+#define CGL_utils_relu_derivative(x) (x < 0.0f ? 0.0f : 1.0f)
+#define CGL_utils_tanh(x) (tanhf(x))
+#define CGL_utils_tanh_derivative(x) (1.0f - x * x)
+#define CGL_utils_step(x) (x < 0.0f ? 0.0f : 1.0f)
+#define CGL_utils_step_derivative(x) (0.0f)
 
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
@@ -957,6 +965,7 @@ CGL_bool CGL_utils_calculate_circumcircle(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c, CG
 CGL_bool CGL_utils_calculate_super_triangle(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_float padding);
 CGL_bool CGL_utils_calculate_bounding_square(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding);
 CGL_bool CGL_utils_calculate_bounding_box(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding);
+CGL_float CGL_utils_random_gaussian(CGL_float mean, CGL_float std_dev);
 
 // GJK collision detection & EPA collision resolution
 
@@ -2077,6 +2086,23 @@ CGL_noise_data_type CGL_noise_worley(CGL_noise_data_type x, CGL_noise_data_type 
 void CGL_noise_params_default(CGL_noise_params* params);
 CGL_noise_data_type CGL_noise_get(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
 
+
+#endif
+
+#ifndef CGL_EXCLUDE_AI_API
+
+struct CGL_simple_neural_network;
+typedef struct CGL_simple_neural_network CGL_simple_neural_network;
+
+struct CGL_simple_neural_network_layer;
+typedef struct CGL_simple_neural_network_layer CGL_simple_neural_network_layer;
+
+CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes, CGL_int layer_count);
+void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network);
+void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output);
+void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v);
+void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b);
+void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio);
 
 #endif
 
@@ -3718,6 +3744,15 @@ CGL_bool CGL_utils_calculate_bounding_box(CGL_vec2* points, CGL_int points_count
     *c = CGL_vec2_init(min_max_val.z, min_max_val.w); *d = CGL_vec2_init(min_max_val.x, min_max_val.w);
     return true;
 }
+
+CGL_float CGL_utils_random_gaussian(CGL_float mean, CGL_float std_dev)
+{
+    CGL_float u1 = (CGL_float)rand() / (CGL_float)RAND_MAX;
+    CGL_float u2 = (CGL_float)rand() / (CGL_float)RAND_MAX;
+    CGL_float rand_std_normal = sqrtf(-2.0f * logf(u1)) * sinf(2.0f * CGL_PI * u2);
+    return mean + std_dev * rand_std_normal;
+}
+
 
 CGL_bool CGL_utils_calculate_bounding_square(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding)
 {
@@ -12936,6 +12971,92 @@ void CGL_noise_shutdown()
 
 }
 
+
+#endif
+
+
+#ifndef CGL_EXCLUDE_AI_API
+
+struct CGL_simple_neural_network_layer
+{
+    CGL_float* weights;
+    CGL_float* activations;
+    CGL_int input_count;
+    CGL_int output_count;
+    CGL_int weight_count;
+};
+
+struct CGL_simple_neural_network
+{
+    CGL_simple_neural_network_layer* layers;
+    CGL_int layer_count;
+};
+
+
+CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes, CGL_int layer_count)
+{
+    CGL_simple_neural_network* network = CGL_malloc(sizeof(CGL_simple_neural_network));
+    network->layer_count = layer_count;
+    network->layers = CGL_malloc(sizeof(CGL_simple_neural_network_layer) * layer_count);
+    for(CGL_int i = 0 ; i < layer_count ; i++)
+    {
+        CGL_simple_neural_network_layer* layer = network->layers + i;
+        layer->input_count = i > 0 ? layer_sizes[i-1] : 0;
+        layer->output_count = layer_sizes[i];
+        layer->weight_count = (layer->input_count + 1) * layer->output_count;
+        layer->weights = CGL_malloc(sizeof(CGL_float) * layer->weight_count);
+        layer->activations = CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
+    }
+    return network;
+}
+
+void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v)
+{
+    for(CGL_int i = 0 ; i < network->layer_count ; i++) for(CGL_int j = 0 ; j < network->layers[i].weight_count ; j++) 
+    network->layers[i].weights[j] = CGL_utils_random_float_in_range(min_v, max_v);
+}
+
+void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network)
+{
+    for(CGL_int i = 0 ; i < network->layer_count ; i++)
+    {
+        CGL_simple_neural_network_layer* layer = network->layers + i;
+        CGL_free(layer->weights);
+        CGL_free(layer->activations);
+    }
+    CGL_free(network->layers);
+    CGL_free(network);    
+}
+
+void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output)
+{
+    CGL_simple_neural_network_layer* layer_pr = network->layers; // layer 0
+    CGL_simple_neural_network_layer* layer_cr = layer_pr + 1; // layer 1
+    memcpy(layer_pr->activations, input, sizeof(CGL_float) * layer_pr->output_count); // copy input to layer 0
+    layer_pr->activations[layer_pr->output_count] = 1.0f; // bias
+    for(CGL_int i = 1 ; i < network->layer_count ; i++)
+    {
+        for(CGL_int j = 0 ; j < layer_cr->output_count ; j++)
+        {
+            CGL_float sum = 0.0f;
+            for(CGL_int k = 0 ; k < layer_pr->output_count + 1 ; k++) sum += layer_pr->activations[k] * layer_cr->weights[k * layer_cr->output_count + j];
+            layer_cr->activations[j] = CGL_utils_sigmoid(sum);
+        }
+        layer_cr->activations[layer_cr->output_count] = 1.0f; // bias
+        layer_pr = layer_cr; layer_cr++;
+    }
+    memcpy(output, layer_pr->activations, sizeof(CGL_float) * layer_pr->output_count);    
+}
+
+void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b)
+{
+    for(CGL_int i = 0 ; i < a->layer_count ; i++) memcpy(a->layers[i].weights, b->layers[i].weights, sizeof(CGL_float) * a->layers[i].weight_count);
+}
+
+void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio)
+{
+    for(CGL_int i = 0 ; i < a->layer_count ; i++) for(CGL_int j = 0 ; j < a->layers[i].weight_count ; j++) if(CGL_utils_random_float_in_range(0.0f, 1.0f) < mutation_ratio) a->layers[i].weights[j] += CGL_utils_random_gaussian(0.0f, 0.1f);
+}
 
 #endif
 
