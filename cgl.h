@@ -197,14 +197,18 @@ CGL_uint CGL_utils_rand31();
 #define CGL_utils_min(a, b) ( ((a) < (b)) ? (a) : (b) )
 #define CGL_utils_mix(x, y, f) (x * f + y * (1.0f - f))
 #define CGL_utils_lerp(a, b, t) (a + (b - a) * t)
-#define CGL_utils_sigmoid(x) (1.0f / (1.0f + expf(-x)))
-#define CGL_utils_sigmoid_derivative(x) (x * (1.0f - x))
-#define CGL_utils_relu(x) (x < 0.0f ? 0.0f : x)
-#define CGL_utils_relu_derivative(x) (x < 0.0f ? 0.0f : 1.0f)
-#define CGL_utils_tanh(x) (tanhf(x))
-#define CGL_utils_tanh_derivative(x) (1.0f - x * x)
-#define CGL_utils_step(x) (x < 0.0f ? 0.0f : 1.0f)
-#define CGL_utils_step_derivative(x) (0.0f)
+CGL_float CGL_utils_sigmoid(CGL_float x);
+CGL_float CGL_utils_sigmoid_derivative(CGL_float x);
+CGL_float CGL_utils_relu(CGL_float x);
+CGL_float CGL_utils_relu_derivative(CGL_float x);
+CGL_float CGL_utils_tanh(CGL_float x);
+CGL_float CGL_utils_tanh_derivative(CGL_float x);
+CGL_float CGL_utils_step(CGL_float x);
+CGL_float CGL_utils_step_derivative(CGL_float x);
+CGL_float CGL_utils_relu_leaky(CGL_float x);
+CGL_float CGL_utils_relu_leaky_derivative(CGL_float x);
+CGL_float CGL_utils_relu_smooth(CGL_float x);
+CGL_float CGL_utils_relu_smooth_derivative(CGL_float x);
 
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
@@ -2097,7 +2101,10 @@ typedef struct CGL_simple_neural_network CGL_simple_neural_network;
 struct CGL_simple_neural_network_layer;
 typedef struct CGL_simple_neural_network_layer CGL_simple_neural_network_layer;
 
+typedef CGL_float (*CGL_simple_neural_network_activation_function)(CGL_float x);
+
 CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes, CGL_int layer_count);
+void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative);
 void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network);
 void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output);
 void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v);
@@ -3503,6 +3510,67 @@ float CGL_utils_get_time()
 #else 
     return 0.0f;
 #endif
+}
+
+CGL_float CGL_utils_sigmoid(CGL_float x)
+{
+    return 1.0f / (1.0f + expf(-x));
+}
+
+
+CGL_float CGL_utils_sigmoid_derivative(CGL_float x)
+{
+    return x * (1.0f - x);
+}
+
+CGL_float CGL_utils_relu(CGL_float x)
+{
+    return x > 0.0f ? x : 0.0f;
+}
+
+CGL_float CGL_utils_relu_derivative(CGL_float x)
+{
+    return x > 0.0f ? 1.0f : 0.0f;
+}
+
+CGL_float CGL_utils_tanh(CGL_float x)
+{
+    return tanhf(x);
+}
+
+CGL_float CGL_utils_tanh_derivative(CGL_float x)
+{
+    return 1.0f - x * x;
+}
+
+CGL_float CGL_utils_step(CGL_float x)
+{
+    return x > 0.0f ? 1.0f : 0.0f;
+}
+
+CGL_float CGL_utils_step_derivative(CGL_float x)
+{
+    return 0.0f;
+}
+
+CGL_float CGL_utils_relu_leaky(CGL_float x)
+{
+    return x > 0.0f ? x : 0.01f * x;
+}
+
+CGL_float CGL_utils_relu_leaky_derivative(CGL_float x)
+{
+    return x > 0.0f ? 1.0f : 0.01f;
+}
+
+CGL_float CGL_utils_relu_smooth(CGL_float x)
+{
+    return x > 0.0f ? x : 0.01f * x * x;
+}
+
+CGL_float CGL_utils_relu_smooth_derivative(CGL_float x)
+{
+    return x > 0.0f ? 1.0f : 0.02f * x;
 }
 
 CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count)
@@ -12981,6 +13049,8 @@ struct CGL_simple_neural_network_layer
 {
     CGL_float* weights;
     CGL_float* activations;
+    CGL_simple_neural_network_activation_function activation_function;
+    CGL_simple_neural_network_activation_function activation_function_derivative;
     CGL_int input_count;
     CGL_int output_count;
     CGL_int weight_count;
@@ -13001,6 +13071,8 @@ CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes
     for(CGL_int i = 0 ; i < layer_count ; i++)
     {
         CGL_simple_neural_network_layer* layer = network->layers + i;
+        layer->activation_function = CGL_utils_sigmoid;
+        layer->activation_function_derivative = CGL_utils_sigmoid_derivative;
         layer->input_count = i > 0 ? layer_sizes[i-1] : 0;
         layer->output_count = layer_sizes[i];
         layer->weight_count = (layer->input_count + 1) * layer->output_count;
@@ -13008,6 +13080,12 @@ CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes
         layer->activations = CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
     }
     return network;
+}
+
+void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative)
+{
+    network->layers[layer_index].activation_function = activation_function;
+    network->layers[layer_index].activation_function_derivative = activation_function_derivative;
 }
 
 void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v)
