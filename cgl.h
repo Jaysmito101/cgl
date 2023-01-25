@@ -1730,6 +1730,8 @@ void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_
 void CGL_widgets_disable_diffuse_shading();
 void CGL_widgets_set_view_matrix(CGL_mat4* matrix);
 void CGL_widgets_set_model_matrix(CGL_mat4* matrix);
+void CGL_widgets_set_texture(CGL_texture* texture);
+void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
 void CGL_widgets_apply_transformations_on_cpu();
 void CGL_widgets_apply_transformations_on_gpu();
 void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
@@ -2101,7 +2103,7 @@ typedef struct CGL_simple_neural_network CGL_simple_neural_network;
 struct CGL_simple_neural_network_layer;
 typedef struct CGL_simple_neural_network_layer CGL_simple_neural_network_layer;
 
-typedef CGL_float (*CGL_simple_neural_network_activation_function)(CGL_float x);
+typedef CGL_float(*CGL_simple_neural_network_activation_function)(CGL_float x);
 
 CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes, CGL_int layer_count);
 void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative);
@@ -9519,10 +9521,12 @@ struct CGL_widgets_context
     CGL_vec4 fill_color;
     CGL_vec4 scale;
     CGL_vec4 offset;
+    CGL_vec4 tex_coord_scale_offset;
     CGL_vec3 light_color;
     CGL_vec3 light_position;
     CGL_mesh_vertex* vertices;
     CGL_shader* shader;    
+    CGL_texture* texture;
     uint32_t* indices;
     size_t max_vertices;
     size_t vertices_count;
@@ -9545,11 +9549,13 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+"layout (location = 3) in vec4 texcoordscaleoffset;\n"
 "\n"
 "out vec3 Position;\n"
 "out vec3 Normal;\n"
 "out vec2 TexCoord; \n"
 "out vec4 Color;\n"
+"out vec4 TexCoordScaleOffset;\n"
 "\n"
 "uniform bool u_TransformPointsOnCPU;\n"
 "uniform mat4 u_ViewProjMatrix;\n"
@@ -9562,7 +9568,6 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "       gl_Position = vec4(position.xyz, 1.0f);\n"
 "       Position = position.xyz;\n"
 "       Normal = normal.xyz;\n"
-"       TexCoord = texcoord.xy;\n"
 "   }\n"
 "	else\n"
 "   {\n"
@@ -9570,8 +9575,9 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	    Position = (u_ModelMatrix * vec4(position.xyz, 1.0f)).xyz;\n"
 "       mat3 normal_matrix = transpose(inverse(mat3(u_ModelMatrix)));\n"
 "	    Normal = normal_matrix * normal.xyz;\n"
-"	    TexCoord = texcoord.xy;\n"
 "   }\n"
+"	TexCoord = texcoord.xy;\n"
+"	TexCoordScaleOffset = texcoordscaleoffset;\n"
 "	Color = vec4(position.w, texcoord.zw, normal.w);\n"
 "}";
 
@@ -9583,14 +9589,21 @@ static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "in vec3 Normal;\n"
 "in vec2 TexCoord;\n"
 "in vec4 Color;\n"
+"in vec4 TexCoordScaleOffset;\n"
 "\n"
 "uniform bool u_DiffuseShadingEnabled;\n"
 "uniform vec3 u_LightColor;\n"
 "uniform vec3 u_LightPosition;\n"
+"uniform sampler2D u_Texture;\n"
+"uniform bool u_TextureEnabled;\n"
 "\n"
 "void main()\n"
 "{\n"
 "	vec4 color = Color;\n"
+"	if(u_TextureEnabled)\n"
+"	{\n"
+"		color = texture(u_Texture, TexCoord * TexCoordScaleOffset.xy + TexCoordScaleOffset.zw);\n"
+"	}\n"
 "	if(u_DiffuseShadingEnabled)\n"
 "	{\n"
 "		float ambient_strength = 0.1f;\n"
@@ -9620,6 +9633,8 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     context->adjust_for_aspect_ratio = false;
     context->transform_points_on_cpu = false;
     context->aspect_ratio = 1.0f;
+    context->texture = NULL;
+    context->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
     context->offset = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     context->scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
     context->projection_matrix = CGL_mat4_identity();
@@ -9641,6 +9656,8 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, texture_coordinates));
     glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_wieghts));
+    glEnableVertexAttribArray(3);
     context->shader = CGL_shader_create(__CGL_WIDGETS_VERTEX_SHADER_SOURCE, __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE, NULL);
     return context;
 }
@@ -9705,6 +9722,8 @@ CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float o
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = 0.05f;
     __CGL_WIDGETS_CURRENT_CONTEXT->scale = CGL_vec4_init(scale_x, scale_y, 1.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->offset = CGL_vec4_init(offset_x, offset_y, 0.0f, 0.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->texture = NULL;
+    __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
     return true;
 }
 
@@ -9740,6 +9759,12 @@ CGL_bool CGL_widgets_flush()
     {
         CGL_shader_set_uniform_vec3v(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_LightPosition"), __CGL_WIDGETS_CURRENT_CONTEXT->light_position.x, __CGL_WIDGETS_CURRENT_CONTEXT->light_position.y, __CGL_WIDGETS_CURRENT_CONTEXT->light_position.z); 
         CGL_shader_set_uniform_vec3v(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_LightColor"), __CGL_WIDGETS_CURRENT_CONTEXT->light_color.x, __CGL_WIDGETS_CURRENT_CONTEXT->light_color.y, __CGL_WIDGETS_CURRENT_CONTEXT->light_color.z);         
+    }
+    CGL_shader_set_uniform_bool(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_TextureEnabled"), __CGL_WIDGETS_CURRENT_CONTEXT->texture != NULL);
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->texture != NULL)
+    {
+        CGL_texture_bind(__CGL_WIDGETS_CURRENT_CONTEXT->texture, 5);
+        CGL_shader_set_uniform_int(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_Texture"), 5);
     }
     glBindVertexArray(__CGL_WIDGETS_CURRENT_CONTEXT->vertex_array);
     glDrawElements(GL_TRIANGLES, (GLsizei)__CGL_WIDGETS_CURRENT_CONTEXT->indices_count, GL_UNSIGNED_INT, NULL);
@@ -9802,6 +9827,7 @@ void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
     __CGL_WIDGETS_CURRENT_CONTEXT->indices[__CGL_WIDGETS_CURRENT_CONTEXT->indices_count++] = (uint32_t)(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1);
     CGL_vec4 vt_color = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color;
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) vt_color = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color;
+    __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_wieghts = __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = vt_color.x;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = vt_color.y;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = vt_color.z;
@@ -9926,6 +9952,18 @@ void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
     if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu) CGL_widgets_flush();
     if(matrix == NULL)  { __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix = CGL_mat4_identity(); return; }
     __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix = *matrix;
+}
+
+void CGL_widgets_set_texture(CGL_texture* texture)
+{
+    CGL_widgets_flush();
+    if(texture == NULL) { __CGL_WIDGETS_CURRENT_CONTEXT->texture = NULL; __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f); return; }
+    __CGL_WIDGETS_CURRENT_CONTEXT->texture = texture;
+}
+
+void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(scale_x, scale_y, offset_x, offset_y);
 }
 
 void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color)
