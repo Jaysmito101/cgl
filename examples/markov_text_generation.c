@@ -1,54 +1,63 @@
-#define CGL_LOGGING_ENABLED
-#define CGL_EXCLUDE_WINDOW_API
-#define CGL_EXCLUDE_NETWORKING
-#define CGL_EXCLUDE_GRAPHICS_API
-#define CGL_EXCLUDE_SKY_RENDERER
-#define CGL_EXCLUDE_PHONG_RENDERER
-#define CGL_EXCLUDE_TILEMAP_RENDERER
 #define CGL_IMPLEMENTATION
+#define CGL_EXCLUDE_TEXT_RENDER
+#define CGL_EXCLUDE_NETWORKING
+#define CGL_LOG printf
 #include "cgl.h"
 
 
-int main()
+int main(int argc, char** argv)
 {
+    if (argc != 4)
+    {
+        printf("Invalid number of arguments\n");
+        return -1;
+    }
     // for random output on every run
     srand((uint32_t)time(NULL));
 
+
     // constants
-    const char* trainer_data = "Mr. Jones, of the Manor Farm, had locked the hen-houses for the night, but was too drunk to remember to shut the pop-holes. With the ring of light from his lantern dancing from side to side, he lurched across the yard, kicked off his boots at the back door, drew himself a last glass of beer from the barrel in the scullery, and made his way up to bed, where Mrs. Jones was already snoring. As soon as the light in the bedroom went out there was a stirring and a fluttering all through the farm buildings. Word had gone round during the day that old Major, the prize Middle White boar, had had a strange dream on the previous night and wished to communicate it to the other animals. It had been agreed that they should all meet in the big barn as soon as Mr. Jones was safely out of the way. Old Major (so he was always called, though the name under which he had been exhibited was Willingdon Beauty) was so highly regarded on the farm that everyone was quite ready to lose an hour's sleep in order to hear what he had to say. At one end of the big barn, on a sort of raised platform, Major was already ensconced on his bed of straw, under a lantern which hung from a beam. He was twelve years old and had lately grown rather stout, but he was still a majestic-looking pig, with a wise and benevolent appearance in spite of the fact that his tushes had never been cut. Before long the other animals began to arrive and make themselves comfortable after their different fashions. First came the three dogs, Bluebell, Jessie, and Pincher, and then the pigs, who settled down in the straw immediately in front of the platform. The hens perched themselves on the window-sills, the pigeons fluttered up to the rafters, the sheep and cows lay down behind the pigs and began to chew the cud. The two cart-horses, Boxer and Clover, came in together, walking very slowly and setting down their vast hairy hoofs with great care lest there should be some small animal concealed in the straw. Clover was a stout motherly mare approaching middle life, who had never quite got her figure back after her fourth foal. Boxer was an enormous beast, nearly eighteen hands high, and as strong as any two ordinary horses put together. A white stripe down his nose gave him a somewhat stupid appearance, and in fact he was not of first-rate intelligence, but he was universally respected for his steadiness of character and tremendous powers of work. After the horses came Muriel, the white goat, and Benjamin, the donkey. Benjamin was the oldest animal on the farm, and the worst tempered. He seldom talked, and when he did, it was usually to make some cynical remark\u2014for instance, he would say that God had given him a tail to keep the flies off, but that he would sooner have had no tail and no flies. Alone among the animals on the farm he never laughed. If asked why, he would say that he saw nothing to laugh at. Nevertheless, without openly admitting it, he was devoted to Boxer; the two of them usually spent their Sundays together in the small paddock beyond the orchard, grazing side by side and never speaking. The two horses had just lain down when a brood of ducklings, which had lost their mother, filed into the barn, cheeping feebly and wandering from side to side to find some place where they would not be trodden on. Clover made a sort of wall round them with her great foreleg, and the ducklings nestled down inside it and promptly fell asleep. At the last moment Mollie, the foolish, pretty white mare who drew Mr. Jones's trap, came mincing daintily in, chewing at a lump of sugar. She took a place near the front and began flirting her white mane, hoping to draw attention to the red ribbons it was plaited with. Last of all came the cat, who looked round, as usual, for the warmest place, and finally squeezed herself in between Boxer and Clover; there she purred contentedly throughout Major's speech without listening to a word of what he was saying. All the animals were now present except Moses, the tame raven, who slept on a perch behind the back door. When Major saw that they had all made themselves comfortable and were waiting attentively, he cleared his throat and began: \"Comrades, you have heard already about the strange dream that I had last night. But I will come to the dream later. I have something else to say first. I do not think, comrades, that I shall be with you for many months longer, and before I die, I feel it my duty to pass on to you such wisdom as I have acquired. I have had a long life, I have had much time for thought as I lay alone in my stall, and I think I may say that I understand the nature of life on this earth as well as any animal now living. It is about this that I wish to speak to you. \"Now, comrades, what is the nature of this life of ours? Let us face it: our lives are miserable, laborious, and short. We are born, we are given just so much food as will keep the breath in our bodies, and those of us who are capable of it are forced to work to the last atom of our strength; and the very instant that our usefulness has come to an end we are slaughtered with hideous cruelty. No animal in England knows the meaning of happiness or leisure after he is a year old. No animal in England is free. The life of an animal is misery and slavery: that is the plain truth. \"But is this simply part of the order of nature? Is it because this land of ours is so poor that it cannot afford a decent life to those who dwell upon it? No, comrades, a thousand times no! The soil of England is fertile, its climate is good, it is capable of affording food in abundance to an enormously greater number of animals than now inhabit it. This single farm of ours would support a dozen horses, twenty cows, hundreds of sheep\u2014and all of them living in a comfort and a dignity that are now almost beyond our imagining. Why then do we continue in this miserable condition? Because nearly the whole of the produce of our labour is stolen from us by human beings. There, comrades, is the answer to all our problems. It is summed up in a single word\u2014Man. Man is the only real enemy we have. Remove Man from the scene, and the root cause of hunger and overwork is abolished for ever. \"Man is the only creature that consumes without producing. He does not give milk, he does not lay eggs, he is too weak to pull the plough, he cannot run fast enough to catch rabbits. Yet he is lord of all the animals. He sets them to work, he gives back to them the bare minimum that will prevent them from starving, and the rest he keeps for himself. Our labour tills the soil, our dung fertilises it, and yet there is not one of us that owns more than his bare skin. You cows that I see before me, how many thousands of gallons of milk have you given during this last year? And what has happened to that milk which should have been breeding up sturdy calves? Every drop of it has gone down the throats of our enemies. And you hens, how many eggs have you laid in this last year, and how many of those eggs ever hatched into chickens? The rest have all gone to market to bring in money for Jones and his men. And you, Clover, where are those four foals you bore, who should have been the support and pleasure of your old age? Each was sold at a year old\u2014you will never see one of them again. In return for your four confinements and all your labour in the fields, what have you ever had except your bare rations and a stall? \"And even the miserable lives we lead are not allowed to reach their natural span. For myself I do not grumble, for I am one of the lucky ones. I am twelve years old and have had over four hundred children. Such is the natural life of a pig. But no animal escapes the cruel knife in the end. You young porkers who are sitting in front of me, every one of you will scream your lives out at the block within a year. To that horror we all must come\u2014cows, pigs, hens, sheep, everyone. Even the horses and the dogs have no better fate. You, Boxer, the very day that those great muscles of yours lose their power, Jones will sell you to the knacker, who will cut your throat and boil you down for the foxhounds. As for the dogs, when they grow old and toothless, Jones ties a brick round their necks and drowns them in the nearest pond. \"Is it not crystal clear, then, comrades, that all the evils of this life of ours spring from the tyranny of human beings? Only get rid of Man, and the produce of our labour would be our own. Almost overnight we could become rich and free. What then must we do? Why, work night and day, body and soul, for the overthrow of the human race! That is my message to you, comrades: Rebellion! I do not know when that Rebellion will come, it might be in a week or in a hundred years, but I know, as surely as I see this straw beneath my feet, that sooner or later justice will be done. Fix your eyes on that, comrades, throughout the short remainder of your lives! And above all, pass on this message of mine to those who come after you, so that future generations shall carry on the struggle until it is victorious. \"And remember, comrades, your resolution must never falter. No argument must lead you astray. Never listen when they tell you that Man and the animals have a common interest, that the prosperity of the one is the prosperity of the others. It is all lies. Man serves the interests of no creature except himself. And among us animals let there be perfect unity, perfect comradeship in the struggle. All men are enemies. All animals are comrades.\" At this moment there was a tremendous uproar. While Major was speaking four large rats had crept out of their holes and were sitting on their hindquarters, listening to him. The dogs had suddenly caught sight of them, and it was only by a swift dash for their holes that the rats saved their lives. Major raised his trotter for silence. \"Comrades,\" he said, \"here is a point that must be settled. The wild creatures, such as rats and rabbits\u2014are they our friends or our enemies? Let us put it to the vote. I propose this question to the meeting: Are rats comrades?\" The vote was taken at once, and it was agreed by an overwhelming majority that rats were comrades. There were only four dissentients, the three dogs and the cat, who was afterwards discovered to have voted on both sides. Major continued: \"I have little more to say. I merely repeat, remember always your duty of enmity towards Man and all his ways. Whatever goes upon two legs is an enemy. Whatever goes upon four legs, or has wings, is a friend. And remember also that in fighting against Man, we must not come to resemble him. Even when you have conquered him, do not adopt his vices. No animal must ever live in a house, or sleep in a bed, or wear clothes, or drink alcohol, or smoke tobacco, or touch money, or engage in trade. All the habits of Man are evil. And, above all, no animal must ever tyrannise over his own kind. Weak or strong, clever or simple, we are all brothers. No animal must ever kill any other animal. All animals are equal. \"And now, comrades, I will tell you about my dream of last night. I cannot describe that dream to you. It was a dream of the earth as it will be when Man has vanished. But it reminded me of something that I had long forgotten. Many years ago, when I was a little pig, my mother and the other sows used to sing an old song of which they knew only the tune and the first three words. I had known that tune in my infancy, but it had long since passed out of my mind. Last night, however, it came back to me in my dream. And what is more, the words of the song also came back-words, I am certain, which were sung by the animals of long ago and have been lost to memory for generations. I will sing you that song now, comrades. I am old and my voice is hoarse, but when I have taught you the tune, you can sing it better for yourselves. It is called 'Beasts of England'.\"";
-    const size_t trainer_data_size = strlen(trainer_data);
-    const size_t n_gram_size = 5;
+    size_t trainer_data_size = 0;
+    size_t n_gram_size = 4;
+
+
+    char* trainer_data = CGL_utils_read_file(argv[1], &trainer_data_size);
+    trainer_data_size = strlen(trainer_data);
+    printf("trainer_data_size: %zu\n", trainer_data_size);
 
     // setup context
-    CGL_LOG("Creating Markov Context ... ");
+    printf("Creating Markov Context ... ");
     CGL_markov* mk = CGL_markov_create(n_gram_size, 1);
     CGL_markov_token_function_ngram_text_context* ng_ctx = CGL_markov_token_function_ngram_text_context_create(n_gram_size);
-    CGL_LOG("Done\n");
+    printf("Done\n");
 
     // train and build data table
-    CGL_LOG("Training Markov Chains ... ");
+    printf("Training Markov Chains ... ");
     CGL_markov_train(mk, ng_ctx, trainer_data, trainer_data_size, CGL_markov_token_function_ngram_text);
-    CGL_LOG("Done\n");
+    printf("Done\n");
 
     // free ngram context (only required for training)
     CGL_markov_token_function_ngram_text_context_destroy(ng_ctx);
 
     // prepare for generation
-    size_t count = 500;
+    size_t count = atoi(argv[2]);
     static char temp_buffer[4096];
     memset(temp_buffer, 0, sizeof(temp_buffer));
     static char temp_buffer2[4];
     memset(temp_buffer2, 0, sizeof(temp_buffer2));
-    sprintf(temp_buffer, "Manor");
-    const char* key = temp_buffer;
+    sprintf(temp_buffer, argv[3]);
+
+    const char* key = temp_buffer + (strlen(argv[3]) == n_gram_size ? 0 : (strlen(argv[3]) - n_gram_size));
 
     // generate data
-    CGL_LOG("Generating Text ... ");
+    printf("Generating Text ... ");
     while((count--) > 0 && CGL_markov_generate(mk, key++, temp_buffer2)) strcat(temp_buffer, temp_buffer2);
-    CGL_LOG("Done\n");
+    printf("Done\n");
     printf("Generated text is : \n%s", temp_buffer);
 
     // destroy context
     CGL_markov_destroy(mk);
+    CGL_free(trainer_data);
+
     return 0;
 }
