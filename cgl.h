@@ -84,6 +84,9 @@ typedef long double CGL_longdouble;
 typedef size_t CGL_sizei;
 typedef bool CGL_bool;
 
+#define CGL_TRUE true
+#define CGL_FALSE false
+
 #ifdef CGL_LOGGING_ENABLED
 #define CGL_LOG(...) CGL_log_internal(__VA_ARGS__)
 #else
@@ -227,6 +230,7 @@ void CGL_printf_red(const char* format, ...);
 void CGL_printf_green(const char* format, ...);
 void CGL_printf_gray(const char* format, ...);
 void CGL_printf_blue(const char* format, ...);
+void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char);
 
 #endif
 
@@ -736,6 +740,7 @@ CGL_mat3 CGL_mat4_to_mat3(CGL_mat4 m);
 CGL_mat4 CGL_mat4_from_mat3(CGL_mat3 m);
 CGL_mat4 CGL_mat4_rotate_about_axis(CGL_vec3 axis, CGL_float angle);
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
+CGL_mat4 CGL_mat4_lerp(CGL_mat4 a, CGL_mat4 b, CGL_float t);
 void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
 
 #define CGL_mat4_is_invertible(m) (CGL_mat4_det(m) != 0.0f)
@@ -2106,6 +2111,8 @@ typedef struct CGL_simple_neural_network_layer CGL_simple_neural_network_layer;
 typedef CGL_float(*CGL_simple_neural_network_activation_function)(CGL_float x);
 
 CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes, CGL_int layer_count);
+CGL_byte* CGL_simple_neural_network_serialize_weights(CGL_simple_neural_network* network, CGL_sizei* size_out);
+CGL_bool CGL_simple_neural_network_deserialize_weights(CGL_simple_neural_network* network, CGL_byte* data);
 void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative);
 void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network);
 void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output);
@@ -3489,6 +3496,24 @@ void CGL_printf_blue(const char* format, ...)
     CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
 }
 
+void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char)
+{
+    static CGL_byte buffer[1024], buffer2[1024]; // 1024 is enough for a progress bar
+    if(prefix) sprintf(buffer2, "%s", prefix); else buffer2[0] = 0; // prefix
+    sprintf(buffer, "%c%d%%%c", 32, (CGL_int)(100 * progress), 32); // fill buffer wwith the progress percentage
+    CGL_int pos = (CGL_int)strlen(buffer2), i, buffer_length = (CGL_int)strlen(buffer);
+    for(i = 0; i < width; i++)
+    {
+        if(i < (CGL_int)(progress * width)) buffer2[pos + i] = complete_char; // add the progress bar
+        else buffer2[pos + i] = incomplete_char; // add the progress bar
+        // add contents of buffer2 at the middle of the progress bar
+        if(i == (width - buffer_length) / 2 && i + buffer_length <= width) { for(CGL_int j = 0; j < buffer_length; j++) buffer2[pos + i + j] = buffer[j]; i += buffer_length - 1; }
+    }
+    buffer2[pos + i] = 0; // end of string
+    if(suffix) strcat(buffer2, suffix); // suffix
+    printf("%s\r", buffer2); // print the progress bar
+}
+
 float CGL_utils_get_time()
 {
 #ifndef CGL_WASM
@@ -4843,6 +4868,13 @@ CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up)
         0.0f, 0.0f, 0.0f, 1.0f
     );
     return (mt);
+}
+
+CGL_mat4 CGL_mat4_lerp(CGL_mat4 a, CGL_mat4 b, CGL_float t)
+{
+    CGL_mat4 result = CGL_mat4_identity();
+    for(int i = 0; i < 16; i++) result.m[i] = a.m[i] * (1.0f - t) + b.m[i] * t;
+    return result;
 }
 
 CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale)
@@ -12710,6 +12742,7 @@ static CGL_float __CGL_noise_opensimplex2_grad_coor3d(CGL_int seed, CGL_int xPri
 }
 
 
+
 CGL_noise_data_type CGL_noise_opensimplex2s(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
 {
     CGL_int i = (CGL_int)floor(x), j = (CGL_int)floor(y), k = (CGL_int)floor(z);
@@ -13120,10 +13153,53 @@ CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes
     return network;
 }
 
+static CGL_sizei __CGL_simple_neural_network_calculate_serialized_size(CGL_simple_neural_network* network)
+{
+    CGL_sizei size = 0;
+    for(CGL_int i = 0 ; i < network->layer_count ; i++)
+        size += sizeof(CGL_int) + sizeof(CGL_float) * network->layers[i].weight_count;
+    return size;
+}
+
+CGL_byte* CGL_simple_neural_network_serialize_weights(CGL_simple_neural_network* network, CGL_sizei* size_out)
+{
+    CGL_sizei size = __CGL_simple_neural_network_calculate_serialized_size(network); // calculate size of serialized data
+    CGL_byte* data = CGL_malloc(size); // allocate memory for serialized data
+    if(!data) return NULL; // if allocation failed, return NULL
+    CGL_byte* ptr = data; // pointer to current position in serialized data
+    for(CGL_int i = 0 ; i < network->layer_count ; i++) // for each layer
+    {
+        CGL_simple_neural_network_layer* layer = network->layers + i; // get layer
+        memcpy(ptr, &layer->weight_count, sizeof(CGL_int)); // copy weight count
+        ptr += sizeof(CGL_int); // move pointer
+        memcpy(ptr, layer->weights, sizeof(CGL_float) * layer->weight_count); // copy weights
+        ptr += sizeof(CGL_float) * layer->weight_count; // move pointer
+    }
+    if(size_out) *size_out = size; // if size_out is not NULL, set it to size of serialized data
+    return data; // return serialized data
+}
+
+CGL_bool CGL_simple_neural_network_deserialize_weights(CGL_simple_neural_network* network, CGL_byte* data)
+{
+    if(!data) return false; // if data is NULL, return false
+    CGL_byte* ptr = data; // pointer to current position in serialized data
+    for(CGL_int i = 0 ; i < network->layer_count ; i++) // for each layer
+    {
+        CGL_simple_neural_network_layer* layer = network->layers + i; // get layer
+        CGL_int weight_count; // weight count
+        memcpy(&weight_count, ptr, sizeof(CGL_int)); // copy weight count
+        ptr += sizeof(CGL_int); // move pointer
+        if(weight_count != layer->weight_count) return false; // if weight count does not match, return false
+        memcpy(layer->weights, ptr, sizeof(CGL_float) * layer->weight_count); // copy weights
+        ptr += sizeof(CGL_float) * layer->weight_count; // move pointer
+    }
+    return true; // return true
+}
+
 void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative)
 {
-    network->layers[layer_index].activation_function = activation_function;
-    network->layers[layer_index].activation_function_derivative = activation_function_derivative;
+    network->layers[layer_index].activation_function = activation_function; // set activation function
+    network->layers[layer_index].activation_function_derivative = activation_function_derivative; // set activation function derivative
 }
 
 void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v)
