@@ -13120,6 +13120,7 @@ struct CGL_simple_neural_network_layer
 {
     CGL_float* weights;
     CGL_float* activations;
+    CGL_float* errors;
     CGL_simple_neural_network_activation_function activation_function;
     CGL_simple_neural_network_activation_function activation_function_derivative;
     CGL_int input_count;
@@ -13149,6 +13150,7 @@ CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes
         layer->weight_count = (layer->input_count + 1) * layer->output_count;
         layer->weights = CGL_malloc(sizeof(CGL_float) * layer->weight_count);
         layer->activations = CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
+        layer->errors = CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
     }
     return network;
 }
@@ -13215,6 +13217,7 @@ void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network)
         CGL_simple_neural_network_layer* layer = network->layers + i;
         CGL_free(layer->weights);
         CGL_free(layer->activations);
+        CGL_free(layer->errors);
     }
     CGL_free(network->layers);
     CGL_free(network);    
@@ -13237,7 +13240,39 @@ void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_
         layer_cr->activations[layer_cr->output_count] = 1.0f; // bias
         layer_pr = layer_cr; layer_cr++;
     }
-    memcpy(output, layer_pr->activations, sizeof(CGL_float) * layer_pr->output_count);    
+    if(output) memcpy(output, layer_pr->activations, sizeof(CGL_float) * layer_pr->output_count);    
+}
+
+void CGL_simple_neural_network_train(CGL_simple_neural_network* a, CGL_float* input, CGL_float* output, CGL_float learning_rate)
+{
+    CGL_simple_neural_network_evaluate(a, input, NULL); // evaluate network for prediced output
+    CGL_simple_neural_network_layer* layer_pr = a->layers + a->layer_count - 1; // layer 0
+    CGL_simple_neural_network_layer* layer_cr = layer_pr - 1; // layer 1
+    // calculate errors for the last layer
+    for(CGL_int i = 0 ; i < layer_pr->output_count ; i++) layer_pr->errors[i] = (output[i] - layer_pr->activations[i]) * layer_pr->activation_function_derivative(layer_pr->activations[i]);
+    // calculate (propagate) errors for the rest of the layers
+    for(CGL_int i = a->layer_count - 2 ; i >= 0 ; i--) // loop through layers n-1 to 0
+    {
+        for(CGL_int j = 0 ; j < layer_cr->output_count ; j++) // loop through neurons in current layer
+        {
+            // error[j] = sum(error[k] * weight[j][k]) * derivative(activation[j])
+            CGL_float sum = 0.0f; // accumulator for sum
+            for(CGL_int k = 0 ; k < layer_pr->output_count ; k++) sum += layer_pr->errors[k] * layer_pr->weights[j * layer_pr->output_count + k];  // accumulate sum
+            layer_cr->errors[j] = sum * layer_cr->activation_function_derivative(layer_cr->activations[j]); // calculte error for the neuron
+        }
+        layer_pr = layer_cr; layer_cr--; // update layer pointers
+    }
+    layer_pr = a->layers; // layer 0
+    layer_cr = layer_pr + 1; // layer 1
+    // update weights with respect to respective errors of neurons and layers
+    for(CGL_int i = 1 ; i < a->layer_count ; i++)
+    {
+        for(CGL_int j = 0 ; j < layer_cr->output_count ; j++)
+        {
+            for(CGL_int k = 0 ; k < layer_pr->output_count + 1 ; k++) layer_cr->weights[k * layer_cr->output_count + j] += learning_rate * layer_pr->activations[k] * layer_cr->errors[j];
+        }
+        layer_pr = layer_cr; layer_cr++;
+    }
 }
 
 void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b)
