@@ -60,6 +60,7 @@ SOFTWARE.
 #include <stdbool.h>
 #include <stdint.h>
 #include <limits.h>
+#include <stddef.h>
 #include <float.h>
 #include <ctype.h>
 #include <wchar.h>
@@ -67,6 +68,9 @@ SOFTWARE.
 #include <locale.h>
 #include <errno.h>
 #include <time.h>
+#if !(defined(_WIN32) || defined(_WIN64))
+#include <unistd.h>
+#endif
 
 typedef unsigned char CGL_ubyte;
 typedef unsigned short CGL_ushort;
@@ -86,6 +90,21 @@ typedef bool CGL_bool;
 
 #define CGL_TRUE true
 #define CGL_FALSE false
+
+
+#ifndef max
+#define max(a,b)                                \
+    ({ __typeof__ (a) _a = (a);                 \
+        __typeof__ (b) _b = (b);                \
+     _a > _b ? _a : _b; })
+#endif
+
+#ifndef min
+#define min(a,b)                                \
+    ({ __typeof__ (a) _a = (a);                 \
+        __typeof__ (b) _b = (b);                \
+     _a < _b ? _a : _b; })
+#endif
 
 #ifdef CGL_LOGGING_ENABLED
 #define CGL_LOG(...) CGL_log_internal(__VA_ARGS__)
@@ -3449,7 +3468,7 @@ void CGL_console_set_color(uint8_t color)
             case 1:  printf("\x1B[31m"); break;
             case 2:  printf("\x1B[32m"); break;
             case 3:  printf("\x1B[33m"); break;
-            case 3:  printf("\x1B[34m"); break;
+            case 4:  printf("\x1B[34m"); break;
             default: break;
         }   
     }
@@ -6164,11 +6183,13 @@ void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
 {
     if(framebuffer->is_default)
     {
-        CGL_int width = 0, height = 0;
+        CGL_int width = 512, height = 512;
 #ifdef CGL_WASM
         // TODO
 #else
+#ifndef CGL_EXCLUDE_WINDOW_API
         CGL_window_get_size((CGL_window*)framebuffer->user_data, &width, &height);
+#endif
 #endif
         glViewport(0, 0, width, height);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
