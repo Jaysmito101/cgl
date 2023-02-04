@@ -87,6 +87,7 @@ typedef double CGL_double;
 typedef long double CGL_longdouble;
 typedef size_t CGL_sizei;
 typedef bool CGL_bool;
+typedef void CGL_void;
 
 #define CGL_TRUE true
 #define CGL_FALSE false
@@ -219,6 +220,8 @@ CGL_uint CGL_utils_rand31();
 #define CGL_utils_min(a, b) ( ((a) < (b)) ? (a) : (b) )
 #define CGL_utils_mix(x, y, f) (x * f + y * (1.0f - f))
 #define CGL_utils_lerp(a, b, t) (a + (b - a) * t)
+#define CGL_utils_square(x) ((x) * (x))
+#define CGL_utils_cube(x) ((x) * (x) * (x))
 CGL_float CGL_utils_sigmoid(CGL_float x);
 CGL_float CGL_utils_sigmoid_derivative(CGL_float x);
 CGL_float CGL_utils_relu(CGL_float x);
@@ -1619,7 +1622,11 @@ bool CGL_tilemap_upload(CGL_tilemap* tilemap);
 void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b);
 void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index);
 void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max);
+void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float g, CGL_float b);
+void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t texture_index);
+void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max);
 void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y);
+void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap);
 void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture);
 void CGL_tilemap_reset(CGL_tilemap* tilemap);
 
@@ -2138,6 +2145,50 @@ void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_
 void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v);
 void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b);
 void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio);
+
+#endif
+
+
+#ifndef CGL_EXCLUDE_PATH_FINDING_API
+
+struct CGL_path_finding_node
+{
+    void* data_ptr;
+    CGL_int id;
+    CGL_int parent_id;
+    CGL_int child_id;
+    CGL_float g;
+    CGL_float h;
+    CGL_float f;
+    CGL_bool is_open;
+    CGL_bool is_active;
+};
+typedef struct CGL_path_finding_node CGL_path_finding_node;
+
+#ifndef CGL_PATH_FINDING_A_STAR_MAX_NEIGHBOURS
+#define CGL_PATH_FINDING_A_STAR_MAX_NEIGHBOURS 256
+#endif
+
+struct CGL_path_finding_a_star_context;
+typedef struct CGL_path_finding_a_star_context CGL_path_finding_a_star_context;
+
+typedef CGL_float(*CGL_path_finding_heuristic_function)(void*, CGL_path_finding_node* a);
+typedef CGL_float(*CGL_path_finding_cost_function)(void*, CGL_path_finding_node* a, CGL_path_finding_node* b);
+typedef CGL_int(*CGL_path_finding_get_neighbors_function)(void*, CGL_path_finding_node* a, CGL_int* neighbors_out);
+typedef CGL_bool(*CGL_path_finding_node_equals_function)(void*, CGL_path_finding_node* a, CGL_path_finding_node* b);
+
+void CGL_path_finding_node_init(CGL_path_finding_node* node, void* data_ptr);
+
+CGL_path_finding_a_star_context* CGL_path_finding_a_star_context_create(CGL_int max_nodes_count, CGL_bool copy_data, CGL_int data_size);
+CGL_int CGL_path_finding_a_star_add_node(CGL_path_finding_a_star_context* context, CGL_path_finding_node node, CGL_path_finding_node_equals_function node_equals_function);
+CGL_bool CGL_path_finding_a_star_find_path(CGL_path_finding_a_star_context* context, CGL_path_finding_node start_node, CGL_path_finding_node end_node, CGL_path_finding_heuristic_function heuristic_function, CGL_path_finding_cost_function cost_function, CGL_path_finding_get_neighbors_function get_neighbors_function, CGL_path_finding_node_equals_function node_equals_function, void* user_data);
+CGL_float CGL_path_finding_a_star_get_path_length(CGL_path_finding_a_star_context* context);
+CGL_path_finding_node* CGL_path_finding_a_star_get_path_start_node(CGL_path_finding_a_star_context* context);
+CGL_bool CGL_path_finding_a_star_has_path(CGL_path_finding_a_star_context* context);
+CGL_void* CGL_path_finding_a_star_next_in_path(CGL_path_finding_a_star_context* context, void* data_out);
+CGL_void CGL_path_finding_a_star_reorder_path(CGL_path_finding_a_star_context* context);
+CGL_void CGL_path_finding_a_star_clear_path(CGL_path_finding_a_star_context* context);
+CGL_void CGL_path_finding_a_star_context_destroy(CGL_path_finding_a_star_context* context);
 
 #endif
 
@@ -3340,7 +3391,7 @@ void CGL_logger_init(bool enable_console_logging)
     __CGL_CURRENT_LOGGER_CONTEXT->flush_on_log = false;
     __CGL_CURRENT_LOGGER_CONTEXT->console_logging_enabled = enable_console_logging;
     memset(__CGL_CURRENT_LOGGER_CONTEXT->log_buffer, 0, sizeof(char) * CGL_LOGGER_LOG_BUFFER_SIZE);
-    memset(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths, 0, sizeof(char) * CGL_LOGGER_MAX_LOG_FILES * 4096);
+    for(CGL_int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++) __CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] = '\0';
     CGL_log_internal("Started Logger Session");
 }
 
@@ -8995,6 +9046,50 @@ void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t ti
     if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
+void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float g, CGL_float b)
+{
+    CGL_bool auto_update = tilemap->auto_update;
+    tilemap->auto_update = false;
+    for(uint32_t y = 0; y < tilemap->tile_count_y; y++)
+        for(uint32_t x = 0; x < tilemap->tile_count_x; x++)
+            CGL_tilemap_set_tile_color(tilemap, x, y, r, g, b);
+    tilemap->auto_update = auto_update;
+    CGL_tilemap_upload(tilemap);
+}
+
+void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t texture_index)
+{
+    CGL_bool auto_update = tilemap->auto_update;
+    tilemap->auto_update = false;
+    for(uint32_t y = 0; y < tilemap->tile_count_y; y++)
+        for(uint32_t x = 0; x < tilemap->tile_count_x; x++)
+            CGL_tilemap_set_tile_texture_from_array(tilemap, x, y, texture_index);
+    tilemap->auto_update = auto_update;    
+    CGL_tilemap_upload(tilemap);
+}
+
+void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
+{
+    CGL_bool auto_update = tilemap->auto_update;
+    tilemap->auto_update = false;
+    for(uint32_t y = 0; y < tilemap->tile_count_y; y++)
+        for(uint32_t x = 0; x < tilemap->tile_count_x; x++)
+            CGL_tilemap_set_tile_texture_from_tileset(tilemap, x, y, texture_x_min, texture_y_min, texture_x_max, texture_y_max);
+    tilemap->auto_update = auto_update;    
+    CGL_tilemap_upload(tilemap);
+}
+
+void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap)
+{
+    CGL_bool auto_update = tilemap->auto_update;
+    tilemap->auto_update = false;
+    for(uint32_t y = 0; y < tilemap->tile_count_y; y++)
+        for(uint32_t x = 0; x < tilemap->tile_count_x; x++)
+            CGL_tilemap_clear_tile(tilemap, x, y);
+    tilemap->auto_update = auto_update;
+    CGL_tilemap_upload(tilemap);
+}
+
 void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
@@ -13256,7 +13351,7 @@ void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_
         {
             CGL_float sum = 0.0f;
             for(CGL_int k = 0 ; k < layer_pr->output_count + 1 ; k++) sum += layer_pr->activations[k] * layer_cr->weights[k * layer_cr->output_count + j];
-            layer_cr->activations[j] = CGL_utils_sigmoid(sum);
+            layer_cr->activations[j] = layer_cr->activation_function(sum);
         }
         layer_cr->activations[layer_cr->output_count] = 1.0f; // bias
         layer_pr = layer_cr; layer_cr++;
@@ -13304,6 +13399,230 @@ void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_si
 void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio)
 {
     for(CGL_int i = 0 ; i < a->layer_count ; i++) for(CGL_int j = 0 ; j < a->layers[i].weight_count ; j++) if(CGL_utils_random_float_in_range(0.0f, 1.0f) < mutation_ratio) a->layers[i].weights[j] += CGL_utils_random_gaussian(0.0f, 0.1f);
+}
+
+#endif
+
+
+#ifndef CGL_EXCLUDE_PATH_FINDING_API
+
+struct CGL_path_finding_a_star_context
+{
+    CGL_path_finding_node* nodes;
+    CGL_path_finding_node* start_node;
+    CGL_path_finding_node* current_node;
+    void* user_data;
+    CGL_byte* nodes_data;
+    CGL_int max_nodes_count;
+    CGL_int nodes_count;
+    CGL_int nodes_data_size;
+    CGL_bool copy_data;
+};
+
+void CGL_path_finding_node_init(CGL_path_finding_node* node, void* data_ptr)
+{
+    node->data_ptr = data_ptr;
+    node->id = node->parent_id = node->child_id = -1;
+    node->is_open = CGL_FALSE;
+    node->is_active = CGL_FALSE;
+    node->g = node->h = node->f = 0.0f;
+}
+
+CGL_path_finding_a_star_context* CGL_path_finding_a_star_context_create(CGL_int max_nodes_count, CGL_bool copy_data, CGL_int data_size)
+{
+    CGL_path_finding_a_star_context* context = (CGL_path_finding_a_star_context*)CGL_malloc(sizeof(CGL_path_finding_a_star_context));
+    context->nodes = (CGL_path_finding_node*)CGL_malloc(sizeof(CGL_path_finding_node) * max_nodes_count);
+    if(copy_data) context->nodes_data = (CGL_byte*)CGL_malloc(CGL_utils_max(data_size, 1) * max_nodes_count); else context->nodes_data = NULL;
+    context->max_nodes_count = max_nodes_count;
+    context->nodes_count = 0;
+    context->nodes_data_size = data_size;
+    context->copy_data = copy_data;
+    context->start_node = NULL;
+    context->user_data = NULL;
+    for(CGL_int i = 0 ; i < max_nodes_count ; i++) context->nodes[i].data_ptr = context->nodes_data + i * context->nodes_data_size;
+    return context;
+}
+
+static CGL_int __CGL_path_finding_a_star_find_node(CGL_path_finding_a_star_context* context, CGL_path_finding_node* node, CGL_path_finding_node_equals_function node_equals_function)
+{
+    CGL_path_finding_node* nodes = context->nodes;
+    for(CGL_int i = 0 ; i < context->max_nodes_count ; i++) if(nodes[i].is_active) if(node_equals_function(context->user_data, &nodes[i], node)) return i;
+    return -1;
+}
+
+static CGL_int __CGL_path_finding_a_star_add_node(CGL_path_finding_a_star_context* context, CGL_path_finding_node* node, CGL_path_finding_node_equals_function node_equals_function)
+{
+    CGL_int *datad = (CGL_int*)node->data_ptr;
+    node->id = __CGL_path_finding_a_star_find_node(context, node, node_equals_function); if(node->id != -1) return node->id;        
+    CGL_path_finding_node* nodes = context->nodes;
+    if(context->nodes_count >= context->max_nodes_count) return -1;
+    //for(CGL_int i = 0 ; i < context->max_nodes_count ; i++) if(!nodes[i].is_active) // find inactive node
+    CGL_int i = context->nodes_count;
+    {
+        node->id = i; nodes[i] = *node;
+        if(context->copy_data) nodes[i].data_ptr = context->nodes_data + i * context->nodes_data_size;
+        nodes[i].is_active = true;
+        if(context->copy_data) memcpy(context->nodes_data + i * context->nodes_data_size, node->data_ptr, context->nodes_data_size);
+        CGL_int *data = (CGL_int*)(context->nodes_data + i * context->nodes_data_size);
+        context->nodes_count++;
+        return node->id;
+    }
+    return -1;
+}
+
+static CGL_int __CGL_path_finding_a_star_find_node_with_lowest_f(CGL_path_finding_a_star_context* context)
+{
+    CGL_path_finding_node* nodes = context->nodes;
+    CGL_int lowest_f_node = -1;
+    CGL_float lowest_f_v = 0.0f;
+    for(CGL_int i = 0 ; i < context->max_nodes_count ; i++) if(nodes[i].is_active && nodes[i].is_open && (lowest_f_node == -1 || nodes[i].f <= lowest_f_v)) { lowest_f_node = i; lowest_f_v = nodes[i].f; }
+    CGL_int *data = (CGL_int*)nodes[lowest_f_node].data_ptr;
+    nodes[lowest_f_node].is_open = false;
+    return lowest_f_node;
+}
+
+// for debug
+static void __CGL_path_finding_a_star_print_nodes(CGL_path_finding_a_star_context* context)
+{
+    CGL_path_finding_node* nodes = context->nodes;
+    printf("Nodes [ ");
+    for(CGL_int i = 0 ; i < context->nodes_count ; i++) 
+    {
+        CGL_int *dat = (CGL_int*)nodes[i].data_ptr;
+        printf("{ (%d -> %d %d) (%d %d) -> %f %s} ", i, nodes[i].parent_id, nodes[i].child_id, *dat % 10, *dat / 10, nodes[i].f, nodes[i].is_open ? "open" : "closed");
+    }
+    printf("]\n");    
+
+}
+
+static void __CGL_path_finding_a_star_calculate_gfh(CGL_path_finding_a_star_context* context, CGL_int node, CGL_int parent_node, CGL_path_finding_heuristic_function heuristic_function, CGL_path_finding_cost_function cost_function, CGL_int node_count_old)
+{
+    //context->nodes[node].h = heuristic_function(context->user_data, &context->nodes[node]);
+    CGL_float total_cost = context->nodes[parent_node].g + cost_function(context->user_data, &context->nodes[parent_node], &context->nodes[node]);
+    if(node_count_old <= node)
+    {
+        context->nodes[node].g = total_cost;
+        context->nodes[node].h = heuristic_function(context->user_data, &context->nodes[node]);
+        context->nodes[node].is_open = true;
+        context->nodes[node].parent_id = parent_node;
+    }
+    else if(total_cost <= context->nodes[node].g)
+    {
+        context->nodes[node].g = total_cost;
+        context->nodes[node].parent_id = parent_node;
+        context->nodes[node].is_open = true;
+    }
+    context->nodes[node].f = context->nodes[node].g + context->nodes[node].h;
+}
+
+CGL_int __CGL_path_finding_a_star_get_open_node_count(CGL_path_finding_a_star_context* context)
+{
+    CGL_int count = 0;
+    for(CGL_int i = 0 ; i < context->max_nodes_count ; i++) if(context->nodes[i].is_active && context->nodes[i].is_open) count++;
+    return count;
+}
+
+CGL_int CGL_path_finding_a_star_add_node(CGL_path_finding_a_star_context* context, CGL_path_finding_node node, CGL_path_finding_node_equals_function node_equals_function)
+{
+    return __CGL_path_finding_a_star_add_node(context, &node, node_equals_function);
+}
+
+
+// the actual a* algorithm
+CGL_bool CGL_path_finding_a_star_find_path(CGL_path_finding_a_star_context* context, CGL_path_finding_node start_node_n, CGL_path_finding_node end_node_n, CGL_path_finding_heuristic_function heuristic_function, CGL_path_finding_cost_function cost_function, CGL_path_finding_get_neighbors_function get_neighbors_function, CGL_path_finding_node_equals_function node_equals_function, void* user_data)
+{
+    CGL_path_finding_a_star_clear_path(context); // clear previous path
+    CGL_path_finding_node* nodes = context->nodes; // shorthand
+    CGL_int start_node = __CGL_path_finding_a_star_add_node(context, &start_node_n, node_equals_function); // add start node
+    context->start_node = &context->nodes[start_node]; // update context variable
+    context->user_data = user_data; // update context variable
+    if(start_node == -1) return CGL_FALSE; // if initial couldn't be added, return
+    CGL_int current_node = start_node, neighbors_count = 0, new_neighbour_count = 0;  // current node is start node
+    CGL_int neighbors[CGL_PATH_FINDING_A_STAR_MAX_NEIGHBOURS], neighbour_count = 0; // array of storing neighbors
+    CGL_int epochs = 0, node_count_old = 0; // epochs is used to prevent infinite loops
+    while(__CGL_path_finding_a_star_get_open_node_count(context) > 0 && epochs <= 100 * context->max_nodes_count) // while there are open nodes
+    {
+        epochs++; current_node = __CGL_path_finding_a_star_find_node_with_lowest_f(context); // find node with lowest f
+        if(node_equals_function(context->user_data, &nodes[current_node], &end_node_n)) // if current node is end node
+        {
+            // reorder path
+            while(current_node != start_node)
+            {
+                CGL_int tmp = current_node;
+                current_node = nodes[current_node].parent_id;
+                nodes[current_node].child_id = tmp;
+            }
+            CGL_path_finding_a_star_reorder_path(context); // set transversal cursor to start node
+            return true; // path found successfully
+        }
+        nodes[current_node].is_open = false; node_count_old = context->nodes_count; // close current node
+        neighbour_count = get_neighbors_function(context->user_data, &nodes[current_node], neighbors); // get neighbors
+        for(CGL_int j = 0 ; j < neighbour_count ; j++) if(neighbors[j] != -1) // for each valid neighbor
+        {
+            context->nodes[neighbors[j]].is_open = false; // close neighbor (will be opened if needed)
+            __CGL_path_finding_a_star_calculate_gfh(context, neighbors[j], current_node, heuristic_function, cost_function, node_count_old); // calculate g, h and f for neighbor
+        }
+    }
+    return false; // path not found
+}
+
+CGL_float CGL_path_finding_a_star_get_path_length(CGL_path_finding_a_star_context* context)
+{
+    if(context->start_node == NULL) return 0.0f;
+    CGL_path_finding_node* node = context->start_node;
+    CGL_float length_v = 0.0f;
+    while(node->child_id != -1)
+    {
+        length_v += node->g;
+        node = &context->nodes[node->child_id];
+    }
+    return length_v;
+}
+
+CGL_path_finding_node* CGL_path_finding_a_star_get_path_start_node(CGL_path_finding_a_star_context* context)
+{
+    return context->start_node;
+}
+
+CGL_bool CGL_path_finding_a_star_has_path(CGL_path_finding_a_star_context* context)
+{
+    return context->start_node != NULL;
+}
+
+CGL_void CGL_path_finding_a_star_reorder_path(CGL_path_finding_a_star_context* context)
+{
+    context->current_node = context->start_node;
+}
+
+CGL_void* CGL_path_finding_a_star_next_in_path(CGL_path_finding_a_star_context* context, void* data_out)
+{
+    if(context->current_node == NULL) return NULL;
+    CGL_path_finding_node* cn_copy =  context->current_node;
+    if(context->current_node->child_id == -1) context->current_node = NULL;
+    else context->current_node = &context->nodes[context->current_node->child_id];
+    if(cn_copy && data_out) memcpy(data_out, cn_copy->data_ptr, context->nodes_data_size);
+    return cn_copy;
+}
+void CGL_path_finding_a_star_clear_path(CGL_path_finding_a_star_context* context)
+{
+    context->start_node = NULL;
+    context->current_node = NULL;
+    for(CGL_int i = 0 ; i < context->max_nodes_count ; i++)
+    {
+        context->nodes[i].is_open = CGL_FALSE;
+        context->nodes[i].is_active = CGL_FALSE;
+        context->nodes[i].parent_id = context->nodes[i].child_id = -1;
+        context->nodes[i].g = context->nodes[i].h = context->nodes[i].f = 0.0f;
+    }
+    if(context->copy_data) memset(context->nodes_data, 0, context->nodes_data_size * context->max_nodes_count);
+    context->nodes_count = 0;
+}
+
+void CGL_path_finding_a_star_context_destroy(CGL_path_finding_a_star_context* context)
+{
+    CGL_free(context->nodes);
+    if(context->copy_data) CGL_free(context->nodes_data);
+    CGL_free(context);
 }
 
 #endif
