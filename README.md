@@ -73,6 +73,11 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
    
 * Artificial Intelligence
   - Neural Netowrks
+  - Backpropagation
+  - Serializing/Deserializing networks
+
+* Graph Algorithms
+  - A* Path Finding (general purpose)
 
 * Data structures
   - List(dynamic array) + Stack (implemented together)
