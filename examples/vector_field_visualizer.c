@@ -1,16 +1,27 @@
-// Copyright Jaysmito Mukherjee, 2023
-// I am the sole copyright owner of this Work.
-// You cannot host, display, distribute or share this Work neither
-// as it is or altered, anywhere else, in any
-// form including physical and digital. You cannot use this Work in any
-// commercial or non-commercial product, website or project. You cannot
-// sell this Work and you cannot mint an NFTs of it or train a neural
-// network with it without permission. I share this Work for educational
-// purposes, and you can link to it, through an URL, proper attribution
-// and unmodified screenshot, as part of your educational material. If
-// these conditions are too restrictive please contact me and we'll
-// definitely work it out.
-// email : jaysmito101@gmail.com
+/*
+MIT License
+
+Copyright (c) 2022 Jaysmito Mukherjee (jaysmito101@gmail.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 
 #define CGL_LOGGING_ENABLED
 #define CGL_EXCLUDE_TEXT_RENDER
