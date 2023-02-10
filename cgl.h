@@ -24,12 +24,16 @@ SOFTWARE.
 
 */
 
+/*The code defines a header file named CGL.h. */
 #ifndef CGL_H
 #define CGL_H
+
+*/This section checks if the code is running on Windows (_WIN32 or _WIN64) and sets the CGL_WINDOWS macro accordingly. If it's not running on Windows, it sets the CGL_UNIX macro. */
 
 #if defined(_WIN32) || defined(_WIN64)
 #define CGL_WINDOWS
 #else
+
 // TODO: seperate linux and macos and android
 #define CGL_UNIX
 #endif
@@ -43,6 +47,19 @@ SOFTWARE.
 #ifdef __EMSCRIPTEN__
   #include <emscripten/emscripten.h>
 #endif
+
+/*This section checks for the CGL_WASM macro. If it's defined, the following macros are set:
+    CGL_EXCLUDE_NETWORKING
+    CGL_EXCLUDES_THREADS
+
+If the CGL_EXCLUDE_WINDOW_API macro is already defined, it undefines it.
+
+If __EMSCRIPTEN__ is defined, it includes the emscripten.h header.
+
+This macro sets the main loop function for the WebAssembly environment using the emscripten_set_main_loop_arg function from the Emscripten library. It takes two parameters:
+    func: A function pointer to the main loop function.
+    data: An argument that will be passed to the main loop function.*/
+    
 #define CGL_wasm_set_loop_func(func, data) emscripten_set_main_loop_arg((em_arg_callback_func)func, data, 0, true);
 #endif
 
@@ -94,12 +111,21 @@ typedef void CGL_void;
 
 
 #ifndef max
+
+/*It appears that this is a macro definition in the C programming language for finding the maximum of two values, a and b. The macro takes two arguments, a and b, and returns the larger of the two using the ternary operator ?:. The macro uses typeof operator to ensure that the result is of the same type as the input arguments. The macro uses a block statement (enclosed in curly braces {}) with a single expression, which is automatically returned as the value of the block. The backslash at the end of the line is used to continue the macro definition on the next line, allowing for improved readability. Note that there is no #endif at the end of the macro definition, which is used to denote the end of a preprocessor directive in C. */
+
 #define max(a,b)                                \
     ({ __typeof__ (a) _a = (a);                 \
         __typeof__ (b) _b = (b);                \
      _a > _b ? _a : _b; })
 #endif
 
+
+/*This is another macro definition in the C programming language, this time for finding the minimum of two values, a and b. The macro is enclosed in an #ifndef (if not defined) preprocessor directive, which means that it will only be defined if the identifier min has not been defined in the current compilation unit. This can help to avoid macro name collisions between different libraries or parts of the code.*/
+
+/*The macro works similarly to the max macro described earlier. It takes two arguments, a and b, and returns the smaller of the two using the ternary operator ?:. The macro uses the typeof operator to ensure that the result is of the same type as the input arguments, and it uses a block statement (enclosed in curly braces {}) with a single expression, which is automatically returned as the value of the block.*/
+
+/*Note that the macro is followed by an #endif preprocessor directive, which is used to denote the end of a preprocessor directive in C.*/
 #ifndef min
 #define min(a,b)                                \
     ({ __typeof__ (a) _a = (a);                 \
@@ -107,19 +133,55 @@ typedef void CGL_void;
      _a < _b ? _a : _b; })
 #endif
 
+
+/*This is a set of preprocessor macros for logging in the C programming language. The first macro, CGL_LOG, is defined conditionally based on whether the identifier CGL_LOGGING_ENABLED has been defined.*/
+
+/*If CGL_LOGGING_ENABLED is defined, the CGL_LOG macro will expand to a call to an internal logging function CGL_log_internal, with its arguments passed through using the __VA_ARGS__ macro. This allows the user to pass any number of arguments to CGL_LOG in a flexible manner, and the arguments will be passed on to the internal logging function.*/
+
+/*If CGL_LOGGING_ENABLED is not defined, the CGL_LOG macro will expand to nothing. This allows the logging statements in the code to be conditionally compiled out, so that they do not produce any output or incur any runtime overhead when logging is not needed.*/
+
+/*The set of macros is ended by an #endif preprocessor directive, which is used to denote the end of a preprocessor directive in C.*/
+
 #ifdef CGL_LOGGING_ENABLED
 #define CGL_LOG(...) CGL_log_internal(__VA_ARGS__)
 #else
 #define CGL_LOG(...)
 #endif // CGL_LOG_ENABLED
 
+
+/*This is a forward declaration in the C programming language for a structure type named CGL_context. The forward declaration is necessary to allow the compiler to recognize the type before its full definition is given later in the code.
+
+The first line declares a structure type CGL_context without providing its full definition. The second line defines a typedef for CGL_context to be an alias for the same structure type. This allows the programmer to refer to the structure type using the simpler and more concise type name CGL_context, rather than having to type out the full struct CGL_context each time it is used.
+
+Note that this typedef does not provide any additional information about the structure type, but only defines an alias for it. The full definition of the structure, including the members it contains, must be given elsewhere in the code. */
+
 struct CGL_context;
 typedef struct CGL_context CGL_context;
+
+
+/*These are declarations for two functions in the C programming language.
+
+The first function, CGL_init, is declared to return a bool value, which indicates whether the initialization was successful or not. The function does not take any arguments, and its purpose is to initialize the state of the CGL (presumably some library or system).
+
+The second function, CGL_shutdown, is declared to return void, which means that it does not return a value. The function also does not take any arguments, and its purpose is to clean up and shut down the state of the CGL.
+
+Note that the comments after each function declaration provide a brief description of what each function does. This documentation can help to improve the readability and maintainability of the code, especially for other programmers who may be reading the code in the future. */
 
 bool CGL_init(); // initialize CGL
 void CGL_shutdown(); // shutdown CGL
 
 #endif
+
+
+/*This is a set of preprocessor macros that define constant values for error codes related to networking. The macros are defined conditionally based on whether the identifier CGL_EXCLUDE_NETWORKING has been defined.
+
+If CGL_EXCLUDE_NETWORKING is not defined, the macros will be defined and can be used to represent error codes related to networking. The error codes are defined as hexadecimal constant values, with the 0xAB prefix indicating that these are custom error codes and not part of any standard.
+
+Each macro defines a different error code, with a descriptive name indicating the type of error it represents, such as CGL_NET_NAME_RESOLUTION_ERROR for name resolution errors and CGL_NET_MEMORY_ERROR for memory errors.
+
+If CGL_EXCLUDE_NETWORKING is defined, the macros will not be defined, and it is assumed that the networking functionality is excluded from the build. This allows the error codes related to networking to be conditionally compiled out, depending on the requirements of the build.
+
+The set of macros is ended by an #endif preprocessor directive, which is used to denote the end of a preprocessor directive in C. */
 
 #ifndef CGL_EXCLUDE_NETWORKING
 
@@ -130,39 +192,99 @@ void CGL_shutdown(); // shutdown CGL
 #define CGL_NET_MEMORY_ERROR                0xAB004
 #define CGL_NET_NOT_FOUND_ERROR             0xAB005
 
+
+/*This is a forward declaration in the C programming language for a structure type named CGL_net_addrinfo. The forward declaration is necessary to allow the compiler to recognize the type before its full definition is given later in the code.
+
+The first line declares a structure type CGL_net_addrinfo without providing its full definition. The second line defines a typedef for CGL_net_addrinfo to be an alias for the same structure type. This allows the programmer to refer to the structure type using the simpler and more concise type name CGL_net_addrinfo, rather than having to type out the full struct CGL_net_addrinfo each time it is used.
+
+Note that this typedef does not provide any additional information about the structure type, but only defines an alias for it. The full definition of the structure, including the members it contains, must be given elsewhere in the code.
+
+This structure likely contains information related to networking, specifically addressing information such as IP addresses, port numbers, and other details related to network nodes. The exact information stored in the structure will depend on the full definition given elsewhere in the code. */
+
+
 struct CGL_net_addrinfo;
 typedef struct CGL_net_addrinfo CGL_net_addrinfo;
+
+
+/*This is a forward declaration in the C programming language for a structure type named CGL_net_socket. The forward declaration is necessary to allow the compiler to recognize the type before its full definition is given later in the code.
+
+The first line declares a structure type CGL_net_socket without providing its full definition. The second line defines a typedef for CGL_net_socket to be an alias for the same structure type. This allows the programmer to refer to the structure type using the simpler and more concise type name CGL_net_socket, rather than having to type out the full struct CGL_net_socket each time it is used.
+
+Note that this typedef does not provide any additional information about the structure type, but only defines an alias for it. The full definition of the structure, including the members it contains, must be given elsewhere in the code.
+
+This structure likely contains information related to networking, specifically information about a network socket, which is an endpoint for communication between nodes in a network. The exact information stored in the structure will depend on the full definition given elsewhere in the code.*/
 
 struct CGL_net_socket;
 typedef struct CGL_net_socket CGL_net_socket;
 
 
+/*These are function prototypes for the CGL_net_init() and CGL_net_shutdown() functions in the C programming language.
+
+The CGL_net_init() function likely initializes some network-related components, such as setting up network communication protocols, opening network sockets, and performing other tasks necessary to establish a connection to a network.
+
+The CGL_net_shutdown() function likely performs any necessary cleanup tasks to shut down the network components that were initialized by the CGL_net_init() function, such as closing network sockets and releasing any resources that were allocated during network initialization.
+
+Both functions return a bool type, indicating success or failure. A return value of true indicates that the function completed successfully, while a return value of false indicates that an error occurred during execution of the function. The exact behavior of these functions and the information they return will depend on their full definition given elsewhere in the code.*/
+
 bool CGL_net_init();
 void CGL_net_shutdown();
+
+/*These are function prototypes for the CGL_net_addrinfo_query() and CGL_net_addrinfo_destroy() functions in the C programming language.
+
+The CGL_net_addrinfo_query() function likely performs a name resolution operation to obtain information about the network address associated with a specified host name and port. The function takes as input the host name, port, and a pointer to a size_t variable to store the number of addresses returned. The function returns a*/
 
 CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, size_t* count);
 void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
 
-CGL_net_socket* CGL_net_socket_create();
+/*These are function prototypes for several socket functions in the C programming language.
+
+The CGL_net_socket_create() function creates and returns a pointer to a CGL_net_socket structure, which is used to represent a network socket*/
+CGL_net_socket* CGL_net_socket_create();  .
+
+
+/*The CGL_net_socket_connect() function connects a socket to a specified target address. The function takes as input a pointer to a CGL_net_socket structure and a pointer to a CGL_net_addrinfo structure representing the target address. The function returns a Boolean indicating success or failure.*/
 bool CGL_net_socket_connect(CGL_net_socket* socket, CGL_net_addrinfo* target);
+
+/*The CGL_net_socket_bind() function binds a socket to a specified address and port. The function takes as input a pointer to a CGL_net_socket structure and a pointer to a CGL_net_addrinfo structure representing the target address. The function returns a Boolean indicating success or failure.*/
 bool CGL_net_socket_bind(CGL_net_socket* socket, CGL_net_addrinfo* target);
+
+/*The CGL_net_socket_listen() function puts a socket into a state where it listens for incoming connections. The function takes as input a pointer to a CGL_net_socket structure and a size_t representing the maximum number of connections the socket should be able to handle simultaneously. The function returns a Boolean indicating success or failure.*/
 bool CGL_net_socket_listen(CGL_net_socket* socket, size_t max_connections); 
+
+/*The CGL_net_socket_accept() function accepts a connection from a client on a listening socket. The function takes as input a pointer to a CGL_net_socket structure and a pointer to a CGL_net_addrinfo structure to store the address information for the client. The function returns a pointer to a CGL_net_socket structure representing the new socket for the accepted connection.*/
 CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* socket, CGL_net_addrinfo* addrinfo);
+
+/*The CGL_net_socket_close() function closes a socket and frees any resources associated with it. The function takes as input a pointer to a CGL_net_socket structure.*/
 void CGL_net_socket_close(CGL_net_socket* socket);
+
+/*The CGL_net_socket_send() function sends data over a socket. The function takes as input a pointer to a CGL_net_socket structure, a pointer to a buffer holding the data, the size of the data, and a pointer to a size_t to store the number of bytes actually sent. The function returns a Boolean indicating success or failure.*/
 bool CGL_net_socket_send(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_sent);
+
+/*The CGL_net_socket_recv() function receives data from a socket. The function takes as input a pointer to a CGL_net_socket structure, a pointer to a buffer to store the received data, the size of the buffer, and a pointer to a size_t to store the number of bytes actually received. The function returns a Boolean indicating success or failure.*/
 bool CGL_net_socket_recv(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_recieved);
+
+/*The CGL_net_socket_shutdown_send() function stops the sending of data on a socket. The function takes as input a pointer to a CGL_net_socket structure and returns a Boolean indicating success or failure.*/
 bool CGL_net_socket_shutdown_send(CGL_net_socket* socket);
+
+/*The CGL_net_socket_shutdown_recv() function stops the receiving of data on a socket. The function takes as input a pointer to a CGL_net_socket structure and returns a Boolean indicating success or failure.*/
 bool CGL_net_socket_shutdown_recv(CGL_net_socket* socket);
+
+
+/*This is a C library for making HTTP requests. The CGL_net_http_request() function allows users to make a generic HTTP request with a specified method (GET, POST, etc.), host, path, response buffer, size, accept, user-agent, and body. The CGL_net_http_get() and CGL_net_http_post() functions are specialized versions of the CGL_net_http_request() function for making GET and POST requests, respectively.*/
 
 int CGL_net_http_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
 int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
 int CGL_net_http_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
 
+
+/*These functions provide the same functionality as the above functions, but they make secure HTTPS requests instead of regular HTTP requests. This requires the CGL_EXCLUDE_SSL_SOCKET flag to be disabled, otherwise these functions will not be available*/
 #ifndef CGL_EXCLUDE_SSL_SOCKET
 
 int CGL_net_https_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
 int CGL_net_https_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
 int CGL_net_https_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+
+/*These functions are used to create, send, receive, and destroy SSL sockets. The CGL_net_ssl_socket_create() function takes a regular CGL_net_socket as an argument and creates an SSL socket with it. The CGL_net_ssl_socket_send() and CGL_net_ssl_socket_recv() functions are used to send and receive data over the SSL socket. The CGL_net_ssl_socket_destroy() function is used to clean up the SSL socket. The CGL_net_ssl_log_errors() function is used to log any errors that may have occurred during the creation or use of the SSL socket.*/
 
 struct CGL_net_ssl_socket;
 typedef struct CGL_net_ssl_socket CGL_net_ssl_socket;
@@ -187,32 +309,60 @@ void CGL_net_ssl_log_errors();
 
 #define CGL_UTILS_FAST_RAND_MAX 32767
 
-void CGL_utils_sleep(const CGL_sizei milis);
-CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
+These functions provide utility functions for various tasks such as sleeping, reading and writing files, getting time and timestamps, and generating random numbers.
+
+void CGL_utils_sleep(const CGL_sizei milis); /*CGL_utils_sleep() function takes a number of milliseconds to sleep*/ 
+CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); 
+
+/*CGL_utils_read_file(), CGL_utils_get_file_size(), CGL_utils_append_file(), and CGL_utils_write_file() functions are used to read and write data to files. */
 CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);
 CGL_bool CGL_utils_append_file(const CGL_byte* path, const CGL_byte* data, size_t size);
-CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); // write data to file
-CGL_float CGL_utils_get_time();
-void CGL_utils_get_timestamp(char* buffer);
-CGL_bool CGL_utils_is_little_endian();
-CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count);
+CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); /* write data to file*/
+
+CGL_float CGL_utils_get_time(); /*The CGL_utils_get_time() function returns the current time*/
+void CGL_utils_get_timestamp(char* buffer); /*CGL_utils_get_timestamp() function returns a timestamp string. */
+CGL_bool CGL_utils_is_little_endian(); /*The CGL_utils_is_little_endian() function returns true if the system is little endian*/
+
+CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count); /*CGL_utils_get_random_with_probability() function returns a random number based on the specified probabilities.*/
+
+/*The CGL_utils_reverse_bytes(), CGL_utils_little_endian_to_current(), and CGL_utils_big_endian_to_current() functions are used to convert data from one endianness to another*/
 void CGL_utils_reverse_bytes(void* data, size_t size);
 void CGL_utils_little_endian_to_current(void* data, size_t size);
 void CGL_utils_big_endian_to_current(void* data, size_t size);
-void CGL_utils_fast_srand(CGL_int seed);
+
+
+void CGL_utils_fast_srand(CGL_int seed); /*The CGL_utils_fast_srand() function is used to seed the random number generator.*/
+
+
+/*The CGL_utils_fast_rand(), CGL_utils_xorshf96(), CGL_utils_srand31(), and CGL_utils_rand31() functions are used to generate random numbers. The CGL_utils_fast_rand() and CGL_utils_xorshf96() functions are fast random number generators, while the CGL_utils_srand31() and CGL_utils_rand31() functions are slower but more random number generators.*/
 CGL_int CGL_utils_fast_rand();
 CGL_ulong CGL_utils_xorshf96();
 void CGL_utils_srand31(CGL_uint seed);
 CGL_uint CGL_utils_rand31();
 
-#define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy))
-#define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
-#define CGL_utils_random_float_in_range(min, max) (CGL_utils_random_float() * (max - min) + min)
-#define CGL_utils_random_int(min, max) (rand() % (max - min + 1) + min)
-#define CGL_utils_random_bool() (rand() % 2)
-#define CGL_utils_random_vec2(min, max) (CGL_vec2_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y))
-#define CGL_utils_random_vec3(min, max) (CGL_vec3_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z))
+
+/*This code defines a series of macro functions in C/C++ for various utility functions commonly used in computer graphics programming.*/
+
+#define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy)) //The first macro, "CGL_utils_is_point_in_rect", checks if a given point (px, py) is within a rectangle defined by its top-left position (x, y), size (sx, sy), and scale factors (scx, scy). It returns a boolean value indicating whether the point is inside the rectangle.
+
+#define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX) //CGL_utils_random_float" generates a random float in the range [0, 1].
+
+#define CGL_utils_random_float_in_range(min, max) (CGL_utils_random_float() * (max - min) + min)//"CGL_utils_random_float_in_range" generates a random float in the range [min, max].
+
+#define CGL_utils_random_int(min, max) (rand() % (max - min + 1) + min) //CGL_utils_random_int" generates a random integer in the range [min, max].
+
+#define CGL_utils_random_bool() (rand() % 2) //"CGL_utils_random_bool" generates a random boolean value (0 or 1)
+.
+#define CGL_utils_random_vec2(min, max) (CGL_vec2_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y)) //"CGL_utils_random_vec2" generates a random 2D vector (CGL_vec2) in the range [min, max].
+
+
+//This code defines a series of additional macro functions in C/C++ for various utility functions commonly used in computer graphics programming.
+
+#define CGL_utils_random_vec3(min, max) (CGL_vec3_init(CGL_utils_random_float() * (max.x - min.x) + min.x, //CGL_utils_random_vec3" generates a random 3D vector (CGL_vec3) in the range [min, max]. CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z))
+
+/*CGL_utils_random_vec4" generates a random 4D vector (CGL_vec4) in the range [min, max]. The components of this vector represent a color in RGBA format.*/
 #define CGL_utils_random_vec4(min, max) (CGL_vec4_init(CGL_utils_random_float() * (max.x - min.x) + min.x, CGL_utils_random_float() * (max.y - min.y) + min.y, CGL_utils_random_float() * (max.z - min.z) + min.z, CGL_utils_random_float() * (max.w - min.w) + min.w))
+
 #define CGL_utils_random_color() (CGL_vec4_init(CGL_utils_random_float(), CGL_utils_random_float(), CGL_utils_random_float(), 1.0f))
 #define CGL_utils_clamp(x, minl, maxl) (x < minl ? minl : (x > maxl ? maxl : x))
 #define CGL_utils_array_size(array) (sizeof(array) / sizeof(array[0]))
@@ -222,18 +372,48 @@ CGL_uint CGL_utils_rand31();
 #define CGL_utils_lerp(a, b, t) (a + (b - a) * t)
 #define CGL_utils_square(x) ((x) * (x))
 #define CGL_utils_cube(x) ((x) * (x) * (x))
-CGL_float CGL_utils_sigmoid(CGL_float x);
-CGL_float CGL_utils_sigmoid_derivative(CGL_float x);
-CGL_float CGL_utils_relu(CGL_float x);
-CGL_float CGL_utils_relu_derivative(CGL_float x);
-CGL_float CGL_utils_tanh(CGL_float x);
-CGL_float CGL_utils_tanh_derivative(CGL_float x);
-CGL_float CGL_utils_step(CGL_float x);
-CGL_float CGL_utils_step_derivative(CGL_float x);
-CGL_float CGL_utils_relu_leaky(CGL_float x);
-CGL_float CGL_utils_relu_leaky_derivative(CGL_float x);
-CGL_float CGL_utils_relu_smooth(CGL_float x);
-CGL_float CGL_utils_relu_smooth_derivative(CGL_float x);
+
+CGL_float CGL_utils_sigmoid(CGL_float x); /* This function calculates the sigmoid value of a given input x. 
+ * The sigmoid function is defined as s(x) = 1/(1+e^(-x)), 
+ * where e is Euler's constant (2.718). 
+ * This function returns the sigmoid value of the input x as a CGL_float.*/
+CGL_float CGL_utils_sigmoid_derivative(CGL_float x); /*This function calculates the derivative of the sigmoid function at the given input x. 
+ * The derivative of the sigmoid function is defined as s'(x) = s(x)*(1-s(x)). 
+ * This function returns the derivative of the sigmoid function at the input x as a CGL_float.*/
+CGL_float CGL_utils_relu(CGL_float x);  /** This function calculates the rectified linear unit (ReLU) value of a given input x. 
+ * The ReLU function is defined as r(x) = max(0, x). 
+ * This function returns the ReLU value of the input x as a CGL_float.*/
+CGL_float CGL_utils_relu_derivative(CGL_float x); */* This function calculates the derivative of the ReLU function at the given input x. 
+ * The derivative of the ReLU function is defined as r'(x) = { 1  if x > 0;
+                                                             0  if x = 0;
+                                                            -1  if x < 0;
+ * This function returns the derivative of the ReLU function at the input x as a CGL_float. */
+CGL_float CGL_utils_tanh(CGL_float x); /*  This function calculates the hyperbolic tangent (tanh) value of a given input x. 
+ * The tanh function is defined as t(x) = (e^x - e^(-x)) / (e^x + e^(-x)). 
+ * This function returns the tanh value of the input x as a CGL_float.*/
+CGL_float CGL_utils_tanh_derivative(CGL_float x); /** This function calculates the derivative of the tanh function at the given input x. 
+ * The derivative of the tanh function is defined as t'(x) = 1 - (t(x))^2. 
+ * This function returns the derivative of the tanh function at the input x as a CGL_float. */
+CGL_float CGL_utils_step(CGL_float x); /* * This function calculates the step function value of a given input x. 
+ * The step function is defined as s(x) = { 0  if x < 0;
+                                          1  if x >= 0;
+ * This function returns the step function value of the input x as a CGL_float. */
+CGL_float CGL_utils_step_derivative(CGL_float x); /** This function calculates the derivative of the step function at the given input x. 
+ * The derivative of the step function is defined as s'(x) = 0. 
+ * This function returns the derivative of the step function at the input x as a CGL_float.*/
+CGL_float CGL_utils_relu_leaky(CGL_float x); /* * This function calculates the leaky rectified linear unit (ReLU) value of a given input x. 
+ * The leaky ReLU function is defined as l(x) = { x  if x > 0; */
+CGL_float CGL_utils_relu_leaky_derivative(CGL_float x); /** This function calculates the derivative of the leaky ReLU function at the given input x. 
+ * The derivative of the leaky ReLU function is defined as l'(x) = { 1  if x > 0;
+                                                                  0.01  if x = 0;
+                                                                 -1  if x < 0;
+ * This function returns the derivative of the leaky ReLU function at the input x as a CGL_float. */
+ 
+CGL_float CGL_utils_relu_smooth(CGL_float x); */* This function calculates the smooth rectified linear unit (ReLU) value of a given input x. 
+ * The smooth ReLU function is defined as r(x) = x / (1 + abs(x)). 
+ * This function returns the smooth ReLU value of the input x as a CGL_float. */
+ 
+CGL_float CGL_utils_relu_smooth_derivative(CGL_float x); //// This function returns the derivative of the smooth Relu activation function for a given input x. The value returned is the derivative of the smooth Relu function evaluated at x, which is a continuous and differentiable approximation of the ReLU activation function.
 
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
@@ -246,13 +426,17 @@ CGL_float CGL_utils_relu_smooth_derivative(CGL_float x);
 #define CGL_CONSOLE_COLOR_GRAY   3
 #define CGL_CONSOLE_COLOR_BLUE   4
 
-void CGL_console_set_color(uint8_t color);
+void CGL_console_set_color(uint8_t color); // CGL_console_set_color sets the console color to the given color (represented as an 8-bit integer).
 
-void CGL_printf_red(const char* format, ...);
-void CGL_printf_green(const char* format, ...);
-void CGL_printf_gray(const char* format, ...);
-void CGL_printf_blue(const char* format, ...);
-void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char);
+void CGL_printf_red(const char* format, ...); // CGL_printf_red and CGL_printf_green are functions that print text to the console in the specified color (red or green). The first argument is a format string, followed by any other arguments specified in the format string.
+
+void CGL_printf_green(const char* format, ...); //CGL_printf_green prints text to the console in green. The first argument is a format string, followed by any other arguments specified in the format string.
+
+void CGL_printf_gray(const char* format, ...); //CGL_printf_gray prints text to the console in gray. The first argument is a format string, followed by any other arguments specified in the format string.
+
+void CGL_printf_blue(const char* format, ...); // CGL_printf_blue prints text to the console in blue. The first argument is a format string, followed by any other arguments specified in the format string. 
+
+void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char); // CGL_console_progress_bar prints a progress bar to the console. The progress argument specifies the progress level (between 0 and 1). The width argument specifies the width of the progress bar in characters. The prefix and suffix arguments specify strings to be printed before and after the progress bar. The complete_char and incomplete_char arguments specify the character used to represent completed and incomplete progress, respectively.
 
 #endif
 
@@ -274,16 +458,25 @@ void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefi
 struct CGL_logger_context;
 typedef struct CGL_logger_context CGL_logger_context;
 
-void CGL_logger_init(bool enable_console_logging);
-void CGL_logger_shutdown();
-CGL_logger_context* CGL_logger_get_context();
-void CGL_logger_set_context(CGL_logger_context* context);
-bool CGL_logger_attach_log_file(const char* path);
-bool CGL_logger_detach_log_file(const char* path);
-void CGL_logger_flush();
-void CGL_logger_disable_console_logging();
-void CGL_logger_enable_console_logging();
-void CGL_logger_log(CGL_int level, const char* log_format, ...);
+void CGL_logger_init(bool enable_console_logging);  // CGL_logger_init initializes the logger with the given parameters. If enable_console_logging is set to true, the logger will output log messages to the console.
+
+void CGL_logger_shutdown(); // CGL_logger_shutdown shuts down the logger and frees any associated resources.
+
+CGL_logger_context* CGL_logger_get_context(); // CGL_logger_get_context returns a pointer to a logger context, which can be used to control the logger's settings and output.
+
+void CGL_logger_set_context(CGL_logger_context* context); // CGL_logger_set_context sets the logger's context to the given context.
+
+bool CGL_logger_attach_log_file(const char* path); // CGL_logger_attach_log_file attaches a log file to the logger, specifying the path to the file.
+
+bool CGL_logger_detach_log_file(const char* path); // CGL_logger_detach_log_file detaches a log file from the logger, specifying the path to the file.
+
+void CGL_logger_flush(); // CGL_logger_flush flushes all log messages to the log file.
+
+void CGL_logger_disable_console_logging(); // CGL_logger_disable_console_logging disables console logging.
+
+void CGL_logger_enable_console_logging(); // CGL_logger_enable_console_logging enables console logging.
+
+void CGL_logger_log(CGL_int level, const char* log_format, ...); // CGL_logger_log logs a message to the log file, with the given log level and format string, followed by any other arguments specified in the format string.
 
 #define CGL_trace(...)        CGL_logger_log(CGL_LOG_LEVEL_TRACE, __VA_ARGS__)
 #define CGL_info(...)         CGL_logger_log(CGL_LOG_LEVEL_INFO, __VA_ARGS__)
@@ -319,22 +512,33 @@ void CGL_logger_log(CGL_int level, const char* log_format, ...);
 struct CGL_list;
 typedef struct CGL_list CGL_list;
 
-CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity);
-void CGL_list_destroy(CGL_list* list);
-void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor);
-float CGL_list_get_increase_factor(CGL_list* list);
-size_t CGL_list_get_item_size(CGL_list* list);
-size_t CGL_list_get_size(CGL_list* list);
-size_t CGL_list_get_capacity(CGL_list* list);
-size_t CGL_list_push(CGL_list* list, void* data);
-size_t CGL_list_pop(CGL_list* list, void* data);
-void* CGL_list_get(CGL_list* list, size_t index, void* data);
-void* CGL_list_get_random(CGL_list* list, void* data);
-void* CGL_list_set(CGL_list* list, size_t index, void* data);
-bool CGL_list_is_empty(CGL_list* list);
-size_t CGL_list_find(CGL_list* list, void* data);
-void CGL_list_reserve(CGL_list* list, size_t size);
-void CGL_list_fill(CGL_list* list, size_t size);
+CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity); // CGL_list_create creates a new list object with the given item size and initial capacity.
+
+void CGL_list_destroy(CGL_list* list); // CGL_list_destroy destroys a list and all its elements.
+
+void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor); // CGL_list_set_increase_factor sets the factor by which the list's capacity should be increased when it is full.
+float CGL_list_get_increase_factor(CGL_list* list);// CGL_list_get_increase_factor returns the factor by which the list's capacity is increased when it is full.
+size_t CGL_list_get_item_size(CGL_list* list); // CGL_list_get_item_size returns the size of each item stored in the list.
+size_t CGL_list_get_size(CGL_list* list); // CGL_list_get_size returns the current size of the list.
+size_t CGL_list_get_capacity(CGL_list* list); // CGL_list_get_capacity returns the current capacity of the list.
+
+size_t CGL_list_push(CGL_list* list, void* data);// CGL_list_push pushes an item onto the list. The data argument should point to the item to be pushed onto the list.
+
+size_t CGL_list_pop(CGL_list* list, void* data);// CGL_list_pop pops an item off the list. The data argument should point to a buffer where the popped item's data will be stored.
+
+void* CGL_list_get(CGL_list* list, size_t index, void* data);// CGL_list_get returns an item from the list at the given index. The data argument should point to a buffer where the item's data will be stored.
+
+void* CGL_list_get_random(CGL_list* list, void* data); // CGL_list_get_random returns a random item from the list. The data argument should point to a buffer where the item's data will be stored.
+
+void* CGL_list_set(CGL_list* list, size_t index, void* data); //CGL_list_set sets an item in the list at the given index. The data argument should point to the item to be set in the list.
+
+bool CGL_list_is_empty(CGL_list* list); // CGL_list_is_empty returns true if the list is empty, false otherwise.
+
+size_t CGL_list_find(CGL_list* list, void* data); // CGL_list_find finds an item in the list and returns its index. The data argument should point to the item to be searched for.
+
+void CGL_list_reserve(CGL_list* list, size_t size); // CGL_list_reserve reserves space in the list for the given number of items.
+
+void CGL_list_fill(CGL_list* list, size_t size); // CGL_list_fill fills the list with the given number of items.
 
 #ifndef CGL_HASHTABLE_MAX_KEY_SIZE
 #define CGL_HASHTABLE_MAX_KEY_SIZE 256
@@ -356,22 +560,37 @@ typedef struct CGL_hashtable_iterator CGL_hashtable_iterator;
 typedef uint32_t(*CGL_hash_function)(const void*, size_t);
 
 // set key size to 0 if it is a string (it will be auto calculated using strlen)
-CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t initial_capacity);
-void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate);
-size_t CGL_hashtable_get_size(CGL_hashtable* table);
-void CGL_hashtable_destroy(CGL_hashtable* table);
-void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size);
-size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value);
-void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value);
-bool CGL_hashtable_exists(CGL_hashtable* table, const void* key);
-bool CGL_hashtable_remove(CGL_hashtable* table, const void* key);
-void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function);
-CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table);
-void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator);
-void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator);
-bool CGL_hashtable_iterator_next(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size);
-bool CGL_hashtable_iterator_curr(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size);
-void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator);
+CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t initial_capacity); // CGL_hashtable_create() creates a hash table and sets its size, key size, and initial capacity.
+
+void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate); // CGL_hashtable_set_growth_rate() sets the rate at which the hash table will increase in size when it becomes full.
+
+size_t CGL_hashtable_get_size(CGL_hashtable* table); // CGL_hashtable_get_size() returns the current size of the hash table.
+
+void CGL_hashtable_destroy(CGL_hashtable* table); // CGL_hashtable_destroy() destroys the hash table and all its contents.
+
+void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size); // CGL_hashtable_set() sets the given key to the given value in the hash table.
+
+size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value); // CGL_hashtable_get() retrieves the value associated with the given key in the hash table and returns its size.
+
+void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value);// CGL_hashtable_get_ptr() retrieves the value associated with the given key in the hash table and returns a pointer to it.
+
+bool CGL_hashtable_exists(CGL_hashtable* table, const void* key);// CGL_hashtable_exists() checks if the given key exists in the hash table.
+
+bool CGL_hashtable_remove(CGL_hashtable* table, const void* key);// CGL_hashtable_remove() removes the given key from the hash table.
+
+void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function); // CGL_hashtable_set_hash_function() sets the hash function used by the hash table.
+
+CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table);// CGL_hashtable_iterator_create() creates an iterator for the given hash table.
+
+void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator); // CGL_hashtable_iterator_destroy() destroys the given iterator.
+
+void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator); // CGL_hashtable_iterator_reset() resets the iterator to the start of the hash table.
+
+bool CGL_hashtable_iterator_next(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size); // CGL_hashtable_iterator_next() moves the iterator to the next item in the hash table, if one exists, and returns true. Otherwise, it returns false.
+
+bool CGL_hashtable_iterator_curr(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size); // CGL_hashtable_iterator_curr() returns the current item in the hash table, if one exists. Otherwise, it returns false.
+
+void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator); // CGL_hashtable_iterator_curr_key() returns a pointer to the current key in the hash table, if one exists. Otherwise, it returns NULL.
 
 // getter setters for data types
 #define CGL_DECLARE_HASHTABLE_GETTER_SETTER(type) \
@@ -393,6 +612,9 @@ static void CGL_hashtable_set_string (CGL_hashtable* table, const void* key, con
 {
     CGL_hashtable_set(table, key, value, strlen(value) + 1);
 }
+
+
+// CGL_DECLARE_HASHTABLE_GETTER_SETTER() are macros that define the get and set functions for the given data type. They allow for easy access to the hash table without having to define the functions manually.
 
 CGL_DECLARE_HASHTABLE_GETTER_SETTER(int8_t);
 CGL_DECLARE_HASHTABLE_GETTER_SETTER(int16_t);
@@ -416,9 +638,13 @@ CGL_DECLARE_HASHTABLE_GETTER_SETTER(uintptr_t);
 
 
 // algorithms
+
+//This function calculates a 32- or 64-bit CRC (Cyclic Redundancy Check) from the data provided. The CRC is a checksum used to detect errors in data transmitted over a communication system. The function takes in a pointer to the data to be processed and the size of the data, and returns the calculated CRC value.
 uint32_t CGL_utils_crc32(const void* data, size_t size);
 uint64_t CGL_utils_crc64(const void* data, size_t size);
-void CGL_utils_rot13(const char* data_in, char* data_out);
+
+void CGL_utils_rot13(const char* data_in, char* data_out); //This function performs a ROT13 encryption on the data provided. ROT13 is a type of Caesar cipher used to obscure data by rotating each letter 13 places further in the alphabet. The function takes in a pointer to the data to be encrypted and a pointer to where the resulting data should be stored. It does not return a value.
+
 uint32_t CGL_utils_super_fast_hash(const void* data, size_t size);
 
 // threads
@@ -431,30 +657,37 @@ typedef void (*CGL_thread_function)(void*);
 struct CGL_mutex;
 typedef struct CGL_mutex CGL_mutex;
 
+
+//These functions provide an interface to manage threads
 CGL_thread* CGL_thread_create();
-bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* argument);
-void CGL_thread_destroy(CGL_thread* thread);
-bool CGL_thread_join(CGL_thread* thread);
-bool CGL_thread_joinable(CGL_thread* thread);
-bool CGL_thread_is_running(CGL_thread* thread);
+bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* argument); //The CGL_thread_start function creates a new thread and starts it running
+
+void CGL_thread_destroy(CGL_thread* thread); //the CGL_thread_destroy function stops the thread and releases its resources
+
+bool CGL_thread_join(CGL_thread* thread); //the CGL_thread_join function waits for the thread to finish executing
+bool CGL_thread_joinable(CGL_thread* thread); //CGL_thread_joinable function checks if the thread can be joined
+bool CGL_thread_is_running(CGL_thread* thread);// CGL_thread_is_running function checks if the thread is currently running.
 
 uintptr_t CGL_thread_get_id(CGL_thread* thread);
 
-CGL_mutex* CGL_mutex_create(bool set);
-void CGL_mutex_destroy(CGL_mutex* mutex);
-int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout);
-void CGL_mutex_release(CGL_mutex* mutex);
+//These functions provide an interface to manage mutexes
+CGL_mutex* CGL_mutex_create(bool set); //The CGL_mutex_create function creates a new mutex
+void CGL_mutex_destroy(CGL_mutex* mutex); //CGL_mutex_destroy function destroys the mutex and releases its resources
+int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout); //CGL_mutex_lock function locks the mutex and waits until it is available,
+void CGL_mutex_release(CGL_mutex* mutex); //This function unlocks the mutex. It takes in a pointer to the CGL_mutex struct and does not return a value.
 #endif
 
 // math
-
+//Struct CGL_vec2 is a data structure that stores two CGL_float values, x and y. It is commonly used to represent a two-dimensional vector in computer graphics.
 struct CGL_vec2
 {
+//CGL_float x and CGL_float y are two variables that store CGL_float values. They can be used to represent a two-dimensional vector in computer graphics.
     CGL_float x;
     CGL_float y;
 #ifdef __cplusplus
-    CGL_vec2() : x(0), y(0) {}
-    CGL_vec2(CGL_float x, CGL_float y) : x(x), y(y) {}
+    CGL_vec2() : x(0), y(0) {} // CGL_vec2() is a constructor of the CGL_vec2 class. It takes in two parameters, x and y, and sets them to the values of the x and y attributes of the CGL_vec2 object. The default values for these parameters are 0, so if no values are given, x and y will be set to 0.
+    
+    CGL_vec2(CGL_float x, CGL_float y) : x(x), y(y) {} // This is a constructor of the CGL_vec2 class that takes in two parameters, x and y, and sets them to the values of the x and y attributes of the CGL_vec2 object. This allows users to conveniently create a CGL_vec2 object with specific x and y values.
 #endif
 };
 typedef struct CGL_vec2 CGL_vec2;
@@ -465,8 +698,9 @@ struct CGL_vec3
     CGL_float y;
     CGL_float z;
 #ifdef __cplusplus
-    CGL_vec3() : x(0), y(0), z(0) {}
-    CGL_vec3(CGL_float x, CGL_float y, CGL_float z) : x(x), y(y), z(z) {}
+    CGL_vec3() : x(0), y(0), z(0) {} // CGL_vec3() is a constructor of the CGL_vec3 class. It takes in three parameters, x, y, and z, and sets them to the values of the x, y, and z attributes of the CGL_vec3 object. The default values for these parameters are 0, so if no values are given, x, y, and z will be set to 0.
+
+    CGL_vec3(CGL_float x, CGL_float y, CGL_float z) : x(x), y(y), z(z) {} // This is a constructor of the CGL_vec3 class that takes in three parameters, x, y, and z, and sets them to the values of the x, y, and z attributes of the CGL_vec3 object. This allows users to conveniently create a CGL_vec3 object with specific x, y, and z values.
 #endif
 };
 typedef struct CGL_vec3 CGL_vec3;
@@ -517,7 +751,9 @@ struct CGL_mat4
 {
     CGL_float m[16];
 #ifdef __cplusplus
-    CGL_mat4() {}
+    CGL_mat4() {} // CGL_mat4() is a constructor of the CGL_mat4 class. It takes in sixteen parameters, m0-m15, and sets them to the values of the elements of the 4x4 matrix of the CGL_mat4 object. The default values for these parameters are 0, so if no values are given, all elements of the matrix will be set to 0.
+    
+    // This is a constructor of the CGL_mat4 class that takes in sixteen parameters, m0-m15, and sets them to the values of the elements of the 4x4 matrix of the CGL_
     CGL_mat4(CGL_float m0, CGL_float m1, CGL_float m2, CGL_float m3,
              CGL_float m4, CGL_float m5, CGL_float m6, CGL_float m7,
              CGL_float m8, CGL_float m9, CGL_float m10, CGL_float m11,
@@ -559,8 +795,10 @@ typedef struct CGL_quat CGL_quat;
 #define CGL_rad_to_deg(rad) ((rad) * (180.0f / CGL_PI))
 
 #define CGL_float_lerp(a, b, t) (((a) * (1.0f - (t))) + ((b) * (t)))
-CGL_float CGL_float_quadratic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float t);
-CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float d, CGL_float t);
+
+CGL_float CGL_float_quadratic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float t); // CGL_float_quadratic_lerp() is a function that interpolates between two values, a and b, using a quadratic equation with c as the coefficient. It takes in a parameter t which is used to calculate the interpolated value.
+
+CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float d, CGL_float t); // CGL_float_cubic_lerp() is a function that interpolates between three values, a, b, and c, using a cubic equation with d as the coefficient. It takes in a parameter t which is used to calculate the interpolated value.
 
 
 #ifdef __cplusplus
@@ -594,7 +832,7 @@ CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float 
 #define CGL_vec2_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec2_elem_set(a, i, v) (((float*)&a)[i] = v)
 #define CGL_vec2_distance(a, b) (CGL_float)(sqrtf(((a).x - (b).x) * ((a).x - (b).x) + ((a).y - (b).y) * ((a).y - (b).y)))
-CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
+CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c); // CGL_vec2_triple_product() is a function that calculates the triple product of three CGL_vec2 objects, a, b, and c. The triple product is the scalar product of the first two vectors multiplied by the third vector. The result is a CGL_vec2 object.
 
 #ifdef __cplusplus
 #define CGL_vec3_init(x, y, z) CGL_vec3(x, y, z)
@@ -628,10 +866,14 @@ CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 #define CGL_vec3_from_vec2(a, z) CGL_vec3_init(a.x, a.y, z)
 #define CGL_vec3_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec3_elem_set(a, i, v) (((float*)&a)[i] = v)
-CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n);
-CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
-CGL_vec3 CGL_vec3_triple_product(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
-void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc);
+CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n); // CGL_vec3_reflect() is a function that calculates the reflection of a vector, a, about a normal vector, n. The result is a CGL_vec3 object. 
+
+CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta); 
+// CGL_vec3_rotate_about_axis() is a function that rotates a vector, v, about an axis, axis, by an angle theta. The result is a CGL_vec3 object.
+
+CGL_vec3 CGL_vec3_triple_product(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // CGL_vec3_triple_product() is a function that calculates the triple product of three CGL_vec3 objects, a, b, and c. The triple product is the scalar product of the first two vectors multiplied by the third vector. The result is a CGL_vec3 object.
+
+void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc);  // CGL_vec3_calculate_orthonormal_basis_from_one_vector() is a function that takes in a vector, a, and two CGL_vec3 pointers, pb and pc. It calculates two vectors, b and c, that are orthonormal to a, and stores them in the pointers. This is a convenient way to calculate an orthonormal basis from a single vector.
 
 #ifdef __cplusplus
 #define CGL_vec4_init(x, y, z, w) CGL_vec4(x, y, z, w)
@@ -655,7 +897,7 @@ void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* 
 #define CGL_vec4_from_vec2(a, z, w) CGL_vec4_init(a.x, a.y, z, w)
 #define CGL_vec4_elem_get(a, i) ((float*)&a)[i]
 #define CGL_vec4_elem_set(a, i, v) (((float*)&a)[i] = v)
-CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c);
+CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c); //a function that calculates the triple product of three CGL_vec4 objects, a, b, and c. The triple product is the scalar product of the first two vectors multiplied by the third vector. The result is a CGL_vec4 object.
 
 #ifdef __cplusplus
 #define CGL_mat3_init(a, b, c, d, e, f, g, h, i) CGL_mat3(a, b, c, d, e, f, g, h, i)
@@ -672,9 +914,9 @@ CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c);
 
 #define CGL_mat3_add(a, b) (CGL_mat3){a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3], a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6], a.m[7] + b.m[7], a.m[8] + b.m[8]}
 #define CGL_mat3_sub(a, b) (CGL_mat3){a.m[0] - b.m[0], a.m[1] - b.m[1], a.m[2] - b.m[2], a.m[3] - b.m[3], a.m[4] - b.m[4], a.m[5] - b.m[5], a.m[6] - b.m[6], a.m[7] - b.m[7], a.m[8] - b.m[8]}
-CGL_float CGL_mat3_det(CGL_mat3 a);
-CGL_float CGL_mat3_trace(CGL_mat3 a);
-CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
+CGL_float CGL_mat3_det(CGL_mat3 a); //CGL_mat3_det() is a function that calculates the determinant of a 3x3 matrix.
+CGL_float CGL_mat3_trace(CGL_mat3 a); //CGL_mat3_trace() is a function that calculates the trace of a 3x3 matrix.
+CGL_mat3 CGL_mat3_transpose(CGL_mat3 a); //CGL_mat3_transpose() is a function that transposes a 3x3 matrix.
 
 #define CGL_mat3_zero() CGL_mat3_init( \
     0.0f, 0.0f, 0.0f, \
@@ -747,23 +989,23 @@ CGL_mat3 CGL_mat3_transpose(CGL_mat3 a);
     CGL_mat4_elem_get(a, 3, 0) * s, CGL_mat4_elem_get(a, 3, 1) * s, CGL_mat4_elem_get(a, 3, 2) * s, CGL_mat4_elem_get(a, 3, 3) * s  \
 )
 
-CGL_mat4 CGL_mat4_mul(CGL_mat4 a, CGL_mat4 b);
-CGL_float CGL_mat4_det(CGL_mat4 m);
-CGL_float CGL_mat4_det_by_lu(CGL_mat4 m);
-CGL_float CGL_mat4_det_by_gauss(CGL_mat4 m);
-CGL_vec4 CGL_mat4_mul_vec4(CGL_mat4 m, CGL_vec4 v);
-CGL_mat4 CGL_mat4_inverse(CGL_mat4 m);
-CGL_mat4 CGL_mat4_transpose(CGL_mat4 m);
-CGL_mat4 CGL_mat4_adjoint(CGL_mat4 m);
-CGL_mat4 CGL_mat4_gauss_elim(CGL_mat4 m);
-CGL_int CGL_mat4_rank(CGL_mat4 m);
-CGL_float CGL_mat4_trace(CGL_mat4 m);
-CGL_mat3 CGL_mat4_to_mat3(CGL_mat4 m);
-CGL_mat4 CGL_mat4_from_mat3(CGL_mat3 m);
-CGL_mat4 CGL_mat4_rotate_about_axis(CGL_vec3 axis, CGL_float angle);
-CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
-CGL_mat4 CGL_mat4_lerp(CGL_mat4 a, CGL_mat4 b, CGL_float t);
-void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
+CGL_mat4 CGL_mat4_mul(CGL_mat4 a, CGL_mat4 b); //CGL_mat4_mul() is a function that multiplies two 4x4 matrices together.
+CGL_float CGL_mat4_det(CGL_mat4 m); //CGL_mat4_det() is a function that calculates the determinant of a 4x4 matrix.
+CGL_float CGL_mat4_det_by_lu(CGL_mat4 m); //CGL_mat4_det_by_lu() is a function that calculates the determinant of a 4x4 matrix using LU decomposition.
+CGL_float CGL_mat4_det_by_gauss(CGL_mat4 m); //CGL_mat4_det_by_gauss() is a function that calculates the determinant of a 4x4 matrix using Gaussian elimination.
+CGL_vec4 CGL_mat4_mul_vec4(CGL_mat4 m, CGL_vec4 v);//CGL_mat4_mul_vec4() is a function that multiplies a 4x4 matrix and a 4-dimensional vector.
+CGL_mat4 CGL_mat4_inverse(CGL_mat4 m); //CGL_mat4_inverse() is a function that calculates the inverse of a 4x4 matrix.
+CGL_mat4 CGL_mat4_transpose(CGL_mat4 m); //CGL_mat4_transpose: This function returns the transpose of a 4x4 matrix.
+CGL_mat4 CGL_mat4_adjoint(CGL_mat4 m); //CGL_mat4_adjoint: This function returns the adjoint matrix of a 4x4 matrix.
+CGL_mat4 CGL_mat4_gauss_elim(CGL_mat4 m); //CGL_mat4_gauss_elim: This function performs Gaussian elimination on a 4x4 matrix.
+CGL_int CGL_mat4_rank(CGL_mat4 m); //CGL_mat4_rank: This function computes the rank of a 4x4 matrix.
+CGL_float CGL_mat4_trace(CGL_mat4 m); //CGL_mat4_trace: This function returns the trace of a 4x4 matrix.
+CGL_mat3 CGL_mat4_to_mat3(CGL_mat4 m); //CGL_mat4_to_mat3: This function converts a 4x4 matrix to a 3x3 matrix.
+CGL_mat4 CGL_mat4_from_mat3(CGL_mat3 m); //CGL_mat4_from_mat3: This function converts a 3x3 matrix to a 4x4 matrix.
+CGL_mat4 CGL_mat4_rotate_about_axis(CGL_vec3 axis, CGL_float angle); //CGL_mat4_rotate_about_axis: This function returns a 4x4 rotation matrix around an axis by the specified angle.
+CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up); //CGL_mat4_look_at: This function returns a 4x4 camera-view matrix based on the eye, target, and up vectors.
+CGL_mat4 CGL_mat4_lerp(CGL_mat4 a, CGL_mat4 b, CGL_float t); //CGL_mat4_lerp: This function returns a 4x4 lerp matrix based on the two matrices and the t parameter.
+void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u); //CGL_mat4_decompose_lu: This function decomposes a 4x4 matrix into two matrices, the upper and lower triangular matrices.
 
 #define CGL_mat4_is_invertible(m) (CGL_mat4_det(m) != 0.0f)
 
@@ -865,6 +1107,9 @@ void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
 )
 
 
+//CGL_parametric_function: This type defines a parametric function that takes two floats and returns a vector.
+//CGL_curve_point: This function returns the point on a parametric curve at the specified t parameter.
+//CGL_curve_length: This function returns the length of a parametric curve between the specified t0 and t1 parameters.
 typedef CGL_vec3(*CGL_parametric_function)(CGL_float, CGL_float);
 
 #ifdef __cplusplus
@@ -888,65 +1133,118 @@ typedef CGL_vec3(*CGL_parametric_function)(CGL_float, CGL_float);
 #define CGL_quat_sub(a, b) CGL_quat_init(a.vec.x - b.vec.x, a.vec.y - b.vec.y, a.vec.z - b.vec.z, a.w - b.w)
 #define CGL_quat_conjugate(q) CGL_quat_init(-q.vec.x, -q.vec.y, -q.vec.z, q.w)
 #define CGL_quat_mul_scalar(q, s) CGL_quat_init(q.vec.x * (s), q.vec.y * (s), q.vec.z * (s), q.w * (s))
-void CGL_quat_to_euler_zyx(CGL_quat quat, CGL_float* z, CGL_float* y, CGL_float* x);
-CGL_quat CGL_quat_slerp(CGL_quat a, CGL_quat b, CGL_float t);
-CGL_quat CGL_quat_squad(CGL_quat a, CGL_quat b, CGL_quat c, CGL_quat d, CGL_float t);
-CGL_float CGL_quat_to_axis_angle(CGL_quat quat, CGL_float* x, CGL_float* y, CGL_float* z);
-CGL_quat CGL_quat_inverse(CGL_quat quat);
-CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b);
-void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, CGL_float* ox, CGL_float* oy, CGL_float* oz);
-CGL_mat4 CGL_quat_to_mat4(CGL_quat quat);
-CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale);
-CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const CGL_float* rotation, const CGL_vec2* scale);
-CGL_vec4 CGL_quat_mul_vec4(CGL_quat q, CGL_vec4 v);
+void CGL_quat_to_euler_zyx(CGL_quat quat, CGL_float* z, CGL_float* y, CGL_float* x); //This function converts a quaternion to Euler angles in the order of z-y-x. 
+
+CGL_quat CGL_quat_slerp(CGL_quat a, CGL_quat b, CGL_float t);//This function calculates the spherical linear interpolation (slerp) of two quaternions a and b. 
+
+CGL_quat CGL_quat_squad(CGL_quat a, CGL_quat b, CGL_quat c, CGL_quat d, CGL_float t); //This function calculates the spherical cubic interpolation (squad) of four quaternions a, b, c, and d. 
+
+CGL_float CGL_quat_to_axis_angle(CGL_quat quat, CGL_float* x, CGL_float* y, CGL_float* z); //This function converts a quaternion to an axis-angle representation, where the x, y, and z components of the quaternion correspond to the axis, and the angle is the magnitude of the quaternion.
+
+CGL_quat CGL_quat_inverse(CGL_quat quat); //This function calculates the inverse of a quaternion.
+
+CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b); //This function multiplies two quaternions, a and b, and returns the result.
+
+void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, CGL_float* ox, CGL_float* oy, CGL_float* oz);  // This function is used to rotate a point using a quaternion. The quaternion q is used to rotate the point (x,y,z) and the resulting coordinates are stored in the pointers ox, oy and oz. 
+
+CGL_mat4 CGL_quat_to_mat4(CGL_quat quat); // This function is used to convert a quaternion to a 4x4 matrix. The quaternion quat is used to create the matrix, which is returned as a CGL_mat4.
+
+CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale); // This function is used to apply transformations to a 3 dimensional vector. The original vector is provided and transformations such as translation, rotation, and scale can be applied. The resulting vector is returned as a CGL_vec3.
+
+CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const CGL_float* rotation, const CGL_vec2* scale); // This function is used to apply transformations to a 2 dimensional vector. The original vector is provided and transformations such as translation, rotation, and scale can be applied. The rotation is provided as a single float
+
+CGL_vec4 CGL_quat_mul_vec4(CGL_quat q, CGL_vec4 v); //This function multiplies a quaternion with a vector and returns the product as a CGL_vec4. The quaternion is first transformed into a matrix and then the product is calculated using matrix multiplication.
 
 #ifndef CGL_EXCLUDE_MATH_FUNCTIONS
 // vec2 
+//These functions add and subtract two 2D vectors and return the result as a CGL_vec2. The operation is performed by adding or subtracting the corresponding components of the two vectors.
 CGL_vec2 CGL_vec2_add_(CGL_vec2 a, CGL_vec2 b);
 CGL_vec2 CGL_vec2_sub_(CGL_vec2 a, CGL_vec2 b);
+
+//These functions multiply and divide two 2D vectors and return the result as a CGL_vec2. The operation is performed by multiplying or dividing the corresponding components of the two vectors.
 CGL_vec2 CGL_vec2_mul_(CGL_vec2 a, CGL_vec2 b);
 CGL_vec2 CGL_vec2_div_(CGL_vec2 a, CGL_vec2 b);
+
+
+//These functions perform arithmetic operations on a 2D vector and a scalar and return the result as a CGL_vec2. The operations are addition, subtraction and multiplication respectively. The results are calculated by performing the corresponding operation on each component of the vector and the scalar.
 CGL_vec2 CGL_vec2_add_scalar_(CGL_vec2 a, CGL_float b);
 CGL_vec2 CGL_vec2_sub_scalar_(CGL_vec2 a, CGL_float b);
 CGL_vec2 CGL_vec2_scale_(CGL_vec2 a, CGL_float b);
+
+//This function is used to normalize a two-dimensional vector by dividing it by its length.
 CGL_vec2 CGL_vec2_normalize_(CGL_vec2 a);
-CGL_float CGL_vec2_dot_(CGL_vec2 a, CGL_vec2 b);
+
+CGL_float CGL_vec2_dot_(CGL_vec2 a, CGL_vec2 b); //The CGL_vec2_dot_ function is used to calculate the dot product of two two-dimensional vectors
+
+//The CGL_vec2_length_ function is used to calculate the length of a two-dimensional vector.
 CGL_float CGL_vec2_length_(CGL_vec2 a);
+
+//The CGL_vec2_cross_ function is used to calculate the cross product of two two-dimensional vectors.
 CGL_float CGL_vec2_cross_(CGL_vec2 a, CGL_vec2 b);
+
+//CGL_vec2_reflect_ function is used to calculate the reflection vector of a two-dimensional vector off of another
+
 CGL_vec2 CGL_vec2_reflect_(CGL_vec2 a, CGL_vec2 b);
+
+//CGL_vec2_refract_ function is used to calculate the refraction vector of a two-dimensional vector off of another, with a given refractive index.
 CGL_vec2 CGL_vec2_refract_(CGL_vec2 a, CGL_vec2 b, CGL_float eta);
+
+//The CGL_vec2_rotate_ function is used to rotate a two-dimensional vector by a given angle
 CGL_vec2 CGL_vec2_rotate_(CGL_vec2 a, CGL_float angle);
+
+//The CGL_vec2_lerp_ function is used to calculate the linear interpolation between two two-dimensional vectors, by a given parameter
 CGL_vec2 CGL_vec2_lerp_(CGL_vec2 a, CGL_vec2 b, CGL_float t);
 
 // vec3
+//The CGL_vec3_add_() function takes two CGL_vec3 objects as arguments and returns a CGL_vec3 object that is the sum of the two arguments. 
 CGL_vec3 CGL_vec3_add_(CGL_vec3 a, CGL_vec3 b);
 CGL_vec3 CGL_vec3_add3_(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
-CGL_vec3 CGL_vec3_sub_(CGL_vec3 a, CGL_vec3 b);
-CGL_vec3 CGL_vec3_mul_(CGL_vec3 a, CGL_vec3 b);
-CGL_vec3 CGL_vec3_div_(CGL_vec3 a, CGL_vec3 b);
-CGL_vec3 CGL_vec3_add_scalar_(CGL_vec3 a, CGL_float b);
-CGL_vec3 CGL_vec3_sub_scalar_(CGL_vec3 a, CGL_float b);
-CGL_vec3 CGL_vec3_scale_(CGL_vec3 a, CGL_float b);
-CGL_vec3 CGL_vec3_normalize_(CGL_vec3 a);
-CGL_float CGL_vec3_dot_(CGL_vec3 a, CGL_vec3 b);
-CGL_float CGL_vec3_length_(CGL_vec3 a);
-CGL_vec3 CGL_vec3_cross_(CGL_vec3 a, CGL_vec3 b);
-CGL_vec3 CGL_vec3_reflect_(CGL_vec3 a, CGL_vec3 b);
-CGL_vec3 CGL_vec3_refract_(CGL_vec3 a, CGL_vec3 b, CGL_float eta);
-CGL_vec3 CGL_vec3_lerp_(CGL_vec3 a, CGL_vec3 b, CGL_float t);
+
+
+CGL_vec3 CGL_vec3_sub_(CGL_vec3 a, CGL_vec3 b); ////The CGL_vec3_sub_() function takes two CGL_vec3 objects as arguments and returns a CGL_vec3 object that is the difference of the two arguments.
+
+CGL_vec3 CGL_vec3_mul_(CGL_vec3 a, CGL_vec3 b);//CGL_vec3 CGL_vec3_mul_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_div_(CGL_vec3 a, CGL_vec3 b);//The CGL_vec3_div_() function takes two CGL_vec3 objects as arguments and returns a CGL_vec3 object that is the quotient of the two arguments. 
+
+CGL_vec3 CGL_vec3_add_scalar_(CGL_vec3 a, CGL_float b); //The CGL_vec3_add_scalar_() function takes a CGL_vec3 object and a CGL_float value as arguments and returns a CGL_vec3 object that is the sum of the vector and the scalar value.
+
+CGL_vec3 CGL_vec3_div_(CGL_vec3 a, CGL_vec3 b); //CGL_vec3 CGL_vec3_div_(CGL_vec3 a, CGL_vec3 b);
+CGL_vec3 CGL_vec3_add_scalar_(CGL_vec3 a, CGL_float b);// The CGL_vec3_add_scalar_() function takes a CGL_vec3 object and a CGL_float value as arguments and returns a CGL_vec3 object that is the sum of the vector and the scalar value
+
+CGL_vec3 CGL_vec3_sub_scalar_(CGL_vec3 a, CGL_float b);//The CGL_vec3_sub_scalar_() function takes a CGL_vec3 object and a CGL_float value as arguments and returns a CGL_vec3 object that is the difference of the vector and the scalar value.
+
+CGL_vec3 CGL_vec3_scale_(CGL_vec3 a, CGL_float b); //The CGL_vec3_scale_() function takes a CGL_vec3 object and a CGL_float value as arguments and returns a CGL_vec3 object that is the result of scaling the vector by the scalar value.
+
+CGL_vec3 CGL_vec3_add_scalar_(CGL_vec3 a, CGL_float b); //CGL_vec3_add_scalar_ adds a scalar value to the vector.
+
+CGL_vec3 CGL_vec3_sub_scalar_(CGL_vec3 a, CGL_float b); //CGL_vec3_sub_scalar_ subtracts a scalar value from the vector.
+
+CGL_vec3 CGL_vec3_scale_(CGL_vec3 a, CGL_float b);//CGL_vec3_scale_ multiplies the vector by a scalar value
+
+CGL_vec3 CGL_vec3_normalize_(CGL_vec3 a); //CGL_vec3_normalize_ normalizes the vector.
+CGL_float CGL_vec3_dot_(CGL_vec3 a, CGL_vec3 b); //CGL_vec3_dot_ calculates the dot product of two vectors.
+
+CGL_float CGL_vec3_length_(CGL_vec3 a); //CGL_vec3_length_ calculates the length of the vector.
+CGL_vec3 CGL_vec3_cross_(CGL_vec3 a, CGL_vec3 b); //CGL_vec3_cross_ calculates the cross product of two vectors.
+
+CGL_vec3 CGL_vec3_reflect_(CGL_vec3 a, CGL_vec3 b); //CGL_vec3_reflect_ reflects a vector across a given vector.
+
+CGL_vec3 CGL_vec3_refract_(CGL_vec3 a, CGL_vec3 b, CGL_float eta);//CGL_vec3_refract_ refracts a vector across a given vector.
+
+CGL_vec3 CGL_vec3_lerp_(CGL_vec3 a, CGL_vec3 b, CGL_float t);//CGL_vec3_lerp_ linearly interpolates between two vectors.
 
 // vec4
-CGL_vec4 CGL_vec4_add_(CGL_vec4 a, CGL_vec4 b);
-CGL_vec4 CGL_vec4_sub_(CGL_vec4 a, CGL_vec4 b);
-CGL_vec4 CGL_vec4_mul_(CGL_vec4 a, CGL_vec4 b);
-CGL_vec4 CGL_vec4_div_(CGL_vec4 a, CGL_vec4 b);
-CGL_vec4 CGL_vec4_add_scalar_(CGL_vec4 a, CGL_float b);
-CGL_vec4 CGL_vec4_sub_scalar_(CGL_vec4 a, CGL_float b);
-CGL_vec4 CGL_vec4_scale_(CGL_vec4 a, CGL_float b);
-CGL_vec4 CGL_vec4_normalize_(CGL_vec4 a);
-CGL_float CGL_vec4_dot_(CGL_vec4 a, CGL_vec4 b);
-CGL_float CGL_vec4_length_(CGL_vec4 a);
-CGL_vec4 CGL_vec4_lerp_(CGL_vec4 a, CGL_vec4 b, CGL_float t);
+CGL_vec4 CGL_vec4_add_(CGL_vec4 a, CGL_vec4 b); //CGL_vec4_add_() function adds two 4-dimensional vectors
+CGL_vec4 CGL_vec4_sub_(CGL_vec4 a, CGL_vec4 b); //CGL_vec4_sub_() subtracts two 4-dimensional vectors
+CGL_vec4 CGL_vec4_mul_(CGL_vec4 a, CGL_vec4 b); //CGL_vec4_mul_() multiplies two 4-dimensional vectors
+CGL_vec4 CGL_vec4_div_(CGL_vec4 a, CGL_vec4 b); //CGL_vec4_div_() divides two 4-dimensional vectors
+CGL_vec4 CGL_vec4_add_scalar_(CGL_vec4 a, CGL_float b); // CGL_vec4_add_scalar_() adds a scalar to a 4-dimensional vector
+CGL_vec4 CGL_vec4_sub_scalar_(CGL_vec4 a, CGL_float b); //CGL_vec4_sub_scalar_() subtracts a scalar from a 4-dimensional vector
+CGL_vec4 CGL_vec4_scale_(CGL_vec4 a, CGL_float b); //CGL_vec4_scale_() scales a 4-dimensional vector by a scalar
+CGL_vec4 CGL_vec4_normalize_(CGL_vec4 a); //CGL_vec4_normalize_() normalizes a 4-dimensional vector
+CGL_float CGL_vec4_dot_(CGL_vec4 a, CGL_vec4 b); //CGL_vec4_dot_() calculates the dot product of two 4-dimensional vectors
+CGL_float CGL_vec4_length_(CGL_vec4 a); //CGL_vec4_length_() calculates the length of a 4-dimensional vector
+CGL_vec4 CGL_vec4_lerp_(CGL_vec4 a, CGL_vec4 b, CGL_float t); //CGL_vec4_lerp_() performs linear interpolation between two 4-dimensional vectors
 
 #endif
 
@@ -987,9 +1285,14 @@ void CGL_shape_destroy(CGL_shape* shape);
 #define CGL_SAT_COLLISION_MAX_COLLISIONS 4096
 #endif
 
-bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount);
-bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector);
-void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count);
+bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount); //CGL_sat_collision_overlap_on_axis() function is used to calculate the overlap amount between two shapes along a given axis
+
+bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector); //CGL_sat_collision_detect() function is used to detect whether two shapes are colliding and returns the collision vector if they are
+
+void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count); //CGL_sat_collision_calculate_axes() is used to calculate the axes of a collision shape. CGL_utils_is_point_in_triangle()
+
+//These functions are used to determine the position of a point relative to a triangle, circle, circumcircle, super triangle, bounding square, or bounding box. Additionally, the last function can be used to generate a random number from a Gaussian (normal) distribution.
+
 CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 CGL_bool CGL_utils_is_point_in_circle(CGL_vec2 p, CGL_float r);
 CGL_bool CGL_utils_calculate_circumcircle(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c, CGL_vec2* center, CGL_float* radius);
@@ -1008,6 +1311,7 @@ CGL_float CGL_utils_random_gaussian(CGL_float mean, CGL_float std_dev);
 #define CGL_GJK_EPA_TOLERANCE 0.001f
 #endif
 
+//These functions are used to detect collisions between shapes using the GJK algorithm. The first two functions provide a "support" point for a given direction, which is used by the GJK algorithm to find the collision. The third function performs the GJK check for two shapes in 2D, and the fourth function performs the EPA step to determine the collision point.
 CGL_vec3 CGL_gjk_shape_default_support(CGL_shape* a, CGL_vec3 d);
 CGL_vec3 CGL_gjk_default_support(CGL_shape* a, CGL_shape* b, CGL_vec3 d);
 CGL_bool CGL_gjk_check_collision_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex_out);
@@ -1016,6 +1320,8 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex);
 #ifndef CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES
 #define CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES 4096
 #endif
+
+//This function is used to triangulate a set of 2D points using an incremental algorithm. It takes in an array of points, the number of points, and two outputs: an array of triangle indices and the number of triangles. The output triangles array should be allocated by the caller, with the size of the array being 3 times the number of triangles. The function returns true if the triangulation is successful, or false otherwise.
 
 CGL_bool CGL_triangulate_points_incremental(CGL_vec2* points, CGL_int points_count, CGL_int* triangles_out, CGL_int* triangles_count_out);
 
@@ -1187,13 +1493,20 @@ typedef struct CGL_window CGL_window;
 struct GLFWwindow;
 typedef struct GLFWwindow GLFWwindow;
 
-typedef void(*CGL_window_key_callback)(CGL_window* window, CGL_int key, CGL_int scancode, CGL_int action, CGL_int mods);
-typedef void(*CGL_window_mouse_button_callback)(CGL_window* window, CGL_int button, CGL_int action, CGL_int mods);
-typedef void(*CGL_window_mouse_position_callback)(CGL_window* window, double xpos, double ypos);
-typedef void(*CGL_window_mouse_scroll_callback)(CGL_window* window, double xoffset, double yoffset);
-typedef void(*CGL_window_framebuffer_size_callback)(CGL_window* window, CGL_int width, CGL_int height);
-typedef void(*CGL_window_close_callback)(CGL_window* window);
-typedef void(*CGL_window_drag_n_drop_callback)(CGL_window* window, const CGL_byte** paths, CGL_int count);
+typedef void(*CGL_window_key_callback)(CGL_window* window, CGL_int key, CGL_int scancode, CGL_int action, CGL_int mods); //The CGL_window_key_callback function is used to receive input from a keyboard. It takes a pointer to a CGL_window object, an integer representing the key, an integer representing the scancode of the key, an integer representing the action (press, release, repeat), and an integer representing the modified keys (e.g. shift). 
+
+typedef void(*CGL_window_mouse_button_callback)(CGL_window* window, CGL_int button, CGL_int action, CGL_int mods); //The CGL_window_mouse_button_callback is used to receive input from the mouse buttons. It takes a pointer to a CGL_window object, an integer representing the mouse button, an integer representing the action (press, release), and an integer representing the modified keys (e.g. shift).
+
+typedef void(*CGL_window_mouse_position_callback)(CGL_window* window, double xpos, double ypos);//The CGL_window_mouse_position_callback is used to receive input from the mouse position. It takes a pointer to a CGL_window object, and two double values for the x and y position of the mouse
+
+
+typedef void(*CGL_window_mouse_scroll_callback)(CGL_window* window, double xoffset, double yoffset); //The CGL_window_mouse_scroll_callback is called when the mouse wheel is scrolled, providing the window pointer and the x and y offsets of the scroll. 
+
+typedef void(*CGL_window_framebuffer_size_callback)(CGL_window* window, CGL_int width, CGL_int height);//The CGL_window_framebuffer_size_callback is called when the window framebuffer size changes, passing the window pointer and the new width and height values
+
+typedef void(*CGL_window_close_callback)(CGL_window* window); //The CGL_window_close_callback is called when the window is closed, passing the window pointer
+
+typedef void(*CGL_window_drag_n_drop_callback)(CGL_window* window, const CGL_byte** paths, CGL_int count);//the CGL_window_drag_n_drop_callback is called when files are dragged and dropped onto the
 
 CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title); // create window and initialize GLFW
 void CGL_window_destroy(CGL_window* window); // destroy window and terminate GLFW
