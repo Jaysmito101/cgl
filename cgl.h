@@ -24,6 +24,16 @@ SOFTWARE.
 
 */
 
+/** file: cgl.h
+ *
+ * CGL is a cross platform C library for game development.
+ * It is designed to be simple, fast and easy to use.
+ * It is also designed to be modular, so that you can use 
+ * only the parts you need. 
+ * 
+ * @author Jaysmito Mukherjee 
+ */
+
 #ifndef CGL_H
 #define CGL_H
 
@@ -72,6 +82,9 @@ SOFTWARE.
 #include <unistd.h>
 #endif
 
+/*
+ * CGL types
+ */
 typedef unsigned char CGL_ubyte;
 typedef unsigned short CGL_ushort;
 typedef unsigned int CGL_uint;
@@ -116,13 +129,31 @@ typedef void CGL_void;
 struct CGL_context;
 typedef struct CGL_context CGL_context;
 
+/** @brief Initializes CGL
+ * 
+ * This function initializes CGL. It must be called before
+ * any other CGL function.
+ * 
+ * @return true if CGL was initialized successfully
+*/
 bool CGL_init(); // initialize CGL
+
+/** @brief Shuts down CGL
+ * 
+ * This function shuts down CGL. It must be called after
+ * all other CGL functions.
+ * 
+ * @return returns nothing
+*/
 void CGL_shutdown(); // shutdown CGL
 
 #endif
 
 #ifndef CGL_EXCLUDE_NETWORKING
 
+/*
+ * The error codes for CGL networking
+ */
 #define CGL_NET_NO_ERROR                    0xAB000
 #define CGL_NET_NAME_RESOLUTION_ERROR       0xAB001
 #define CGL_NET_INVALID_PARAMATER_ERROR     0xAB002
@@ -136,11 +167,45 @@ typedef struct CGL_net_addrinfo CGL_net_addrinfo;
 struct CGL_net_socket;
 typedef struct CGL_net_socket CGL_net_socket;
 
-
+/** @brief Initializes CGL networking system
+ * 
+ * This function initializes CGL networking system.
+ * It must be called before any other CGL networking function.
+ * 
+ * @return true if CGL networking was initialized successfully
+*/
 bool CGL_net_init();
+
+/** @brief Shuts down CGL networking system
+ * 
+ * This function shuts down CGL networking system.
+ * Also frees all the resources allocated by CGL
+ * networking system.
+ * 
+ * @return returns nothing 
+ */
 void CGL_net_shutdown();
 
+/** @brief Query system for addrinfo
+ * 
+ * This function queries the system for addrinfo
+ * for the given name and port. The addrinfo is
+ * stored in the CGL_net_addrinfo struct.
+ * 
+ * @param name the name of the host
+ * @param port the port of the host
+ * @param count the number of addrinfo returned (output)
+ * @return the addrinfo of the host 
+*/
 CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, size_t* count);
+
+/** @brief Destroys the addrinfo
+ * 
+ * This function destroys the addrinfo and frees
+ * all the resources allocated by CGL networking
+ * 
+ * @param infos the addrinfo to destroy * 
+*/
 void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
 
 CGL_net_socket* CGL_net_socket_create();
@@ -947,6 +1012,30 @@ CGL_vec4 CGL_vec4_normalize_(CGL_vec4 a);
 CGL_float CGL_vec4_dot_(CGL_vec4 a, CGL_vec4 b);
 CGL_float CGL_vec4_length_(CGL_vec4 a);
 CGL_vec4 CGL_vec4_lerp_(CGL_vec4 a, CGL_vec4 b, CGL_float t);
+
+
+struct CGL_transform
+{
+    CGL_vec4 position;
+    CGL_vec4 rotation;
+    CGL_vec4 scale;
+    CGL_mat4 matrix;
+    struct CGL_transform* parent;
+};
+typedef struct CGL_transform CGL_transform;
+
+CGL_transform CGL_transform_create_empty();
+CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec3 scale);
+CGL_transform CGL_transform_create_from_matrix(CGL_mat4 matrix);
+CGL_transform* CGL_transform_set_position(CGL_transform* transform, CGL_vec3 position);
+CGL_transform* CGL_transform_set_rotation(CGL_transform* transform, CGL_vec3 rotation);
+CGL_transform* CGL_transform_set_scale(CGL_transform* transform, CGL_vec3 scale);
+CGL_transform* CGL_transform_set_parent(CGL_transform* transform, CGL_transform* parent);
+CGL_transform* CGL_transform_update(CGL_transform* transform);
+CGL_transform* CGL_transform_update_matrix_local(CGL_transform* transform);
+CGL_mat4 CGL_transform_get_matrix(CGL_transform* transform);
+CGL_mat4* CGL_transform_get_matrix_ptr(CGL_transform* transform);
+
 
 #endif
 
@@ -3779,6 +3868,95 @@ void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
 void CGL_shape_destroy(CGL_shape* shape)
 {
     CGL_free(shape->vertices);
+}
+
+
+CGL_transform CGL_transform_create_empty()
+{
+    CGL_transform transform;
+    transform.position = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    transform.rotation = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    transform.scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
+    transform.matrix = CGL_mat4_identity();
+    transform.parent = NULL;
+    return transform;
+}
+
+CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec3 scale)
+{
+    CGL_transform transform;
+    transform.position = CGL_vec4_init(position.x, position.y, position.z, 0.0f);
+    transform.rotation = CGL_vec4_init(rotation.x, rotation.y, rotation.z, 0.0f);
+    transform.scale = CGL_vec4_init(scale.x, scale.y, scale.z, 1.0f);
+    transform.matrix = CGL_mat4_identity();
+    transform.parent = NULL;
+    CGL_transform_update(&transform);
+    return transform;
+}
+
+CGL_transform CGL_transform_create_from_matrix(CGL_mat4 matrix)
+{
+    CGL_transform transform;
+    // TODO: Implement
+    CGL_warn("CGL_transform_create_from_matrix() is not implemented yet!");
+    return transform;
+}
+
+CGL_transform* CGL_transform_set_position(CGL_transform* transform, CGL_vec3 position)
+{
+    transform->position = CGL_vec4_init(position.x, position.y, position.z, 0.0f);
+    return transform;
+}
+
+CGL_transform* CGL_transform_set_rotation(CGL_transform* transform, CGL_vec3 rotation)
+{
+    transform->rotation = CGL_vec4_init(rotation.x, rotation.y, rotation.z, 0.0f);
+    return transform;
+}
+
+CGL_transform* CGL_transform_set_scale(CGL_transform* transform, CGL_vec3 scale)
+{
+    transform->scale = CGL_vec4_init(scale.x, scale.y, scale.z, 1.0f);
+    return transform;
+}
+
+CGL_transform* CGL_transform_set_parent(CGL_transform* transform, CGL_transform* parent)
+{
+    transform->parent = parent;
+    return transform;
+}
+
+CGL_transform* CGL_transform_update(CGL_transform* transform)
+{
+    CGL_mat4 parent_transform = CGL_mat4_identity();
+    if(transform->parent != NULL) 
+    {
+        CGL_transform_update(transform->parent);
+        parent_transform = transform->parent->matrix;
+    }
+    CGL_transform_update_matrix_local(transform);
+    transform->matrix = CGL_mat4_mul(parent_transform, transform->matrix);
+    return transform;
+}
+
+CGL_transform* CGL_transform_update_matrix_local(CGL_transform* transform)
+{
+    CGL_mat4 translation = CGL_mat4_translate(transform->position.x, transform->position.y, transform->position.z);
+    CGL_mat4 rotation = CGL_mat4_rotate(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+    CGL_mat4 scale = CGL_mat4_scale(transform->scale.x, transform->scale.y, transform->scale.z);
+    transform->matrix = CGL_mat4_mul(translation, rotation);
+    transform->matrix = CGL_mat4_mul(transform->matrix, scale);
+    return transform;
+}
+
+CGL_mat4 CGL_transform_get_matrix(CGL_transform* transform)
+{
+    return transform->matrix;
+}
+
+CGL_mat4* CGL_transform_get_matrix_ptr(CGL_transform* transform)
+{
+    return &transform->matrix;
 }
 
 bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount)
