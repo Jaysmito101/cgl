@@ -145,7 +145,21 @@ void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
 
 CGL_net_socket* CGL_net_socket_create();
 
-bool CGL_net_socket_connect(CGL_net_socket* socket, CGL_net_addrinfo* target); /*It connects Socket to specified target address*/
+
+/**
+ * It Connects a socket to a target address.
+ *
+ * @param socket  The socket which we want to connect
+ * @param target  The target address on which we want to connect
+ *
+ * @return IT will return true if connection was successful or else it will give out false
+ */
+bool CGL_net_socket_connect(CGL_net_socket* socket, CGL_net_addrinfo* target)
+{
+    // 	Put the decision of the function for connectiong the socket to the target address
+    
+}
+
 
 bool CGL_net_socket_bind(CGL_net_socket* socket, CGL_net_addrinfo* target); /*Binds socket  to a specified address and port*/
 
