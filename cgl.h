@@ -208,35 +208,287 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
 */
 void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
 
+/** @brief Creates a socket
+ * 
+ * This function creates a socket object and returns
+ * it. 
+ * 
+ * NOTE: This must be destroyed using CGL_net_socket_destroy
+ * 
+ * @return the socket object
+*/
 CGL_net_socket* CGL_net_socket_create();
+
+/** @brief Connects a socket to a target addrinfo
+ * 
+ * This function connects the socket to the target
+ * specified by the addrinfo.
+ * 
+ * @param socket The socket to connect
+ * @param target The target addrinfo
+ * @return true if the socket was connected successfully
+*/
 bool CGL_net_socket_connect(CGL_net_socket* socket, CGL_net_addrinfo* target);
+
+/** @brief Binds a socket to a target addrinfo
+ * 
+ * This function binds the socket to the target
+ * specified by the addrinfo.
+ * 
+ * @param socket The socket to bind
+ * @param target The target addrinfo
+ * @return true if the socket was bound successfully
+*/
 bool CGL_net_socket_bind(CGL_net_socket* socket, CGL_net_addrinfo* target);
+
+/** @brief Listens for connections on a socket (Server)
+ * 
+ * This function makes the socket listen for connections. 
+ * This basically sets up the socket as a server.
+ * 
+ * @param socket The socket to listen on
+ * @param max_connections The maximum number of connections
+ * @return true if the socket was listening successfully
+*/
 bool CGL_net_socket_listen(CGL_net_socket* socket, size_t max_connections); 
+
+/** @brief Accepts a connection on a socket (Server)
+ * 
+ * This function accepts a connection on the socket
+ * and returns a new socket object for the connection.
+ * The returned object has a connection established
+ * with the client and can be used to send and receive
+ * data packets over the connection.
+ * 
+ * NOTE: The returned object must be destroyed using CGL_net_socket_close
+ * 
+ * @param socket The socket to accept a connection on
+ * @param addrinfo The addrinfo of the socket
+ * @return the socket object for the connection if successful, NULL otherwise
+*/
 CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* socket, CGL_net_addrinfo* addrinfo);
+
+/** @brief Destroys a socket
+ * 
+ * This function destroys the socket and frees
+ * all the resources allocated for the socket.
+ * It also releases the internal handles of the socket.
+ * 
+ * @param socket The socket to destroy
+ * @return returns nothing
+*/
 void CGL_net_socket_close(CGL_net_socket* socket);
+
+/** @brief Sends data over a socket
+ * 
+ * This function sends data over the socket.
+ * 
+ * @param socket The socket to send data over
+ * @param buffer The buffer to send
+ * @param size The size of the buffer
+ * @param size_sent The size of the data sent (output)
+ * @return true if the data was sent successfully
+*/
 bool CGL_net_socket_send(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_sent);
+
+/** @brief Receives data over a socket
+ * 
+ * This function receives data over the socket.
+ * 
+ * @param socket The socket to receive data over
+ * @param buffer The buffer to receive data into
+ * @param size The size of the buffer
+ * @param size_recieved The size of the data recieved (output)
+ * @return true if the data was recieved successfully
+*/
 bool CGL_net_socket_recv(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_recieved);
+
+/** @brief Shuts down the send side of a socket
+ * 
+ * This function shuts down the send side of the socket.
+ * 
+ * @param socket The socket to shutdown
+ * @return true if the socket was shutdown successfully
+*/
 bool CGL_net_socket_shutdown_send(CGL_net_socket* socket);
+
+/** @brief Shuts down the receive side of a socket
+ * 
+ * This function shuts down the receive side of the socket.
+ * 
+ * @param socket The socket to shutdown
+ * @return true if the socket was shutdown successfully
+*/
 bool CGL_net_socket_shutdown_recv(CGL_net_socket* socket);
 
-int CGL_net_http_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
-int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
-int CGL_net_http_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+/** @brief Performs a HTTP request
+ * 
+ * This function performs a HTTP request.
+ * It internally allocates sockets, establishes
+ * connections, sends and receives data.
+ * This function is blocking.
+ * 
+ * NOTE: This function is not very stable yet
+ *       and should be avoided in production
+ *       environments.
+ * 
+ * @param method The HTTP method to use (GET, POST, etc.)
+ * @param host The host to connect to (Ex: www.google.com)
+ * @param path The path to request (Ex: /search)
+ * @param response_buffer The buffer to store the response in (output)
+ * @param size The size of the buffer (input) and the size of the response (output)
+ * @param accept The accept header to send
+ * @param user_agent The user agent header to send
+ * @param body The request body to send 
+ * @return HTTP status code is successful, 0 otherwise
+*/
+CGL_int CGL_net_http_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+
+/** @brief Performs a HTTP GET request
+ * 
+ * This function performs a HTTP GET request.
+ * 
+ * NOTE: This internally calls CGL_net_http_request
+ * 
+ * @param host The host to connect to (Ex: www.google.com)
+ * @param path The path to request (Ex: /search)
+ * @param buffer The buffer to store the response in (output)
+ * @param size The size of the buffer (input) and the size of the response (output)
+ * @param accept The accept header to send
+ * @param user_agent The user agent header to send
+ * @return HTTP status code is successful, 0 otherwise
+*/
+CGL_int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
+
+/** @brief Performs a HTTP POST request
+ * 
+ * This function performs a HTTP POST request.
+ * 
+ * NOTE: This internally calls CGL_net_http_request
+ * 
+ * @param host The host to connect to (Ex: www.google.com)
+ * @param path The path to request (Ex: /search)
+ * @param buffer The buffer to store the response in (output)
+ * @param size The size of the buffer (input) and the size of the response (output)
+ * @param accept The accept header to send
+ * @param user_agent The user agent header to send
+ * @param body The request body to send 
+ * @return HTTP status code is successful, 0 otherwise
+*/
+CGL_int CGL_net_http_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
 
 #ifndef CGL_EXCLUDE_SSL_SOCKET
 
-int CGL_net_https_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
-int CGL_net_https_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
-int CGL_net_https_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+/** @brief Performs a HTTPS request
+ * 
+ * NOTE: Not implemented yet
+ * 
+ * @param method The HTTP method to use (GET, POST, etc.)
+ * @param host The host to connect to (Ex: www.google.com)
+ * @param path The path to request (Ex: /search)
+ * @param response_buffer The buffer to store the response in (output)
+ * @param size The size of the buffer (input) and the size of the response (output)
+ * @param accept The accept header to send
+ * @param user_agent The user agent header to send
+ * @param body The request body to send
+ * @return HTTP status code is successful, 0 otherwise
+*/
+CGL_int CGL_net_https_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+
+/** @brief Performs a HTTPS GET request
+ * 
+ * Performs a HTTPS GET request.
+ * 
+ * NOTE: This internally calls CGL_net_https_request
+ * 
+ * @param host The host to connect to (Ex: www.google.com)
+ * @param path The path to request (Ex: /search)
+ * @param buffer The buffer to store the response in (output)
+ * @param size The size of the buffer (input) and the size of the response (output)
+ * @param accept The accept header to send
+ * @param user_agent The user agent header to send
+ * @return HTTP status code is successful, 0 otherwise
+*/
+CGL_int CGL_net_https_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
+
+/** @brief Performs a HTTPS POST request
+ * 
+ * Performs a HTTPS POST request.
+ * 
+ * NOTE: This internally calls CGL_net_https_request
+ * 
+ * @param host The host to connect to (Ex: www.google.com)
+ * @param path The path to request (Ex: /search)
+ * @param buffer The buffer to store the response in (output)
+ * @param size The size of the buffer (input) and the size of the response (output)
+ * @param accept The accept header to send
+ * @param user_agent The user agent header to send
+ * @param body The request body to send
+ * @return HTTP status code is successful, 0 otherwise
+*/
+CGL_int CGL_net_https_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
+
 
 struct CGL_net_ssl_socket;
 typedef struct CGL_net_ssl_socket CGL_net_ssl_socket;
 
+/** @brief Creates a new SSL socket
+ * 
+ * This function creates a new SSL socket from
+ * the given socket.
+ * 
+ * NOTE: (1) The socket object must be connected before
+ *           calling this function.
+ *       (2) The socket object will automatically be
+ *           destroyed when the SSL socket is destroyed.
+ *  * 
+ * @param socket The socket to create the SSL socket from
+ * @return The new SSL socket
+*/
 CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* socket);
-bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_sent);
-bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_recieved);
-void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc);
-void CGL_net_ssl_log_errors();
+
+/** @brief Sends data over the SSL socket
+ * 
+ * This function sends data over the SSL socket.
+ * 
+ * @param socket The SSL socket to send data over
+ * @param buffer The buffer to send
+ * @param size The size of the buffer
+ * @param size_sent The size of the data sent
+ * @return CGL_TRUE if successful, CGL_FALSE otherwise
+*/
+CGL_bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_sent);
+
+/** @brief Receives data over the SSL socket
+ * 
+ * This function receives data over the SSL socket.
+ * 
+ * @param socket The SSL socket to receive data over
+ * @param buffer The buffer to store the data in
+ * @param size The size of the buffer
+ * @param size_recieved The size of the data recieved
+ * @return CGL_TRUE if successful, CGL_FALSE otherwise
+*/
+
+CGL_bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_recieved);
+
+/** @brief Destroys the SSL socket
+ * 
+ * This function destroys the SSL socket.
+ * This also destroys the socket object.
+ * 
+ * @param socket The SSL socket to destroy
+ * @return returns nothing
+*/
+CGL_void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc);
+
+/** @brief Logs the SSL errors
+ * 
+ * This function logs the SSL errors if any.
+ * 
+ * @return returns nothing
+*/
+CGL_void CGL_net_ssl_log_errors();
 
 #endif
 
