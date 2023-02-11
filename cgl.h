@@ -144,22 +144,32 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
 void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
 
 CGL_net_socket* CGL_net_socket_create();
-bool CGL_net_socket_connect(CGL_net_socket* socket, CGL_net_addrinfo* target);
-bool CGL_net_socket_bind(CGL_net_socket* socket, CGL_net_addrinfo* target);
-bool CGL_net_socket_listen(CGL_net_socket* socket, size_t max_connections); 
-CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* socket, CGL_net_addrinfo* addrinfo);
-void CGL_net_socket_close(CGL_net_socket* socket);
-bool CGL_net_socket_send(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_sent);
-bool CGL_net_socket_recv(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_recieved);
-bool CGL_net_socket_shutdown_send(CGL_net_socket* socket);
-bool CGL_net_socket_shutdown_recv(CGL_net_socket* socket);
 
-int CGL_net_http_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
-int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
+bool CGL_net_socket_connect(CGL_net_socket* socket, CGL_net_addrinfo* target); /*It connects Socket to specified target address*/
+
+bool CGL_net_socket_bind(CGL_net_socket* socket, CGL_net_addrinfo* target); /*Binds socket  to a specified address and port*/
+
+bool CGL_net_socket_listen(CGL_net_socket* socket, size_t max_connections); /*unction puts a socket into a state where it listens for incoming connections. */
+
+CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* socket, CGL_net_addrinfo* addrinfo); /*accepts a connection from a client on a listening socket. */
+
+void CGL_net_socket_close(CGL_net_socket* socket); /* closes a socket*/
+
+bool CGL_net_socket_send(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_sent); /*sends data over network*/
+
+bool CGL_net_socket_recv(CGL_net_socket* socket, void* buffer, size_t size, size_t* size_recieved); /*receives data from a socket*/
+
+bool CGL_net_socket_shutdown_send(CGL_net_socket* socket); /*stops sending of data over a socket*/
+bool CGL_net_socket_shutdown_recv(CGL_net_socket* socket); /*stops recieving of data on a socket*/
+
+int CGL_net_http_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body); /*allows user to make http request with method*/
+
+/*Version of CGL_net_http_request*/
+int CGL_net_http_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent); 
 int CGL_net_http_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
 
 #ifndef CGL_EXCLUDE_SSL_SOCKET
-
+/*These functions make secure HTTPS request like they not simply request HTTPS*/
 int CGL_net_https_request(const char* method, const char* host, const char* path, void* response_buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
 int CGL_net_https_get(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent);
 int CGL_net_https_post(const char* host, const char* path, void* buffer, size_t* size, const char* accept, const char* user_agent, const char* body);
@@ -167,11 +177,12 @@ int CGL_net_https_post(const char* host, const char* path, void* buffer, size_t*
 struct CGL_net_ssl_socket;
 typedef struct CGL_net_ssl_socket CGL_net_ssl_socket;
 
-CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* socket);
-bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_sent);
-bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_recieved);
-void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc);
-void CGL_net_ssl_log_errors();
+CGL_net_ssl_socket* CGL_net_ssl_socket_create(CGL_net_socket* socket); /*Creates SSL scokets*/
+
+bool CGL_net_ssl_socket_send(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_sent); /*Send SSL sockets*/
+bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* socket, void* buffer, size_t size, size_t* size_recieved); /*Recieves SSL sockets*/
+void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc); /*Cleans up SSL socket*/
+void CGL_net_ssl_log_errors(); /*log any erros that have occured during creation or use of SSL sockets*/
 
 #endif
 
@@ -187,23 +198,26 @@ void CGL_net_ssl_log_errors();
 
 #define CGL_UTILS_FAST_RAND_MAX 32767
 
-void CGL_utils_sleep(const CGL_sizei milis);
-CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
-CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);
-CGL_bool CGL_utils_append_file(const CGL_byte* path, const CGL_byte* data, size_t size);
-CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); // write data to file
-CGL_float CGL_utils_get_time();
-void CGL_utils_get_timestamp(char* buffer);
+void CGL_utils_sleep(const CGL_sizei milis); /*counts number of milliseconds to sleep*/
+CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); /* read files*/
+CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);  /* gives file size*/
+CGL_bool CGL_utils_append_file(const CGL_byte* path, const CGL_byte* data, size_t size); /*wite data into files*/
+CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); /*wirte data into files*/
+CGL_float CGL_utils_get_time(); /*returns current time*/
+void CGL_utils_get_timestamp(char* buffer); /*returns a timestamp string*/
 CGL_bool CGL_utils_is_little_endian();
-CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count);
+CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count); */retuns random number based on condtions*/
+
+/*converts data form one endianess to other*/
 void CGL_utils_reverse_bytes(void* data, size_t size);
 void CGL_utils_little_endian_to_current(void* data, size_t size);
 void CGL_utils_big_endian_to_current(void* data, size_t size);
-void CGL_utils_fast_srand(CGL_int seed);
-CGL_int CGL_utils_fast_rand();
-CGL_ulong CGL_utils_xorshf96();
-void CGL_utils_srand31(CGL_uint seed);
-CGL_uint CGL_utils_rand31();
+
+void CGL_utils_fast_srand(CGL_int seed); /*seed the random number genrator*/
+CGL_int CGL_utils_fast_rand(); */genrates fast random nuhmbers*/
+CGL_ulong CGL_utils_xorshf96(); */genrates fast random nuhmbers*/
+void CGL_utils_srand31(CGL_uint seed); /*Genrates more random number but these are slow*/
+CGL_uint CGL_utils_rand31(); /*Genrates more random number but these are slow*/
 
 #define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy))
 #define CGL_utils_random_float() ((float)rand() / (float)RAND_MAX)
@@ -222,9 +236,9 @@ CGL_uint CGL_utils_rand31();
 #define CGL_utils_lerp(a, b, t) (a + (b - a) * t)
 #define CGL_utils_square(x) ((x) * (x))
 #define CGL_utils_cube(x) ((x) * (x) * (x))
-CGL_float CGL_utils_sigmoid(CGL_float x);
-CGL_float CGL_utils_sigmoid_derivative(CGL_float x);
-CGL_float CGL_utils_relu(CGL_float x);
+CGL_float CGL_utils_sigmoid(CGL_float x); /*calculates sigmoid value of given number */
+CGL_float CGL_utils_sigmoid_derivative(CGL_float x); /*calculates the derivative of the sigmoid function at the given number*/
+CGL_float CGL_utils_relu(CGL_float x); /*calculates the rectified linear unit value of a given number */
 CGL_float CGL_utils_relu_derivative(CGL_float x);
 CGL_float CGL_utils_tanh(CGL_float x);
 CGL_float CGL_utils_tanh_derivative(CGL_float x);
