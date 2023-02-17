@@ -1294,6 +1294,71 @@ CGL_mat4* CGL_transform_get_matrix_ptr(CGL_transform* transform);
 
 #endif
 
+#ifndef CGL_EXCLUDE_MATRIX_API
+
+#ifndef CGL_MATRIX_DATA_TYPE
+#define CGL_MATRIX_DATA_TYPE CGL_float
+#endif
+
+
+struct CGL_matrix;
+typedef struct CGL_matrix CGL_matrix;
+
+
+CGL_matrix* CGL_matrix_create(CGL_int m, CGL_int n);
+CGL_void CGL_matrix_destroy(CGL_matrix* m);
+CGL_matrix* CGL_matrix_create_from_array(CGL_MATRIX_DATA_TYPE* array, CGL_int m, CGL_int n);
+CGL_matrix* CGL_matrix_add_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out);
+CGL_matrix* CGL_matrix_add(CGL_matrix* a, CGL_matrix* b);
+CGL_matrix* CGL_matrix_sub_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out);
+CGL_matrix* CGL_matrix_sub(CGL_matrix* a, CGL_matrix* b);
+CGL_matrix* CGL_matrix_elem_mul_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out);
+CGL_matrix* CGL_matrix_elem_mul(CGL_matrix* a, CGL_matrix* b);
+CGL_matrix* CGL_matrix_mul_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out);
+CGL_matrix* CGL_matrix_mul(CGL_matrix* a, CGL_matrix* b);
+CGL_matrix* CGL_matrix_transpose_to(CGL_matrix* m, CGL_matrix* out);
+CGL_matrix* CGL_matrix_transpose(CGL_matrix* m);
+CGL_matrix* CGL_matrix_identity_to(CGL_int m, CGL_int n, CGL_matrix* out);
+CGL_matrix* CGL_matrix_identity(CGL_int m, CGL_int n);
+CGL_matrix* CGL_matrix_scale_to(CGL_matrix* m, CGL_MATRIX_DATA_TYPE s);
+CGL_matrix* CGL_matrix_scale(CGL_matrix* m, CGL_MATRIX_DATA_TYPE s);
+CGL_MATRIX_DATA_TYPE CGL_matrix_get_elem(CGL_matrix* m, CGL_int i, CGL_int j);
+CGL_bool CGL_matrix_set_elem(CGL_matrix* m, CGL_int i, CGL_int j, CGL_MATRIX_DATA_TYPE value);
+CGL_bool CGL_matrix_set_row(CGL_matrix* m, CGL_int i, CGL_MATRIX_DATA_TYPE* row);
+CGL_bool CGL_matrix_set_col(CGL_matrix* m, CGL_int j, CGL_MATRIX_DATA_TYPE* col);
+CGL_bool CGL_matrix_get_row(CGL_matrix* m, CGL_int i, CGL_MATRIX_DATA_TYPE* out);
+CGL_bool CGL_matrix_get_col(CGL_matrix* m, CGL_int j, CGL_MATRIX_DATA_TYPE* out);
+CGL_matrix* CGL_matrix_row_to_matrix_to(CGL_MATRIX_DATA_TYPE* row, CGL_int n, CGL_matrix* out);
+CGL_matrix* CGL_matrix_row_to_matrix(CGL_MATRIX_DATA_TYPE* row, CGL_int n);
+CGL_matrix* CGL_matrix_col_to_matrix_to(CGL_MATRIX_DATA_TYPE* col, CGL_int n, CGL_matrix* out);
+CGL_matrix* CGL_matrix_col_to_matrix(CGL_MATRIX_DATA_TYPE* col, CGL_int n);
+CGL_bool CGL_matrix_is_square(CGL_matrix* m);
+CGL_bool CGL_matrix_is_symmetric(CGL_matrix* m);
+CGL_bool CGL_matrix_is_orthogonal(CGL_matrix* m);
+CGL_bool CGL_matrix_is_diagonal(CGL_matrix* m);
+CGL_bool CGL_matrix_is_identity(CGL_matrix* m);
+CGL_bool CGL_matrix_is_zero(CGL_matrix* m);
+CGL_bool CGL_matrix_is_equal(CGL_matrix* a, CGL_matrix* b);
+CGL_MATRIX_DATA_TYPE CGL_matrix_trace(CGL_matrix* m);
+CGL_MATRIX_DATA_TYPE CGL_matrix_determinant(CGL_matrix* m);
+CGL_matrix* CGL_matrix_inverse_to(CGL_matrix* m, CGL_matrix* out);
+CGL_matrix* CGL_matrix_inverse(CGL_matrix* m);
+CGL_matrix* CGL_matrix_copy_to(CGL_matrix* m, CGL_matrix* out);
+CGL_matrix* CGL_matrix_copy(CGL_matrix* m);
+CGL_bool CGL_matrix_print(CGL_matrix* m);
+CGL_matrix* CGL_matrix_gauss_jordan_to(CGL_matrix* m, CGL_matrix* out);
+CGL_matrix* CGL_matrix_gauss_jordan(CGL_matrix* m);
+CGL_matrix* CGL_matrix_submatrix_to(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_int m, CGL_int n, CGL_matrix* out);
+CGL_matrix* CGL_matrix_submatrix(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_int m, CGL_int n);
+CGL_matrix* CGL_matrix_minor_to(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_matrix* out);
+CGL_matrix* CGL_matrix_minor(CGL_matrix* mat, CGL_int i, CGL_int j);
+CGL_matrix* CGL_matrix_adjugate_to(CGL_matrix* m, CGL_matrix* out);
+CGL_matrix* CGL_matrix_adjugate(CGL_matrix* m);
+CGL_matrix* CGL_matrix_transpose_inplace(CGL_matrix* m);
+
+#endif
+
+
 struct CGL_shape_triangle
 {
     CGL_vec3 a;
@@ -4148,7 +4213,7 @@ CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec
 
 CGL_transform CGL_transform_create_from_matrix(CGL_mat4 matrix)
 {
-    CGL_transform transform;
+    CGL_transform transform = {0};
     // TODO: Implement
     CGL_warn("CGL_transform_create_from_matrix() is not implemented yet!");
     return transform;
@@ -4194,7 +4259,11 @@ CGL_transform* CGL_transform_update(CGL_transform* transform)
 CGL_transform* CGL_transform_update_matrix_local(CGL_transform* transform)
 {
     CGL_mat4 translation = CGL_mat4_translate(transform->position.x, transform->position.y, transform->position.z);
-    CGL_mat4 rotation = CGL_mat4_rotate(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+    //CGL_mat4 rotation = CGL_mat4_rotation(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+    CGL_mat4 rotation_x = CGL_mat4_rotate_x(transform->rotation.x);
+    CGL_mat4 rotation_y = CGL_mat4_rotate_y(transform->rotation.y);
+    CGL_mat4 rotation_z = CGL_mat4_rotate_z(transform->rotation.z);
+    CGL_mat4 rotation = CGL_mat4_mul(rotation_x, rotation_y); rotation = CGL_mat4_mul(rotation, rotation_z);
     CGL_mat4 scale = CGL_mat4_scale(transform->scale.x, transform->scale.y, transform->scale.z);
     transform->matrix = CGL_mat4_mul(translation, rotation);
     transform->matrix = CGL_mat4_mul(transform->matrix, scale);
@@ -5405,6 +5474,530 @@ CGL_vec4 CGL_quat_mul_vec4(CGL_quat q, CGL_vec4 v)
     CGL_warn("CGL_quat_mul_vec4 is not implemented yet");
     return v;
 }
+
+
+
+#ifndef CGL_EXCLUDE_MATRIX_API
+
+struct CGL_matrix
+{
+    CGL_MATRIX_DATA_TYPE* data;
+    CGL_int m;
+    CGL_int n;
+};
+
+CGL_matrix* CGL_matrix_create(CGL_int m, CGL_int n)
+{
+    if(m <= 0 || n <= 0) return NULL; // return null if the dimensions are invalid
+    CGL_matrix* result = (CGL_matrix*)malloc(sizeof(CGL_matrix)); // allocate memory for the matrix
+    if(!result) return NULL; // return null if the memory could not be allocated
+    result->data = (CGL_MATRIX_DATA_TYPE*)malloc(sizeof(CGL_MATRIX_DATA_TYPE) * m * n); // allocate memory for the data
+    if(!result->data) { CGL_free(result); return NULL; } // free the matrix and return null if the memory could not be allocated
+    result->m = m; result->n = n; // set the dimensions
+    return result; // return the matrix
+}
+
+CGL_void CGL_matrix_destroy(CGL_matrix* m)
+{
+    if(!m) return; // return if the matrix is null
+    CGL_free(m->data); // free the data
+    CGL_free(m); // free the matrix
+}
+
+CGL_matrix* CGL_matrix_create_from_array(CGL_MATRIX_DATA_TYPE* array, CGL_int m, CGL_int n)
+{
+    CGL_matrix* result = CGL_matrix_create(m, n); // create the matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    memcpy(result->data, array, sizeof(CGL_MATRIX_DATA_TYPE) * m * n); // copy the array into the matrix
+    return result; // return the matrix
+}
+
+CGL_matrix* CGL_matrix_add_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+{
+    if(!a || !b || !out) return NULL; // return null if any of the matrices are null
+    if(a->m != b->m || a->n != b->n || a->m != out->m || a->n != out->n) return NULL; // return null if the matrices are not the same size
+    for(int i = 0; i < a->m * a->n; i++) out->data[i] = a->data[i] + b->data[i]; // add the matrices
+    return out; // return the result matrix
+} 
+
+CGL_matrix* CGL_matrix_add(CGL_matrix* a, CGL_matrix* b)
+{
+    if(!a || !b) return NULL; // return null if any of the matrices are null
+    if(a->m != b->m || a->n != b->n) return NULL; // return null if the matrices are not the same size
+    CGL_matrix* result = CGL_matrix_create(a->m, a->n); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    for(int i = 0; i < a->m * a->n; i++) result->data[i] = a->data[i] + b->data[i]; // add the matrices
+    // CGL_matrix_add_to(a, b, result); // add the matrices
+    return result; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_sub_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+{
+    if(!a || !b || !out) return NULL; // return null if any of the matrices are null
+    if(a->m != b->m || a->n != b->n || a->m != out->m || a->n != out->n) return NULL; // return null if the matrices are not the same size
+    for(int i = 0; i < a->m * a->n; i++) out->data[i] = a->data[i] - b->data[i]; // subtract the matrices
+    return out; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_sub(CGL_matrix* a, CGL_matrix* b)
+{
+    if(!a || !b) return NULL; // return null if any of the matrices are null
+    if(a->m != b->m || a->n != b->n) return NULL; // return null if the matrices are not the same size
+    CGL_matrix* result = CGL_matrix_create(a->m, a->n); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    for(int i = 0; i < a->m * a->n; i++) result->data[i] = a->data[i] - b->data[i]; // subtract the matrices
+    // CGL_matrix_sub_to(a, b, result); // subtract the matrices
+    return result; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_elem_mul_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+{
+    if(!a || !b || !out) return NULL; // return null if any of the matrices are null
+    if(a->m != b->m || a->n != b->n || a->m != out->m || a->n != out->n) return NULL; // return null if the matrices are not the same size
+    for(int i = 0; i < a->m * a->n; i++) out->data[i] = a->data[i] * b->data[i]; // multiply the matrices
+    return out; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_elem_mul(CGL_matrix* a, CGL_matrix* b)
+{
+    if(!a || !b) return NULL; // return null if any of the matrices are null
+    if(a->m != b->m || a->n != b->n) return NULL; // return null if the matrices are not the same size
+    CGL_matrix* result = CGL_matrix_create(a->m, a->n); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    for(int i = 0; i < a->m * a->n; i++) result->data[i] = a->data[i] * b->data[i]; // multiply the matrices
+    // CGL_matrix_elem_mul_to(a, b, result); // multiply the matrices
+    return result; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_mul_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+{
+    if(!a || !b || !out) return NULL; // return null if any of the matrices are null
+    if(a->n != b->m || a->m != out->m || b->n != out->n) return NULL; // return null if the matrices are not the correct size
+    for(int i = 0; i < a->m; i++) // for each row in a
+    {
+        for(int j = 0; j < b->n; j++) // for each column in b
+        {
+            CGL_MATRIX_DATA_TYPE sum = 0; // set the sum to 0
+            for(int k = 0; k < a->n; k++) // for each element in the row of a and column of b
+                sum += a->data[i * a->n + k] * b->data[k * b->n + j]; // add the product of the elements to the sum
+            out->data[i * out->n + j] = sum; // set the element in the result matrix to the sum
+        }
+    }
+    return out; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_mul(CGL_matrix* a, CGL_matrix* b)
+{
+    if(!a || !b) return NULL; // return null if any of the matrices are null
+    if(a->n != b->m) return NULL; // return null if the matrices are not the correct size
+    CGL_matrix* result = CGL_matrix_create(a->m, b->n); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    CGL_matrix_mul_to(a, b, result); // multiply the matrices
+    return result; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_transpose_to(CGL_matrix* m, CGL_matrix* out)
+{
+    if(!m || !out) return NULL; // return null if any of the matrices are null
+    if(m->m != out->n || m->n != out->m) return NULL; // return null if the matrices are not the correct size
+    for(int i = 0; i < m->m; i++) // for each row in m
+        for(int j = 0; j < m->n; j++) // for each column in m
+            out->data[j * out->n + i] = m->data[i * m->n + j]; // set the element in the result matrix to the element in m transposed
+    return out; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_transpose(CGL_matrix* m)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    CGL_matrix* result = CGL_matrix_create(m->n, m->m); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    CGL_matrix_transpose_to(m, result); // transpose the matrix
+    return result; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_identity_to(CGL_int m, CGL_int n, CGL_matrix* out)
+{
+    if(!out) return NULL; // return null if the matrix is null
+    if(m != out->m || n != out->n) return NULL; // return null if the matrix is not the correct size
+    for(int i = 0; i < m; i++) // for each row in the matrix
+        for(int j = 0; j < n; j++) // for each column in the matrix
+            out->data[i * out->n + j] = (i == j) ? 1.0f : 0.0f; // set the element to 1 if it is on the diagonal and 0 otherwise
+    return out; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_identity(CGL_int m, CGL_int n)
+{
+    CGL_matrix* result = CGL_matrix_create(m, n); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    CGL_matrix_identity_to(m, n, result); // set the matrix to the identity matrix
+    return result; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_scale_to(CGL_matrix* m, CGL_MATRIX_DATA_TYPE s)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    for(int i = 0; i < m->m * m->n; i++) m->data[i] *= s; // scale the matrix
+    return m; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_scale(CGL_matrix* m, CGL_MATRIX_DATA_TYPE s)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    CGL_matrix* result = CGL_matrix_create(m->m, m->n); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    for(int i = 0; i < m->m * m->n; i++) result->data[i] = m->data[i] * s; // scale the matrix
+    return result; // return the result matrix
+}
+
+CGL_MATRIX_DATA_TYPE CGL_matrix_get_elem(CGL_matrix* m, CGL_int i, CGL_int j)
+{
+    if(!m) return 0; // return 0 if the matrix is null
+    if(i < 0 || i >= m->m || j < 0 || j >= m->n) return 0; // return 0 if the indices are out of bounds
+    return m->data[i * m->n + j]; // return the element
+}
+
+CGL_bool CGL_matrix_set_elem(CGL_matrix* m, CGL_int i, CGL_int j, CGL_MATRIX_DATA_TYPE value)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    if(i < 0 || i >= m->m || j < 0 || j >= m->n) return CGL_FALSE; // return false if the indices are out of bounds
+    m->data[i * m->n + j] = value; // set the element
+    return CGL_TRUE; // return true
+}
+
+CGL_bool CGL_matrix_set_row(CGL_matrix* m, CGL_int i, CGL_MATRIX_DATA_TYPE* row)
+{
+    if(!m || !row) return CGL_FALSE; // return false if any of the matrices are null
+    if(i < 0 || i >= m->m) return CGL_FALSE; // return false if the index is out of bounds
+    for(int j = 0; j < m->n; j++) m->data[i * m->n + j] = row[j]; // set the row
+    return CGL_TRUE; // return true
+}
+
+CGL_bool CGL_matrix_set_col(CGL_matrix* m, CGL_int j, CGL_MATRIX_DATA_TYPE* col)
+{
+    if(!m || !col) return CGL_FALSE; // return false if any of the matrices are null
+    if(j < 0 || j >= m->n) return CGL_FALSE; // return false if the index is out of bounds
+    for(int i = 0; i < m->m; i++) m->data[i * m->n + j] = col[i]; // set the column
+    return CGL_TRUE; // return true
+}
+
+CGL_bool CGL_matrix_get_row(CGL_matrix* m, CGL_int i, CGL_MATRIX_DATA_TYPE* out)
+{
+    if(!m || !out) return CGL_FALSE; // return false if any of the matrices are null
+    if(i < 0 || i >= m->m) return CGL_FALSE; // return false if the index is out of bounds
+    for(int j = 0; j < m->n; j++) out[j] = m->data[i * m->n + j]; // get the row
+    return CGL_TRUE; // return true
+}
+
+CGL_bool CGL_matrix_get_col(CGL_matrix* m, CGL_int j, CGL_MATRIX_DATA_TYPE* out)
+{
+    if(!m || !out) return CGL_FALSE; // return false if any of the matrices are null
+    if(j < 0 || j >= m->n) return CGL_FALSE; // return false if the index is out of bounds
+    for(int i = 0; i < m->m; i++) out[i] = m->data[i * m->n + j]; // get the column
+    return CGL_TRUE; // return true
+}
+
+CGL_matrix* CGL_matrix_row_to_matrix_to(CGL_MATRIX_DATA_TYPE* row, CGL_int n, CGL_matrix* out)
+{
+    if(!row || !out) return NULL; // return null if any of the matrices are null
+    if(out->m != 1 || out->n != n) return NULL; // return null if the output matrix is not a row vector
+    for(int i = 0; i < n; i++) out->data[i] = row[i]; // set the row
+    return out; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_row_to_matrix(CGL_MATRIX_DATA_TYPE* row, CGL_int n)
+{
+    if(!row) return NULL; // return null if the matrix is null
+    CGL_matrix* result = CGL_matrix_create(1, n); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    for(int i = 0; i < n; i++) result->data[i] = row[i]; // set the row
+    return result; // return the result matrix
+
+}
+
+CGL_matrix* CGL_matrix_col_to_matrix_to(CGL_MATRIX_DATA_TYPE* col, CGL_int n, CGL_matrix* out)
+{
+    if(!col || !out) return NULL; // return null if any of the matrices are null
+    if(out->m != n || out->n != 1) return NULL; // return null if the output matrix is not a column vector
+    for(int i = 0; i < n; i++) out->data[i] = col[i]; // set the column
+    return out; // return the result matrix
+}
+
+CGL_matrix* CGL_matrix_col_to_matrix(CGL_MATRIX_DATA_TYPE* col, CGL_int n)
+{
+    if(!col) return NULL; // return null if the matrix is null
+    CGL_matrix* result = CGL_matrix_create(n, 1); // create the result matrix
+    if(!result) return NULL; // return null if the matrix could not be created
+    for(int i = 0; i < n; i++) result->data[i] = col[i]; // set the column
+    return result; // return the result matrix
+}
+
+CGL_bool CGL_matrix_is_square(CGL_matrix* m)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    return m->m == m->n; // return true if the matrix is square
+}
+
+CGL_bool CGL_matrix_is_symmetric(CGL_matrix* m)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    if(!CGL_matrix_is_square(m)) return CGL_FALSE; // return false if the matrix is not square
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        for(int j = 0; j < m->n; j++) // iterate over the columns
+            if(m->data[i * m->n + j] != m->data[j * m->n + i]) return CGL_FALSE; // return false if the element is not symmetric
+    return CGL_TRUE; // return true if the matrix is symmetric
+}
+
+CGL_bool CGL_matrix_is_orthogonal(CGL_matrix* m)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    if(!CGL_matrix_is_square(m)) return CGL_FALSE; // return false if the matrix is not square
+    CGL_matrix* mt = CGL_matrix_transpose(m); // get the transpose of the matrix
+    if(!mt) return CGL_FALSE; // return false if the transpose could not be computed
+    CGL_matrix* mt_m = CGL_matrix_mul(mt, m); // get the product of the transpose and the matrix
+    if(!mt_m) return CGL_FALSE; // return false if the product could not be computed
+    CGL_matrix* m_mt = CGL_matrix_mul(m, mt); // get the product of the matrix and the transpose
+    if(!m_mt) return CGL_FALSE; // return false if the product could not be computed
+    CGL_bool result = CGL_matrix_is_identity(mt_m) && CGL_matrix_is_identity(m_mt); // check if the products are the identity matrix
+    CGL_matrix_destroy(mt); // destroy the transpose
+    CGL_matrix_destroy(mt_m); // destroy the product of the transpose and the matrix
+    CGL_matrix_destroy(m_mt); // destroy the product of the matrix and the transpose
+    return result; // return the result
+}
+
+CGL_bool CGL_matrix_is_diagonal(CGL_matrix* m)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    if(!CGL_matrix_is_square(m)) return CGL_FALSE; // return false if the matrix is not square
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        for(int j = 0; j < m->n; j++) // iterate over the columns
+            if(i != j && m->data[i * m->n + j] != 0) return CGL_FALSE; // return false if the element is not on the diagonal
+    return CGL_TRUE; // return true if the matrix is diagonal
+}
+
+CGL_bool CGL_matrix_is_identity(CGL_matrix* m)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    if(!CGL_matrix_is_square(m)) return CGL_FALSE; // return false if the matrix is not square
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        for(int j = 0; j < m->n; j++) // iterate over the columns
+            if(i == j && m->data[i * m->n + j] != 1) return CGL_FALSE; // return false if the element is not on the diagonal
+            else if(i != j && m->data[i * m->n + j] != 0) return CGL_FALSE; // return false if the element is not on the diagonal
+    return CGL_TRUE; // return true if the matrix is the identity matrix
+}
+
+CGL_bool CGL_matrix_is_zero(CGL_matrix* m)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    for(int i = 0; i < m->m * m->n; i++) // iterate over the elements
+        if(m->data[i] != 0) return CGL_FALSE; // return false if the element is not zero
+    return CGL_TRUE; // return true if the matrix is zero
+}
+
+CGL_bool CGL_matrix_is_equal(CGL_matrix* a, CGL_matrix* b)
+{
+    if(!a || !b) return CGL_FALSE; // return false if either matrix is null
+    if(a->m != b->m || a->n != b->n) return CGL_FALSE; // return false if the matrices are not the same size
+    for(int i = 0; i < a->m * a->n; i++) // iterate over the elements
+        if(a->data[i] != b->data[i]) return CGL_FALSE; // return false if the elements are not equal
+    return CGL_TRUE; // return true if the matrices are equal
+}
+
+CGL_MATRIX_DATA_TYPE CGL_matrix_trace(CGL_matrix* m)
+{
+    if(!m) return 0; // return 0 if the matrix is null
+    if(!CGL_matrix_is_square(m)) return 0; // return 0 if the matrix is not square
+    CGL_MATRIX_DATA_TYPE trace = 0; // initialize the trace to 0
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        trace += m->data[i * m->n + i]; // add the element to the trace
+    return trace; // return the trace
+}
+
+CGL_MATRIX_DATA_TYPE CGL_matrix_determinant(CGL_matrix* m)
+{
+    if(!m) return 0; // return 0 if the matrix is null
+    if(!CGL_matrix_is_square(m)) return 0; // return 0 if the matrix is not square
+    if(m->m == 1) return m->data[0]; // return the element if the matrix is 1x1
+    if(m->m == 2) return m->data[0] * m->data[3] - m->data[1] * m->data[2]; // return the determinant if the matrix is 2x2
+    CGL_MATRIX_DATA_TYPE det = 0; // initialize the determinant to 0
+    for(int i = 0; i < m->n; i++) // iterate over the columns
+    {
+        CGL_matrix* sub = CGL_matrix_minor(m, 0, i); // get the submatrix
+        if(!sub) return 0; // return 0 if the submatrix could not be computed
+        det += m->data[i] * CGL_matrix_determinant(sub) * (i % 2 == 0 ? 1 : -1); // add the element to the determinant
+        CGL_matrix_destroy(sub); // destroy the submatrix
+    }
+    return det; // return the determinant
+}
+
+CGL_matrix* CGL_matrix_inverse_to(CGL_matrix* m, CGL_matrix* out)
+{
+    if(!m || !out) return NULL; // return null if either matrix is null
+    if(m->m != out->m || m->n != out->n) return NULL; // return null if the matrices are not the same size
+    if(!CGL_matrix_is_square(m)) return NULL; // return null if the matrix is not square
+    CGL_MATRIX_DATA_TYPE det = CGL_matrix_determinant(m); // get the determinant
+    if(det == 0) return NULL; // return null if the determinant is 0
+    CGL_matrix* adj = CGL_matrix_adjugate_to(m, out); // get the adjugate
+    if(!adj) return NULL; // return null if the adjugate could not be computed
+    return CGL_matrix_scale_to(adj, 1.0f / det); // scale the adjugate by the determinant
+}
+
+CGL_matrix* CGL_matrix_inverse(CGL_matrix* m)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    if(!CGL_matrix_is_square(m)) return NULL; // return null if the matrix is not square
+    CGL_matrix* out = CGL_matrix_create(m->m, m->n); // initialize the output matrix
+    if(!out) return NULL; // return null if the output matrix could not be initialized
+    return CGL_matrix_inverse_to(m, out); // return the inverse of the matrix
+}
+
+CGL_matrix* CGL_matrix_copy_to(CGL_matrix* m, CGL_matrix* out)
+{
+    if(!m || !out) return CGL_FALSE; // return false if either matrix is null
+    if(m->m != out->m || m->n != out->n) return CGL_FALSE; // return false if the matrices are not the same size
+    for(int i = 0; i < m->m * m->n; i++) // iterate over the elements
+        out->data[i] = m->data[i]; // copy the element
+    return out; // return true if the copy was successful
+}
+
+CGL_matrix* CGL_matrix_copy(CGL_matrix* m)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    CGL_matrix* out = CGL_matrix_create(m->m, m->n); // initialize the output matrix
+    if(!out) return NULL; // return null if the output matrix could not be initialized
+    return (CGL_matrix_copy_to(m, out)); // return null if the copy was not successful
+}
+
+CGL_bool CGL_matrix_print(CGL_matrix* m)
+{
+    if(!m) return CGL_FALSE; // return false if the matrix is null
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+    {
+        for(int j = 0; j < m->n; j++) // iterate over the columns
+            printf("%f ", m->data[i * m->n + j]); // print the element
+        printf("\n"); // print a new line
+    }
+    return CGL_TRUE; // return true if the print was successful
+}
+
+CGL_matrix* CGL_matrix_gauss_jordan_to(CGL_matrix* m, CGL_matrix* out)
+{
+    if(!m || !out) return NULL; // return null if either matrix is null
+    if(m->m != out->m || m->n != out->n) return NULL; // return null if the matrices are not the same size
+    if(!CGL_matrix_copy_to(m, out)) return NULL; // return null if the copy was not successful
+    for(int i = 0; i < out->m; i++) // iterate over the rows
+    {
+        CGL_MATRIX_DATA_TYPE pivot = out->data[i * out->n + i]; // get the pivot element
+        if(pivot == 0) return NULL; // return null if the pivot element is zero
+        for(int j = 0; j < out->n; j++) // iterate over the columns
+            out->data[i * out->n + j] /= pivot; // divide the element by the pivot
+        for(int j = 0; j < out->m; j++) // iterate over the rows
+        {
+            if(j == i) continue; // skip the pivot row
+            CGL_MATRIX_DATA_TYPE factor = out->data[j * out->n + i]; // get the factor
+            for(int k = 0; k < out->n; k++) // iterate over the columns
+                out->data[j * out->n + k] -= factor * out->data[i * out->n + k]; // subtract the factor times the pivot row from the row
+        }
+    }
+    return out; // return the output matrix
+}
+
+CGL_matrix* CGL_matrix_gauss_jordan(CGL_matrix* m)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    CGL_matrix* out = CGL_matrix_create(m->m, m->n); // initialize the output matrix
+    if(!out) return NULL; // return null if the output matrix could not be initialized
+    if(!CGL_matrix_gauss_jordan_to(m, out)) return NULL; // return null if the gauss-jordan elimination was not successful
+    return out; // return the output matrix
+}
+
+CGL_matrix* CGL_matrix_submatrix_to(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_int m, CGL_int n, CGL_matrix* out)
+{
+    if(!mat || !out) return NULL; // return null if either matrix is null
+    if(i < 0 || j < 0 || i + m > mat->m || j + n > mat->n) return NULL; // return null if the submatrix is out of bounds
+    if(m != out->m || n != out->n) return NULL; // return null if the matrices are not the same size
+    for(int k = 0; k < m; k++) // iterate over the rows
+        for(int l = 0; l < n; l++) // iterate over the columns
+            out->data[k * out->n + l] = mat->data[(i + k) * mat->n + j + l]; // copy the element
+    return out; // return the output matrix
+}
+
+CGL_matrix* CGL_matrix_submatrix(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_int m, CGL_int n)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    CGL_matrix* out = CGL_matrix_create(m, n); // initialize the output matrix
+    if(!out) return NULL; // return null if the output matrix could not be initialized
+    return (CGL_matrix_submatrix_to(mat, i, j, m, n, out)); // return null if the submatrix was not successful
+}
+
+CGL_matrix* CGL_matrix_minor_to(CGL_matrix* m, CGL_int a, CGL_int b, CGL_matrix* out)
+{
+    if(!m || !out) return NULL; // return null if either matrix is null
+    // if(m->m != m->n || out->m != out->n) return NULL; // return null if the matrices are not square
+    if(a < 0 || b < 0 || a >= m->m || b >= m->n) return NULL; // return null if the minor is out of bounds
+    if(m->m != out->m + 1 && m->n != out->n + 1) return NULL; // return null if the matrices are not the correct size
+    for(int i = 0, k = 0; i < m->m; i++) // iterate over the rows
+    {
+        if(i == a) continue; // skip the element
+        for(int j = 0, l = 0; j < m->n; j++) // iterate over the columns
+        {
+            if(j == b) continue; // skip the element
+            out->data[k * out->n + l] = m->data[i * m->n + j]; // copy the element
+            l++; // increment the column
+        }
+        k++; // increment the row
+    }
+    return out; // return the output matrix
+}
+
+CGL_matrix* CGL_matrix_minor(CGL_matrix* m, CGL_int i, CGL_int j)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    CGL_matrix* out = CGL_matrix_create(m->m - 1, m->n - 1); // initialize the output matrix
+    if(!out) return NULL; // return null if the output matrix could not be initialized
+    return (CGL_matrix_minor_to(m, i, j, out)); // return null if the minor was not successful
+}
+
+CGL_matrix* CGL_matrix_adjugate_to(CGL_matrix* m, CGL_matrix* out)
+{
+    if(!m || !out) return NULL; // return null if either matrix is null
+    if(m->m != m->n || out->m != out->n) return NULL; // return null if the matrices are not square
+    if(m->m != out->m) return NULL; // return null if the matrices are not the same size
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        for(int j = 0; j < m->n; j++) // iterate over the columns
+        {
+            CGL_matrix* minor = CGL_matrix_minor(m, i, j); // get the minor
+            if(!minor) return NULL; // return null if the minor could not be created
+            CGL_MATRIX_DATA_TYPE det = CGL_matrix_determinant(minor); // get the determinant of the minor
+            CGL_matrix_destroy(minor); // free the minor
+            out->data[j * out->n + i] = ((i + j) % 2 == 0 ? det : -det); // set the element
+        }
+    return out; // return the output matrix
+}
+
+CGL_matrix* CGL_matrix_adjugate(CGL_matrix* m)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    CGL_matrix* out = CGL_matrix_create(m->m, m->n); // initialize the output matrix
+    if(!out) return NULL; // return null if the output matrix could not be initialized
+    return (CGL_matrix_adjugate_to(m, out)); // return null if the adjugate was not successful
+}
+
+CGL_matrix* CGL_matrix_transpose_inplace(CGL_matrix* m)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        for(int j = 0; j < m->n; j++) // iterate over the columns
+        {
+            if(i >= j) continue; // skip the element
+            CGL_MATRIX_DATA_TYPE temp = m->data[i * m->n + j]; // store the element
+            m->data[i * m->n + j] = m->data[j * m->n + i]; // swap the elements
+            m->data[j * m->n + i] = temp; // swap the elements
+        }
+    return m; // return the matrix
+}
+
+#endif
+
 
 #ifndef CGL_EXCLUDE_MATH_FUNCTIONS
 // vec2 
