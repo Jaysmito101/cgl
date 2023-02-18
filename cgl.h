@@ -1355,6 +1355,11 @@ CGL_matrix* CGL_matrix_minor(CGL_matrix* mat, CGL_int i, CGL_int j);
 CGL_matrix* CGL_matrix_adjugate_to(CGL_matrix* m, CGL_matrix* out);
 CGL_matrix* CGL_matrix_adjugate(CGL_matrix* m);
 CGL_matrix* CGL_matrix_transpose_inplace(CGL_matrix* m);
+CGL_float CGL_matrix_sum_of_row(CGL_matrix* m, CGL_int i);
+CGL_float CGL_matrix_sum_of_col(CGL_matrix* m, CGL_int j);
+CGL_float CGL_matrix_product_of_row(CGL_matrix* m, CGL_int i);
+CGL_float CGL_matrix_product_of_col(CGL_matrix* m, CGL_int j);
+CGL_matrix* CGL_matrix_make_zero(CGL_matrix* m);
 
 #endif
 
@@ -2534,6 +2539,8 @@ CGL_noise_data_type CGL_noise_get(CGL_noise_params* params, CGL_noise_data_type 
 
 #ifndef CGL_EXCLUDE_AI_API
 
+// simple neural network
+
 struct CGL_simple_neural_network;
 typedef struct CGL_simple_neural_network CGL_simple_neural_network;
 
@@ -2551,6 +2558,20 @@ void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_
 void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v);
 void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b);
 void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio);
+
+// multi variable linear regression
+
+struct CGL_linear_regression_context;
+typedef struct CGL_linear_regression_context CGL_linear_regression_context;
+
+typedef CGL_float(*CGL_linear_regression_sample_function)(CGL_void* user_data, CGL_float* input, CGL_float* output, CGL_int id);
+
+CGL_linear_regression_context* CGL_linear_regression_context_create(CGL_int input_count);
+CGL_void CGL_linear_regression_context_destroy(CGL_linear_regression_context* context);
+CGL_void CGL_linear_regression_randomize_coefficents(CGL_linear_regression_context* context, CGL_float min_v, CGL_float max_v);
+CGL_float CGL_linear_regression_evaluate(CGL_linear_regression_context* context, CGL_float* input, CGL_float* output);
+CGL_bool CGL_linear_regression_train(CGL_linear_regression_context* context, CGL_linear_regression_sample_function sample_function, void* user_data, CGL_int sample_count, CGL_float learning_rate, CGL_int max_iterations);
+
 
 #endif
 
@@ -5993,6 +6014,53 @@ CGL_matrix* CGL_matrix_transpose_inplace(CGL_matrix* m)
             m->data[i * m->n + j] = m->data[j * m->n + i]; // swap the elements
             m->data[j * m->n + i] = temp; // swap the elements
         }
+    return m; // return the matrix
+}
+
+CGL_float CGL_matrix_sum_of_row(CGL_matrix* m, CGL_int i)
+{
+    if(!m) return 0; // return 0 if the matrix is null
+    if(i < 0 || i >= m->m) return 0; // return 0 if the row is out of bounds
+    CGL_float sum = 0; // initialize the sum
+    for(int j = 0; j < m->n; j++) // iterate over the columns
+        sum += m->data[i * m->n + j]; // add the element
+    return sum; // return the sum
+}
+
+CGL_float CGL_matrix_sum_of_col(CGL_matrix* m, CGL_int j)
+{
+    if(!m) return 0; // return 0 if the matrix is null
+    if(j < 0 || j >= m->n) return 0; // return 0 if the column is out of bounds
+    CGL_float sum = 0; // initialize the sum
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        sum += m->data[i * m->n + j]; // add the element
+    return sum; // return the sum
+}
+
+CGL_float CGL_matrix_product_of_row(CGL_matrix* m, CGL_int i)
+{
+    if(!m) return 0; // return 0 if the matrix is null
+    if(i < 0 || i >= m->m) return 0; // return 0 if the row is out of bounds
+    CGL_float product = 1; // initialize the product
+    for(int j = 0; j < m->n; j++) // iterate over the columns
+        product *= m->data[i * m->n + j]; // multiply the element
+    return product; // return the product
+}
+
+CGL_float CGL_matrix_product_of_col(CGL_matrix* m, CGL_int j)
+{
+    if(!m) return 0; // return 0 if the matrix is null
+    if(j < 0 || j >= m->n) return 0; // return 0 if the column is out of bounds
+    CGL_float product = 1; // initialize the product
+    for(int i = 0; i < m->m; i++) // iterate over the rows
+        product *= m->data[i * m->n + j]; // multiply the element
+    return product; // return the product
+}
+
+CGL_matrix* CGL_matrix_make_zero(CGL_matrix* m)
+{
+    if(!m) return NULL; // return null if the matrix is null
+    for(int i = 0; i < m->m * m->n; i++) m->data[i] = 0; // set the element to 0
     return m; // return the matrix
 }
 
@@ -14423,6 +14491,77 @@ void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mu
 {
     for(CGL_int i = 0 ; i < a->layer_count ; i++) for(CGL_int j = 0 ; j < a->layers[i].weight_count ; j++) if(CGL_utils_random_float_in_range(0.0f, 1.0f) < mutation_ratio) a->layers[i].weights[j] += CGL_utils_random_gaussian(0.0f, 0.1f);
 }
+
+
+struct CGL_linear_regression_context
+{
+    CGL_matrix* coefficents;
+    CGL_matrix* input;
+    CGL_float* input_data;
+    CGL_matrix* evaluate_temp0;
+    CGL_matrix* train_temp0;
+    CGL_int input_count;
+};
+
+CGL_linear_regression_context* CGL_linear_regression_context_create(CGL_int input_count_)
+{
+    CGL_linear_regression_context* context = (CGL_linear_regression_context*)CGL_malloc(sizeof(CGL_linear_regression_context));
+    context->input_count = input_count_;
+    context->coefficents = CGL_matrix_create(1, input_count_ + 1);
+    context->input = CGL_matrix_create(input_count_ + 1, 1);
+    context->evaluate_temp0 = CGL_matrix_create(1, 1);
+    context->train_temp0 = CGL_matrix_create(1, input_count_ + 1);
+    context->input_data = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (input_count_ + 1));
+    return context;
+}
+
+CGL_void CGL_linear_regression_context_destroy(CGL_linear_regression_context* context)
+{
+    CGL_matrix_destroy(context->coefficents);
+    CGL_matrix_destroy(context->input);
+    CGL_matrix_destroy(context->evaluate_temp0);
+    CGL_matrix_destroy(context->train_temp0);
+    CGL_free(context->input_data);    
+    CGL_free(context);
+}
+
+void CGL_linear_regression_randomize_coefficents(CGL_linear_regression_context* context, CGL_float min_v, CGL_float max_v)
+{
+    for(CGL_int i = 0 ; i < context->input_count + 1 ; i++) CGL_matrix_set_elem(context->coefficents, 0, i, CGL_utils_random_float_in_range(min_v, max_v));
+}
+
+CGL_float CGL_linear_regression_evaluate(CGL_linear_regression_context* context, CGL_float* input, CGL_float* output)
+{
+    memcpy(context->input_data, input, sizeof(CGL_float) * context->input_count);
+    context->input_data[context->input_count] = 1.0f;
+    CGL_matrix_set_col(context->input, 0, context->input_data);
+    CGL_matrix_mul_to(context->coefficents, context->input, context->evaluate_temp0);
+    if(output) *output = CGL_matrix_get_elem(context->evaluate_temp0, 0, 0);
+    return CGL_matrix_get_elem(context->evaluate_temp0, 0, 0);
+}
+
+CGL_bool CGL_linear_regression_train(CGL_linear_regression_context* context, CGL_linear_regression_sample_function sample_function, void* user_data, CGL_int sample_count, CGL_float learning_rate, CGL_int max_iterations)
+{
+    CGL_float y_hat = 0.0f, error = 0.0f, factor = 0.0f;
+    for(CGL_int i = 0 ; i < max_iterations ; i++)
+    {
+        context->train_temp0 = CGL_matrix_make_zero(context->train_temp0);
+        for(CGL_int k = 0 ; k < sample_count ; k ++)
+        {
+            y_hat = sample_function(user_data, context->input_data, &y_hat, k);
+            CGL_matrix_set_col(context->input, 0, context->input_data);
+            CGL_matrix_mul_to(context->coefficents, context->input, context->evaluate_temp0);
+            error = CGL_matrix_get_elem(context->evaluate_temp0, 0, 0) - y_hat;
+            for(CGL_int j = 0 ; j < context->input_count + 1; j++)
+                CGL_matrix_set_elem(context->train_temp0, 0, j, CGL_matrix_get_elem(context->train_temp0, 0, j) + error * CGL_matrix_get_elem(context->input, j, 0));
+        }
+        factor = -learning_rate / (CGL_float)sample_count;
+        CGL_matrix_scale_to(context->train_temp0, factor);
+        CGL_matrix_add_to(context->coefficents, context->train_temp0, context->coefficents);
+    }
+    return CGL_TRUE;
+}
+
 
 #endif
 
