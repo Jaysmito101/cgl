@@ -75,6 +75,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Neural Netowrks
   - Backpropagation
   - Serializing/Deserializing networks
+  - Multi Variable Linear Regression
 
 * Graph Algorithms
   - A* Path Finding (general purpose)
@@ -179,8 +180,9 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - Customize Batch renderer max vertices capacity (for low memory systems)
 
 * Math library
+  - Advanced Matrix Library (this is seperate from matrix lib for graphics)
   - vec2/vec3/vec4
-  - mat3/mat4
+  - mat3/mat4 (for graphics)
   - add/sub/mul/div/scale/length/normalize/lerp/min/max/equal for vec2/vec3/vec4
   - rotate_x/rotate_y/rotate_z for vec3
   - scale/translate/rotate_x/rotate_y/rotate_z/add/sub/mul for mat4
