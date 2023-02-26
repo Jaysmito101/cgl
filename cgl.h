@@ -1431,6 +1431,9 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex);
 #define CGL_INCREMENTAL_TRIANGULATOR_MAX_TRIANGLES 4096
 #endif
 
+CGL_bool CGL_aabb_contains_point(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 point);
+CGL_bool CGL_aabb_intersects_aabb(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 aabb_min2, CGL_vec2 aabb_max2);
+
 CGL_bool CGL_triangulate_points_incremental(CGL_vec2* points, CGL_int points_count, CGL_int* triangles_out, CGL_int* triangles_count_out);
 
 // window
@@ -4627,6 +4630,16 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex)
     }
     min_normal = CGL_vec3_scale(min_normal, min_dist);
     return min_normal;
+}
+
+CGL_bool CGL_aabb_contains_point(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 point)
+{
+    return point.x >= aabb_min.x && point.x <= aabb_max.x && point.y >= aabb_min.y && point.y <= aabb_max.y;
+}
+
+CGL_bool CGL_aabb_intersects_aabb(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 aabb_min2, CGL_vec2 aabb_max2)
+{
+    return aabb_min.x <= aabb_max2.x && aabb_max.x >= aabb_min2.x && aabb_min.y <= aabb_max2.y && aabb_max.y >= aabb_min2.y;
 }
 
 #define CGL_INCREMENTAL_TRIANGULATOR_SET_TRIANGLE(triangles, index, a, b, c) \
