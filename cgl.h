@@ -974,6 +974,9 @@ void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* 
 #define CGL_vec4_elem_set(a, i, v) (((float*)&a)[i] = v)
 CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c);
 
+
+#define CGL_ivec4_init(x, y, z, w) ((CGL_ivec4){x, y, z, w})
+
 #ifdef __cplusplus
 #define CGL_mat3_init(a, b, c, d, e, f, g, h, i) CGL_mat3(a, b, c, d, e, f, g, h, i)
 #else
@@ -2138,6 +2141,10 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 #define CGL_WIDGETS_MAX_INDICES 1024 * 128
 #endif
 
+#ifndef CGL_WIDGETS_MAX_TEXTURES
+#define CGL_WIDGETS_MAX_TEXTURES 64
+#endif
+
 struct CGL_widgets_context;
 typedef struct CGL_widgets_context CGL_widgets_context;
 
@@ -2788,6 +2795,7 @@ struct CGL_mutex
 CGL_thread* CGL_thread_create()
 {
     CGL_thread* thread = (CGL_thread*)malloc(sizeof(CGL_thread));
+    if (!thread) return NULL;
     thread->function = NULL;
     thread->handle = NULL;
     thread->id = 0;
@@ -10752,6 +10760,7 @@ CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, 
 
 struct CGL_widgets_context
 {
+    CGL_texture* active_textures[CGL_WIDGETS_MAX_TEXTURES];
     CGL_mat4 projection_matrix;
     CGL_mat4 view_matrix;
     CGL_mat4 model_matrix;
@@ -10776,6 +10785,9 @@ struct CGL_widgets_context
     GLuint vertex_array;
     GLuint vertex_buffer;
     GLuint index_buffer;
+    CGL_int max_active_textures_supported;
+    CGL_int active_texture_count;
+    CGL_int active_texture_id;
     CGL_bool flushed;
     CGL_bool is_fill;
     CGL_bool adjust_for_aspect_ratio;
@@ -10789,12 +10801,14 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
 "layout (location = 3) in vec4 texcoordscaleoffset;\n"
+"layout (location = 4) in ivec4 texids;\n"
 "\n"
 "out vec3 Position;\n"
 "out vec3 Normal;\n"
 "out vec2 TexCoord; \n"
 "out vec4 Color;\n"
 "out vec4 TexCoordScaleOffset;\n"
+"flat out int TexID;\n"
 "\n"
 "uniform bool u_TransformPointsOnCPU;\n"
 "uniform mat4 u_ViewProjMatrix;\n"
@@ -10816,6 +10830,7 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	    Normal = normal_matrix * normal.xyz;\n"
 "   }\n"
 "	TexCoord = texcoord.xy;\n"
+"	TexID = texids.x;\n"
 "	TexCoordScaleOffset = texcoordscaleoffset;\n"
 "	Color = vec4(position.w, texcoord.zw, normal.w);\n"
 "}";
@@ -10829,19 +10844,20 @@ static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "in vec2 TexCoord;\n"
 "in vec4 Color;\n"
 "in vec4 TexCoordScaleOffset;\n"
+"flat in int TexID;\n"
 "\n"
 "uniform bool u_DiffuseShadingEnabled;\n"
 "uniform vec3 u_LightColor;\n"
 "uniform vec3 u_LightPosition;\n"
-"uniform sampler2D u_Texture;\n"
+"uniform sampler2D u_Texture[64];\n"
 "uniform bool u_TextureEnabled;\n"
 "\n"
 "void main()\n"
 "{\n"
 "	vec4 color = Color;\n"
-"	if(u_TextureEnabled)\n"
+"	if(TexID > -1)\n"
 "	{\n"
-"		color = texture(u_Texture, TexCoord * TexCoordScaleOffset.xy + TexCoordScaleOffset.zw);\n"
+"		color = texture(u_Texture[TexID], TexCoord * TexCoordScaleOffset.xy + TexCoordScaleOffset.zw);\n"
 "	}\n"
 "	if(u_DiffuseShadingEnabled)\n"
 "	{\n"
@@ -10883,6 +10899,10 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     context->diffuse_shading_enabled = false;
     context->light_color = CGL_vec3_init(1.0f, 1.0f, 1.0f);
     context->light_position = CGL_vec3_init(100.0f, 100.0f, 100.0f);
+    context->active_texture_count = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &context->max_active_textures_supported);
+    context->max_active_textures_supported = CGL_utils_max(context->max_active_textures_supported, 1);
+    context->max_active_textures_supported = CGL_utils_min(context->max_active_textures_supported, CGL_WIDGETS_MAX_TEXTURES);
     glGenVertexArrays(1, &context->vertex_array);
     glBindVertexArray(context->vertex_array);
     glGenBuffers(1, &context->vertex_buffer);
@@ -10897,6 +10917,8 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_wieghts));
     glEnableVertexAttribArray(3);
+    glVertexAttribIPointer(4, 4, GL_INT, sizeof(CGL_mesh_vertex), (void*)offsetof(CGL_mesh_vertex, bone_ids));
+    glEnableVertexAttribArray(4);
     context->shader = CGL_shader_create(__CGL_WIDGETS_VERTEX_SHADER_SOURCE, __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE, NULL);
     return context;
 }
@@ -10961,8 +10983,9 @@ CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float o
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = 0.05f;
     __CGL_WIDGETS_CURRENT_CONTEXT->scale = CGL_vec4_init(scale_x, scale_y, 1.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->offset = CGL_vec4_init(offset_x, offset_y, 0.0f, 0.0f);
-    __CGL_WIDGETS_CURRENT_CONTEXT->texture = NULL;
     __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count = 0;
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     return true;
 }
 
@@ -10999,11 +11022,18 @@ CGL_bool CGL_widgets_flush()
         CGL_shader_set_uniform_vec3v(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_LightPosition"), __CGL_WIDGETS_CURRENT_CONTEXT->light_position.x, __CGL_WIDGETS_CURRENT_CONTEXT->light_position.y, __CGL_WIDGETS_CURRENT_CONTEXT->light_position.z); 
         CGL_shader_set_uniform_vec3v(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_LightColor"), __CGL_WIDGETS_CURRENT_CONTEXT->light_color.x, __CGL_WIDGETS_CURRENT_CONTEXT->light_color.y, __CGL_WIDGETS_CURRENT_CONTEXT->light_color.z);         
     }
-    CGL_shader_set_uniform_bool(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_TextureEnabled"), __CGL_WIDGETS_CURRENT_CONTEXT->texture != NULL);
-    if(__CGL_WIDGETS_CURRENT_CONTEXT->texture != NULL)
+    //CGL_shader_set_uniform_bool(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_TextureEnabled"), __CGL_WIDGETS_CURRENT_CONTEXT->texture != NULL);
+    //if(__CGL_WIDGETS_CURRENT_CONTEXT->texture != NULL)
+    //{
+        //CGL_texture_bind(__CGL_WIDGETS_CURRENT_CONTEXT->texture, 5);
+        //CGL_shader_set_uniform_int(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_Texture"), 5);
+    //}
+    for(CGL_int i = 0; i < __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count; i++)
     {
-        CGL_texture_bind(__CGL_WIDGETS_CURRENT_CONTEXT->texture, 5);
-        CGL_shader_set_uniform_int(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_Texture"), 5);
+        static CGL_byte texture_uniform_name_buffer[64];
+        sprintf(texture_uniform_name_buffer, "u_Texture[%d]", i);
+        if(__CGL_WIDGETS_CURRENT_CONTEXT->active_textures[i] != NULL) CGL_texture_bind(__CGL_WIDGETS_CURRENT_CONTEXT->active_textures[i], i);
+        CGL_shader_set_uniform_int(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, texture_uniform_name_buffer), i);
     }
     glBindVertexArray(__CGL_WIDGETS_CURRENT_CONTEXT->vertex_array);
     glDrawElements(GL_TRIANGLES, (GLsizei)__CGL_WIDGETS_CURRENT_CONTEXT->indices_count, GL_UNSIGNED_INT, NULL);
@@ -11067,6 +11097,8 @@ void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
     CGL_vec4 vt_color = __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color;
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) vt_color = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_wieghts = __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset;
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id == -1 || __CGL_WIDGETS_CURRENT_CONTEXT->active_textures[__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id] == NULL) __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_ids = CGL_ivec4_init(-1, 0, 0, 0);
+    else   __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_ids = CGL_ivec4_init(__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id, 0, 0, 0);
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = vt_color.x;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = vt_color.y;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = vt_color.z;
@@ -11195,9 +11227,22 @@ void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
 
 void CGL_widgets_set_texture(CGL_texture* texture)
 {
-    CGL_widgets_flush();
-    if(texture == NULL) { __CGL_WIDGETS_CURRENT_CONTEXT->texture = NULL; __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f); return; }
-    __CGL_WIDGETS_CURRENT_CONTEXT->texture = texture;
+    for(CGL_int i = 0; i < __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count; i++)
+    {
+        if(__CGL_WIDGETS_CURRENT_CONTEXT->active_textures[i] == texture) 
+        {
+            __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = i;
+            return;
+        }
+    }
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count >= CGL_WIDGETS_MAX_TEXTURES) 
+    {
+        CGL_widgets_flush();
+        __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count = 0;
+    }
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count;
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_textures[__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count++] = texture;
+    __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
 }
 
 void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
