@@ -26,7 +26,7 @@
 <br>
 
 # CGL
-CGL (C Graphics Library) is a multipurpose library mainly for recreational coding /  demo scenes / prototyping / small games / experimentation. This has a **lot of utilities for graphics**. And best of all all of it is inside a single header file `cgl.h`.  Also CGL is made purely in C but is also compatible with C++. 
+CGL (C Graphics Library) is a multipurpose library mainly for recreational coding /  demo scenes / prototyping / small games / experimentation. This has a **lot of utilities for graphics**. And best of all it is inside a single header file `cgl.h`.  Also CGL is made purely in C but is also compatible with C++. 
 
 **NOTE** : Do not think that header only means its going to increase compile time as the implementation needs be enabled only for 1 file using `#define CGL_IMPLEMENTATION`. See [Examples](./examples)
 
