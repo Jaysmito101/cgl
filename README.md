@@ -315,3 +315,50 @@ https://user-images.githubusercontent.com/73700725/208747347-6f0c0d49-c11c-4bf0-
 **For more see [Examples](./examples) and [Showreel](./showreels)**
 
 <br>
+<br>
+
+<p align="right">(<a href="#top">Back to top</a>)</p>
+
+<!-- ------------------------------------------------------------------------------------------------------------------------------------------------------ -->
+<!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------- -->
+
+<h2 align="center">Contributors</h2>
+<a href="https://github.com/harshita214/Chrome-Extension"><img src="https://forthebadge.com/images/badges/built-by-developers.svg"  ></a> 
+<a href="https://github.com/harshita214/Chrome-Extension"><img src="https://forthebadge.com/images/badges/built-with-love.svg"  ></a> 
+<a href="https://github.com/harshita214/Chrome-Extension"><img src="https://forthebadge.com/images/badges/built-with-swag.svg" ></a>   
+
+<br>
+
+
+
+
+## Our Amazing Contributors 👨‍👨‍👦‍👦❤️
+Thanks to all the contributors who worked for this project to stay alive! 😊😎
+
+![Contributors](https://contributors-img.web.app/image?repo=Jaysmito101/cgl)
+
+
+
+<br>
+<br>
+
+<p align="right">(<a href="#top">Back to top</a>)</p>
+
+<!-- ------------------------------------------------------------------------------------------------------------------------------------------------------ -->
+<!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------- -->
+
+
+<h2 align="center">Feedback</h2>
+
+If you have any feedback or suggestions please reach out to Project - Maintainer.  
+* [Jaysmito Mukherjee](https://github.com/Jaysmito101) 
+
+
+Or you can create a  <a href="https://github.com/Jaysmito101/cgl/issues">issue</a> and mention there , which new features can make this Project more good.
+
+
+---
+<div align="center">
+    <h3>Don't forget to ⭐ this repo</h3>
+    <h5>Building with the PEOPLE for the PEOPLE ❤️</h5>
+</div>
