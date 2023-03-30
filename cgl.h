@@ -6551,9 +6551,9 @@ CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
 #else
     // tell glfw we are going to use opengl api
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-	// tell glfw to initialize opengl context for opengl version 4.6 (latest)
+	// tell glfw to initialize opengl context for opengl version 4.3 (latest)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 #endif
 	// tell glfw to use the opengl core profile and not the compatibility profile
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
