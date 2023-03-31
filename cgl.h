@@ -2109,7 +2109,9 @@ struct CGL_font_character
     CGL_vec2 offset;
     CGL_vec2 normalized_offset;
     CGL_vec2 bearing;
+    CGL_vec2 bearing_normalized;
     CGL_vec2 advance;
+    CGL_vec2 advance_normalized;
     unsigned char* bitmap;
     char ch;
 };
@@ -2118,14 +2120,14 @@ typedef struct CGL_font_character CGL_font_character;
 struct CGL_font;
 typedef struct CGL_font CGL_font;
 
-bool CGL_text_init();
-void CGL_text_shutdown();
+CGL_bool CGL_text_init();
+CGL_void CGL_text_shutdown();
 CGL_font* CGL_font_load(const char* path);
-void CGL_font_destory(CGL_font* font);
+CGL_font* CGL_font_load_from_memory(const char* data, CGL_sizei size);
+CGL_void CGL_font_destory(CGL_font* font);
 CGL_texture* CGL_font_get_atlas(CGL_font* font);
-bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t font_size);
+CGL_bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t font_size);
 CGL_font_character* CGL_font_get_characters(CGL_font* font);
-
 CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, CGL_font* font, size_t* width, size_t* height);
 
 #endif
@@ -2183,6 +2185,7 @@ void CGL_widgets_disable_diffuse_shading();
 void CGL_widgets_set_view_matrix(CGL_mat4* matrix);
 void CGL_widgets_set_model_matrix(CGL_mat4* matrix);
 void CGL_widgets_set_texture(CGL_texture* texture);
+void CGL_widgets_set_font_texture(CGL_texture* texture);
 void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
 void CGL_widgets_apply_transformations_on_cpu();
 void CGL_widgets_apply_transformations_on_gpu();
@@ -2202,6 +2205,7 @@ void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x
 void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution);
 CGL_bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
+CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx);
 void CGL_widgets_add_shape_out_line(CGL_shape* shape);
 void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
 void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
@@ -2209,7 +2213,6 @@ void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_fl
 void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
 void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
 void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
-
 void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
 void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
 void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution);
@@ -10642,23 +10645,22 @@ struct CGL_font
 
 static FT_Library __CGL_free_type_library;
 
-bool CGL_text_init()
+CGL_bool CGL_text_init()
 {
     bool result = FT_Init_FreeType(&__CGL_free_type_library);
     if(result) { CGL_log_internal("Could not Initialize FreeType\n"); }
     return !result;
 }
 
-void CGL_text_shutdown()
+CGL_void CGL_text_shutdown()
 {
     FT_Done_FreeType(__CGL_free_type_library);
 }
 
-CGL_font* CGL_font_load(const char* path)
+static CGL_font* __CGL_font_create()
 {
     CGL_font* font = (CGL_font*)CGL_malloc(sizeof(CGL_font));
     if(!font) return NULL;
-    if(FT_New_Face(__CGL_free_type_library, path, 0, &font->face)) {CGL_log_internal("Could not Load Font\n");}
     memset(font->characters, 0, sizeof(CGL_font_character) * 128);
     font->atlas_width = 0;
     font->atlas_height = 0;
@@ -10666,7 +10668,23 @@ CGL_font* CGL_font_load(const char* path)
     return font;
 }
 
-void CGL_font_destory(CGL_font* font)
+CGL_font* CGL_font_load_from_memory(const char* data, CGL_sizei size)
+{
+    CGL_font* font = __CGL_font_create();
+    if(!font) return NULL;
+    if(FT_New_Memory_Face(__CGL_free_type_library, data, (FT_Long)size, 0, &font->face)) {CGL_log_internal("Could not Load Font\n");}
+    return font;
+}
+
+CGL_font* CGL_font_load(const char* path)
+{
+    CGL_font* font = __CGL_font_create();
+    if(!font) return NULL;
+    if(FT_New_Face(__CGL_free_type_library, path, 0, &font->face)) {CGL_log_internal("Could not Load Font\n");}
+    return font;
+}
+
+CGL_void CGL_font_destory(CGL_font* font)
 {
     FT_Done_Face(font->face);
     if(font->atlas) CGL_texture_destroy(font->atlas);
@@ -10681,7 +10699,7 @@ CGL_texture* CGL_font_get_atlas(CGL_font* font)
     return font->atlas;
 }
 
-bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t font_size)
+CGL_bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t font_size)
 {
     if(font->atlas) CGL_texture_destroy(font->atlas);
     FT_Set_Pixel_Sizes(font->face, 0, (FT_UInt)font_size);  
@@ -10707,7 +10725,9 @@ bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t fo
         font->characters[ch].offset = CGL_vec2_init((float)offset_x, (float)offset_y);
         font->characters[ch].normalized_offset = CGL_vec2_init((float)offset_x / font->atlas_width, (float)offset_y / font->atlas_height);
         font->characters[ch].bearing = CGL_vec2_init((float)font->face->glyph->bitmap_left, (float)font->face->glyph->bitmap_top);
-        font->characters[ch].advance = CGL_vec2_init((float)font->face->glyph->advance.x, (float)0.0f);
+        font->characters[ch].bearing_normalized = CGL_vec2_init((CGL_float)font->characters[ch].bearing.x / font->atlas_width, (CGL_float)font->characters[ch].bearing.y / font->atlas_height);
+        font->characters[ch].advance = CGL_vec2_init((float)(font->face->glyph->advance.x >> 6), (float)0.0f);
+        font->characters[ch].advance_normalized = CGL_vec2_init((CGL_float)font->characters[ch].advance.x / font->atlas_width, (CGL_float)font->characters[ch].advance.y / font->atlas_height);
         font->characters[ch].ch = ch;
         font->characters[ch].bitmap = (unsigned char*)CGL_malloc(sizeof(unsigned char) * size_x * size_y);
         if(!font->characters[ch].bitmap) return false;
@@ -10806,6 +10826,7 @@ struct CGL_widgets_context
     CGL_bool adjust_for_aspect_ratio;
     CGL_bool transform_points_on_cpu;
     CGL_bool diffuse_shading_enabled;
+    CGL_bool is_font_texture;
 };
 
 static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
@@ -10822,6 +10843,7 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "out vec4 Color;\n"
 "out vec4 TexCoordScaleOffset;\n"
 "flat out int TexID;\n"
+"flat out int UsingFontTexture;\n"
 "\n"
 "uniform bool u_TransformPointsOnCPU;\n"
 "uniform mat4 u_ViewProjMatrix;\n"
@@ -10844,6 +10866,7 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "   }\n"
 "	TexCoord = texcoord.xy;\n"
 "	TexID = texids.x;\n"
+"	UsingFontTexture = texids.y;\n"
 "	TexCoordScaleOffset = texcoordscaleoffset;\n"
 "	Color = vec4(position.w, texcoord.zw, normal.w);\n"
 "}";
@@ -10858,11 +10881,12 @@ static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "in vec4 Color;\n"
 "in vec4 TexCoordScaleOffset;\n"
 "flat in int TexID;\n"
+"flat in int UsingFontTexture;\n"
 "\n"
 "uniform bool u_DiffuseShadingEnabled;\n"
 "uniform vec3 u_LightColor;\n"
 "uniform vec3 u_LightPosition;\n"
-"uniform sampler2D u_Texture[64];\n"
+"uniform sampler2D u_Texture[16];\n"
 "uniform bool u_TextureEnabled;\n"
 "\n"
 "void main()\n"
@@ -10871,6 +10895,11 @@ static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "	if(TexID > -1)\n"
 "	{\n"
 "		color = texture(u_Texture[TexID], TexCoord * TexCoordScaleOffset.xy + TexCoordScaleOffset.zw);\n"
+"       if(UsingFontTexture == 1)\n"
+"       {\n"
+"           color = color.r * Color;\n"
+"           if(color.r < 0.1f) discard;\n"
+"       }\n"
 "	}\n"
 "	if(u_DiffuseShadingEnabled)\n"
 "	{\n"
@@ -10902,6 +10931,7 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     context->transform_points_on_cpu = false;
     context->aspect_ratio = 1.0f;
     context->texture = NULL;
+    context->is_font_texture = false;
     context->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
     context->offset = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     context->scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
@@ -10999,6 +11029,7 @@ CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float o
     __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count = 0;
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_font_texture = false;
     return true;
 }
 
@@ -11111,7 +11142,7 @@ void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) vt_color = __CGL_WIDGETS_CURRENT_CONTEXT->fill_color;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_wieghts = __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset;
     if(__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id == -1 || __CGL_WIDGETS_CURRENT_CONTEXT->active_textures[__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id] == NULL) __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_ids = CGL_ivec4_init(-1, 0, 0, 0);
-    else   __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_ids = CGL_ivec4_init(__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id, 0, 0, 0);
+    else   __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].bone_ids = CGL_ivec4_init(__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id, __CGL_WIDGETS_CURRENT_CONTEXT->is_font_texture ? 1 : 0, 0, 0);
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].position.w = vt_color.x;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.z = vt_color.y;
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].texture_coordinates.w = vt_color.z;
@@ -11238,8 +11269,11 @@ void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
     __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix = *matrix;
 }
 
-void CGL_widgets_set_texture(CGL_texture* texture)
+
+
+static CGL_void __CGL_widgets_set_texture(CGL_texture* texture, CGL_bool is_font_texture)
 {
+    __CGL_WIDGETS_CURRENT_CONTEXT->is_font_texture = is_font_texture;
     for(CGL_int i = 0; i < __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count; i++)
     {
         if(__CGL_WIDGETS_CURRENT_CONTEXT->active_textures[i] == texture) 
@@ -11256,6 +11290,17 @@ void CGL_widgets_set_texture(CGL_texture* texture)
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count;
     __CGL_WIDGETS_CURRENT_CONTEXT->active_textures[__CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count++] = texture;
     __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
+
+}
+
+CGL_void CGL_widgets_set_texture(CGL_texture* texture)
+{
+    __CGL_widgets_set_texture(texture, false);
+}
+
+CGL_void CGL_widgets_set_font_texture(CGL_texture* texture)
+{
+    __CGL_widgets_set_texture(texture, true);
 }
 
 void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
@@ -11858,7 +11903,7 @@ bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, C
     return true;
 }
 
-bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy)
+CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy)
 {
     const CGL_float line_gap = 0.01f;
     const CGL_float char_gap = 0.01f;
@@ -11895,6 +11940,28 @@ bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float
     return true;
 }
 
+CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx)
+{
+    CGL_int string_length = (CGL_int)strlen(str);
+    CGL_float max_char_width = 0.0f, average_char_width = 0.0f;
+    CGL_font_character* characters = CGL_font_get_characters(font);
+    for (CGL_int i  = 0 ;  i < string_length ; i++) { max_char_width = CGL_utils_max(max_char_width, characters[str[i]].advance_normalized.x); average_char_width += characters[str[i]].advance_normalized.x; }
+    average_char_width /= (CGL_float)string_length;
+    CGL_float approx_each_char_width = sx / (CGL_float)string_length;
+    // NOTE: Its a question whether to use max character width or average character width here!
+    CGL_float character_scale = approx_each_char_width / average_char_width;
+    CGL_float initial_x = x;
+    CGL_widgets_set_font_texture(CGL_font_get_atlas(font));
+    for (CGL_int i =  0 ; i < string_length ; i++)
+    {
+        CGL_byte c = str[i];
+        CGL_widgets_set_texture_coordinate_so(characters[c].normalized_size.x, -characters[c].normalized_size.y, characters[c].normalized_offset.x, characters[c].normalized_offset.y + characters[c].normalized_size.y);
+        CGL_widgets_add_rect2f(x + character_scale * characters[c].bearing_normalized.x, y - character_scale * (characters[c].normalized_size.y - characters[c].bearing_normalized.y), characters[c].normalized_size.x * character_scale, characters[c].normalized_size.y * character_scale);
+        x += characters[c].advance_normalized.x * character_scale;        
+    }
+    CGL_widgets_set_texture(NULL);
+    return x - initial_x;
+}
 
 void CGL_widgets_add_shape_out_line(CGL_shape* shape)
 {
