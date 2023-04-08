@@ -1613,6 +1613,7 @@ typedef void(*CGL_window_close_callback)(CGL_window* window);
 typedef void(*CGL_window_drag_n_drop_callback)(CGL_window* window, const CGL_byte** paths, CGL_int count);
 
 CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title); // create window and initialize GLFW
+CGL_window* CGL_window_create_undecorated(CGL_int width, CGL_int height, const char* title);
 void CGL_window_destroy(CGL_window* window); // destroy window and terminate GLFW
 void CGL_window_poll_events(CGL_window* window); // poll events from GLFW
 void CGL_window_swap_buffers(CGL_window* window); // swap buffers
@@ -2205,7 +2206,9 @@ void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x
 void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution);
 CGL_bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
-CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx);
+#ifndef CGL_EXCLUDE_TEXT_RENDER
+CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx, CGL_float scale_y);
+#endif
 void CGL_widgets_add_shape_out_line(CGL_shape* shape);
 void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
 void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
@@ -6536,7 +6539,7 @@ void  __CGL_window_drag_n_drop_callback(GLFWwindow* window, CGL_int count, const
 }
 
 // create window
-CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
+static CGL_window* __CGL_window_create(CGL_int width, CGL_int height, const char* title, bool undecorated)
 {
     if (__CGL_context->window_count == 0)
     {
@@ -6558,6 +6561,7 @@ CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 #endif
+    glfwWindowHint(GLFW_DECORATED, undecorated);
 	// tell glfw to use the opengl core profile and not the compatibility profile
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -6595,6 +6599,16 @@ CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
     __CGL_context->window_table[(uintptr_t)window->handle % CGL_WINDOW_TABLE_SIZE] = window; // Temporary
     __CGL_context->window_count++;
     return window;
+}
+
+CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title)
+{
+    return __CGL_window_create(width, height, title, true);
+}
+
+CGL_window* CGL_window_create_undecorated(CGL_int width, CGL_int height, const char* title)
+{
+    return __CGL_window_create(width, height, title, false);
 }
 
 
@@ -11940,7 +11954,8 @@ CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_f
     return true;
 }
 
-CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx)
+#ifndef CGL_EXCLUDE_TEXT_RENDER
+CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx, CGL_float scale_y)
 {
     CGL_int string_length = (CGL_int)strlen(str);
     CGL_float max_char_width = 0.0f, average_char_width = 0.0f;
@@ -11956,12 +11971,13 @@ CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_
     {
         CGL_byte c = str[i];
         CGL_widgets_set_texture_coordinate_so(characters[c].normalized_size.x, -characters[c].normalized_size.y, characters[c].normalized_offset.x, characters[c].normalized_offset.y + characters[c].normalized_size.y);
-        CGL_widgets_add_rect2f(x + character_scale * characters[c].bearing_normalized.x, y - character_scale * (characters[c].normalized_size.y - characters[c].bearing_normalized.y), characters[c].normalized_size.x * character_scale, characters[c].normalized_size.y * character_scale);
+        CGL_widgets_add_rect2f(x + character_scale * characters[c].bearing_normalized.x, y - character_scale * (characters[c].normalized_size.y - characters[c].bearing_normalized.y), characters[c].normalized_size.x * character_scale, characters[c].normalized_size.y * character_scale * scale_y);
         x += characters[c].advance_normalized.x * character_scale;        
     }
     CGL_widgets_set_texture(NULL);
     return x - initial_x;
 }
+#endif
 
 void CGL_widgets_add_shape_out_line(CGL_shape* shape)
 {
