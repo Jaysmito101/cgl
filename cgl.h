@@ -974,8 +974,11 @@ void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* 
 #define CGL_vec4_elem_set(a, i, v) (((float*)&a)[i] = v)
 CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c);
 
-
+#ifdef __cplusplus
+#define CGL_ivec4_init(x, y, z, w) CGL_ivec4(x, y, z, w)
+#else
 #define CGL_ivec4_init(x, y, z, w) ((CGL_ivec4){x, y, z, w})
+#endif
 
 #ifdef __cplusplus
 #define CGL_mat3_init(a, b, c, d, e, f, g, h, i) CGL_mat3(a, b, c, d, e, f, g, h, i)
@@ -4251,7 +4254,7 @@ CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec
 
 CGL_transform CGL_transform_create_from_matrix(CGL_mat4 matrix)
 {
-    CGL_transform transform = {0};
+    CGL_transform transform;
     // TODO: Implement
     CGL_warn("CGL_transform_create_from_matrix() is not implemented yet!");
     return transform;
@@ -7764,7 +7767,6 @@ void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
     if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
     glDrawElements(GL_TRIANGLES, (GLsizei)mesh->index_count, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
 }
 
 // render mesh instanfced (gpu)
@@ -7773,7 +7775,6 @@ void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
     if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)mesh->index_count, GL_UNSIGNED_INT, 0, count);
-    glBindVertexArray(0);
 }
 
 // upload mesh from (cpu) to (gpu)
@@ -14487,9 +14488,9 @@ struct CGL_simple_neural_network
 
 CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes, CGL_int layer_count)
 {
-    CGL_simple_neural_network* network = CGL_malloc(sizeof(CGL_simple_neural_network));
+    CGL_simple_neural_network* network = (CGL_simple_neural_network*)CGL_malloc(sizeof(CGL_simple_neural_network));
     network->layer_count = layer_count;
-    network->layers = CGL_malloc(sizeof(CGL_simple_neural_network_layer) * layer_count);
+    network->layers = (CGL_simple_neural_network_layer*)CGL_malloc(sizeof(CGL_simple_neural_network_layer) * layer_count);
     for(CGL_int i = 0 ; i < layer_count ; i++)
     {
         CGL_simple_neural_network_layer* layer = network->layers + i;
@@ -14498,9 +14499,9 @@ CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes
         layer->input_count = i > 0 ? layer_sizes[i-1] : 0;
         layer->output_count = layer_sizes[i];
         layer->weight_count = (layer->input_count + 1) * layer->output_count;
-        layer->weights = CGL_malloc(sizeof(CGL_float) * layer->weight_count);
-        layer->activations = CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
-        layer->errors = CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
+        layer->weights = (CGL_float*)CGL_malloc(sizeof(CGL_float) * layer->weight_count);
+        layer->activations = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
+        layer->errors = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (layer->output_count + 1));
     }
     return network;
 }
@@ -14516,7 +14517,7 @@ static CGL_sizei __CGL_simple_neural_network_calculate_serialized_size(CGL_simpl
 CGL_byte* CGL_simple_neural_network_serialize_weights(CGL_simple_neural_network* network, CGL_sizei* size_out)
 {
     CGL_sizei size = __CGL_simple_neural_network_calculate_serialized_size(network); // calculate size of serialized data
-    CGL_byte* data = CGL_malloc(size); // allocate memory for serialized data
+    CGL_byte* data = (CGL_byte*)CGL_malloc(size); // allocate memory for serialized data
     if(!data) return NULL; // if allocation failed, return NULL
     CGL_byte* ptr = data; // pointer to current position in serialized data
     for(CGL_int i = 0 ; i < network->layer_count ; i++) // for each layer
