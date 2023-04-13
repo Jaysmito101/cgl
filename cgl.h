@@ -7764,6 +7764,7 @@ void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
     if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
     glDrawElements(GL_TRIANGLES, (GLsizei)mesh->index_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 }
 
 // render mesh instanfced (gpu)
@@ -7772,6 +7773,7 @@ void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
     if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)mesh->index_count, GL_UNSIGNED_INT, 0, count);
+    glBindVertexArray(0);
 }
 
 // upload mesh from (cpu) to (gpu)
