@@ -288,7 +288,7 @@ def utils_crc64(data: bytes) -> int:
 
 def utils_rot13(data: bytes) -> bytes:
     result = bytes(len(data))
-    CGL_utils_rot13(<void*>data, <void*>result, len(data))
+    CGL_utils_rot13(<char*>data, <char*>result)
     return result
 
 def utils_super_fast_hash(data: bytes) -> int:

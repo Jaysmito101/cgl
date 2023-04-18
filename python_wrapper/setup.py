@@ -15,11 +15,11 @@ def get_extra_link_args():
 
 requirements = ["PyOpenGL", "glfw", "Cython"] 
 
-version = '0.0.1'
+version = '0.0.4'
 
 readme = 'Coming Soon ...'
 
-required_libraries = ['cgl', 'glfw3', 'glad']
+required_libraries = ['cgl', 'glfw3', 'glad', 'freetype']
 
 if platform.system() == 'Windows':
     required_libraries.append('user32')

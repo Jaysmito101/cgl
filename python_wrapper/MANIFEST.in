@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+
+# Cython sources
+recursive-include . *.pyx *.pxd
+
+# ImGui sources
+recursive-include ./lib *.lib *.a
+recursive-include ./include *.h
