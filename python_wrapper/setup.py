@@ -41,7 +41,7 @@ extension = Extension(
 )
 
 setup(
-    name = 'cgl',
+    name = 'cgl-py',
     author = 'Jaysmito Mukherjee',
     author_email = 'jaysmito101@gmail.com',
     url = 'https://github.com/Jaysmito101/cgl',
@@ -60,7 +60,7 @@ setup(
     install_requires = requirements,
     python_requires='>=3.6.0',
     package_data={
-        "cgl": [
+        "cgl-py": [
             "include/**.h",
             "include/**.hpp",
             "lib/**.lib",
