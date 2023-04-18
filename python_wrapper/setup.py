@@ -13,9 +13,9 @@ def get_extra_link_args():
     else:
         return ["-Wl,-rpath=$ORIGIN/lib/."]
 
-requirements = ["PyOpenGL", "glfw", "Cython"] 
+requirements = ["PyOpenGL", "glfw", "Cython", "Pillow"] 
 
-version = '0.0.4'
+version = '0.0.7'
 
 readme = 'Coming Soon ...'
 

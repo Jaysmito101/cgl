@@ -4,6 +4,8 @@ cimport libc.stdlib as stdlib
 cimport libc.math as math
 import copy
 from typing import Callable
+from PIL import Image
+import PIL
 
 # CGL typedefs of standard types
 
@@ -24,6 +26,9 @@ cdef extern from "cgl.h":
     ctypedef uint64_t CGL_sizei;
     ctypedef bool CGL_bool;
     ctypedef void CGL_void;
+    ctypedef CGL_int GLint;
+    ctypedef CGL_uint GLuint;
+
 
     CGL_bool CGL_init()
     void CGL_shutdown()
@@ -120,6 +125,10 @@ cdef extern from "cgl.h":
     cdef CGL_float CGL_float_quadratic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float t)
     cdef CGL_float CGL_float_cubic_lerp(CGL_float a, CGL_float b, CGL_float c, CGL_float d, CGL_float t)
 
+    # cdef enum GLenum:
+    #     pass
+    ctypedef CGL_uint GLenum
+
     CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
     CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n)
     CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta)
@@ -154,6 +163,25 @@ cdef extern from "cgl.h":
     CGL_mat4 CGL_mat4_rotate_x(CGL_float angle)
     CGL_mat4 CGL_mat4_rotate_y(CGL_float angle)
     CGL_mat4 CGL_mat4_rotate_z(CGL_float angle)
+
+    cdef struct CGL_transform:
+        CGL_vec4 position
+        CGL_vec4 rotation
+        CGL_vec4 scale
+        CGL_mat4 matrix
+        CGL_transform* parent
+
+    CGL_transform CGL_transform_create_empty()
+    CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec3 scale)
+    CGL_transform CGL_transform_create_from_matrix(CGL_mat4 matrix)
+    CGL_transform* CGL_transform_set_position(CGL_transform* transform, CGL_vec3 position)
+    CGL_transform* CGL_transform_set_rotation(CGL_transform* transform, CGL_vec3 rotation)
+    CGL_transform* CGL_transform_set_scale(CGL_transform* transform, CGL_vec3 scale)
+    CGL_transform* CGL_transform_set_parent(CGL_transform* transform, CGL_transform* parent)
+    CGL_transform* CGL_transform_update(CGL_transform* transform)
+    CGL_transform* CGL_transform_update_matrix_local(CGL_transform* transform)
+    CGL_mat4 CGL_transform_get_matrix(CGL_transform* transform)
+    CGL_mat4* CGL_transform_get_matrix_ptr(CGL_transform* transform)
 
     cdef struct CGL_window:
         pass
@@ -199,6 +227,108 @@ cdef extern from "cgl.h":
     CGL_int CGL_window_get_mouse_button(CGL_window* window, CGL_int button)
     void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypos)
 
+    cdef struct CGL_image:
+        void* data
+        CGL_int height
+        CGL_int width
+        CGL_int bytes_per_channel
+        CGL_int channels
+
+    cdef struct CGL_texture:
+        pass
+    
+    cdef struct CGL_framebuffer:
+        pass
+    
+    cdef struct CGL_shader:
+        pass
+    
+    cdef struct CGL_mesh_gpu:
+        pass
+
+    cdef struct CGL_mesh_vertex:
+        CGL_vec4 position
+        CGL_vec4 normal
+        CGL_vec4 texture_coordinates
+        CGL_vec4 bone_wieghts
+        CGL_ivec4 bone_ids
+    
+    cdef struct CGL_mesh_cpu:
+        CGL_sizei index_count
+        CGL_sizei index_count_used
+        CGL_uint* indices
+        CGL_sizei vertex_count
+        CGL_sizei vertex_count_used
+        CGL_mesh_vertex* vertices
+        
+    
+    cdef struct CGL_ssbo:
+        pass
+    
+    cdef struct CGL_ubo:
+        pass
+    
+    CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count)
+    CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh)
+    CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
+    CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+    CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolution, CGL_float scale)
+    CGL_mesh_cpu* CGL_mesh_cpu_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+    CGL_mesh_cpu* CGL_mesh_cpu_cube(CGL_bool use_3d_tex_coords)
+    CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v)
+    CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution)
+    CGL_mesh_cpu* CGL_mesh_cpu_add_mesh(CGL_mesh_cpu* mesh, CGL_mesh_cpu* mesh_other)
+    CGL_mesh_cpu* CGL_mesh_cpu_add_cube(CGL_mesh_cpu* mesh, CGL_bool use_3d_tex_coords)
+    CGL_mesh_cpu* CGL_mesh_cpu_add_triangle(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+    CGL_mesh_cpu* CGL_mesh_cpu_add_quad(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+    CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v)
+    CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution)
+    CGL_mesh_cpu* CGL_mesh_cpu_offset_vertices(CGL_mesh_cpu* mesh, CGL_vec3 offset)
+    CGL_mesh_cpu* CGL_mesh_cpu_scale_vertices(CGL_mesh_cpu* mesh, CGL_float scale)
+    CGL_mesh_cpu* CGL_mesh_cpu_rotate_vertices(CGL_mesh_cpu* mesh, CGL_quat rotation)
+    CGL_mesh_cpu* CGL_mesh_cpu_transform_vertices(CGL_mesh_cpu* mesh, CGL_mat4 transform)
+    void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name)
+    void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh)
+
+    CGL_texture* CGL_texture_create(CGL_image* image)
+    CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum format, GLenum internal_format, GLenum type)
+    CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int layers, GLenum format, GLenum internal_format, GLenum type)
+    CGL_texture* CGL_texture_create_3d(CGL_int width, CGL_int height, CGL_int depth, GLenum format, GLenum internal_format, GLenum type)
+    CGL_texture* CGL_texture_create_cubemap()
+    void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image)
+    void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data)
+    void CGL_texture_destroy(CGL_texture* texture)
+    void CGL_texture_bind(CGL_texture* texture, CGL_int unit)
+    void CGL_texture_set_data(CGL_texture* texture, void* data)
+    void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data)
+    void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data)
+    void CGL_texture_set_user_data(CGL_texture* texture, void* user_data)
+    void* CGL_texture_get_user_data(CGL_texture* texture)
+    CGL_uint CGL_texture_get_internal_handle(CGL_texture* texture)
+    void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height)
+    void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method)
+    void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
+
+    CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window)
+    CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height)
+    CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height)
+    void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture)
+    void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer)
+    CGL_texture* CGL_framebuffer_get_color_attachment(CGL_framebuffer* framebuffer, CGL_int index)
+    void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
+    void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height)
+    void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data)
+    void* CGL_framebuffer_get_user_data(CGL_framebuffer* framebuffer)
+    void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int width, CGL_int height, void* pixels)
+    CGL_int CGL_framebuffer_get_mouse_pick_id(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int index)
+    CGL_texture* CGL_framebuffer_get_color_texture(CGL_framebuffer* framebuffer)
+    CGL_texture* CGL_framebuffer_get_depth_texture(CGL_framebuffer* framebuffer)
+
+
+    void CGL_gl_clear(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
+    bool CGL_gl_init()
+    void CGL_gl_shutdown()
+    void CGL_gl_render_screen_quad()
 
 CGL_TRUE = 1
 CGL_FALSE = 0
@@ -752,6 +882,69 @@ def vec4_triple_product(a: vec4, b: vec4, c: vec4) -> vec4:
     cdef CGL_vec4 obj = vec4(CGL_vec4_triple_product(a.c_vec4, b.c_vec4, c.c_vec4))
     return vec4(obj.x, obj.y, obj.z, obj.w)
 
+cdef class ivec4:
+    cdef CGL_ivec4 c_ivec4
+
+    def __init__(self, x: int = 0, y: int = 0, z: int = 0, w: int = 0):
+        self.c_ivec4 = CGL_ivec4(x, y, z, w)
+    
+    def __repr__(self):
+        return f"ivec4({self.c_ivec4.x}, {self.c_ivec4.y}, {self.c_ivec4.z}, {self.c_ivec4.w})"
+
+    def __str__(self): 
+        return f"ivec4({self.c_ivec4.x}, {self.c_ivec4.y}, {self.c_ivec4.z}, {self.c_ivec4.w})"
+    
+    def __getitem__(self, index: int):
+        if index == 0:
+            return self.c_ivec4.x
+        elif index == 1:
+            return self.c_ivec4.y
+        elif index == 2:
+            return self.c_ivec4.z
+        elif index == 3:
+            return self.c_ivec4.w
+        else:
+            raise IndexError()
+    
+    def __setitem__(self, index: int, value: int):
+        if index == 0:
+            self.c_ivec4.x = value
+        elif index == 1:
+            self.c_ivec4.y = value
+        elif index == 2:
+            self.c_ivec4.z = value
+        elif index == 3:
+            self.c_ivec4.w = value
+        else:
+            raise IndexError()
+    
+    def __hash__(self):
+        return hash((self.c_ivec4.x, self.c_ivec4.y, self.c_ivec4.z, self.c_ivec4.w))
+    
+    def __getattr__(self, name: str):
+        if name == "x":
+            return self.c_ivec4.x
+        elif name == "y":
+            return self.c_ivec4.y
+        elif name == "z":
+            return self.c_ivec4.z
+        elif name == "w":
+            return self.c_ivec4.w
+        else:
+            raise AttributeError()
+    
+    def __setattr__(self, name: str, value: int):   
+        if name == "x":
+            self.c_ivec4.x = value
+        elif name == "y":
+            self.c_ivec4.y = value
+        elif name == "z":
+            self.c_ivec4.z = value
+        elif name == "w":
+            self.c_ivec4.w = value
+        else:
+            raise AttributeError()
+
 cdef class mat4:
     cdef CGL_mat4 c_mat4
 
@@ -783,6 +976,9 @@ cdef class mat4:
     
     def __mul__(self, other: mat4):
         return mat4_mul(self, other)
+    
+    def __hash__(self):
+        return hash((self.c_mat4.m[0], self.c_mat4.m[1], self.c_mat4.m[2], self.c_mat4.m[3], self.c_mat4.m[4], self.c_mat4.m[5], self.c_mat4.m[6], self.c_mat4.m[7], self.c_mat4.m[8], self.c_mat4.m[9], self.c_mat4.m[10], self.c_mat4.m[11], self.c_mat4.m[12], self.c_mat4.m[13], self.c_mat4.m[14], self.c_mat4.m[15]))
 
 def mat4_mul(a: mat4, b: mat4) -> mat4:
     cdef CGL_mat4 obj = CGL_mat4_mul(a.c_mat4, b.c_mat4)
@@ -915,6 +1111,89 @@ def mat4_rotate_z(angle: float) -> mat4:
     result = mat4()
     result.set_c_mat4(obj)
     return result
+
+
+cdef class transform:
+    cdef CGL_transform c_transform
+
+    @property
+    def position(self) -> vec3:
+        return vec3(self.c_transform.position.x, self.c_transform.position.y, self.c_transform.position.z)
+    
+    @position.setter
+    def position(self, value: vec3):
+        self.c_transform.position.x = value.x
+        self.c_transform.position.y = value.y
+        self.c_transform.position.z = value.z
+        self.c_transform.position.w = 1.0
+    
+    @property
+    def rotation(self) -> vec3:
+        return vec3(self.c_transform.rotation.x, self.c_transform.rotation.y, self.c_transform.rotation.z)
+    
+    @rotation.setter
+    def rotation(self, value: vec3):
+        self.c_transform.rotation.x = value.x
+        self.c_transform.rotation.y = value.y
+        self.c_transform.rotation.z = value.z
+        self.c_transform.rotation.w = 0.0
+    
+    @property
+    def scale(self) -> vec3:
+        return vec3(self.c_transform.scale.x, self.c_transform.scale.y, self.c_transform.scale.z)
+    
+    @scale.setter
+    def scale(self, value: vec3):
+        self.c_transform.scale.x = value.x
+        self.c_transform.scale.y = value.y
+        self.c_transform.scale.z = value.z
+        self.c_transform.scale.w = 1.0
+    
+    @property
+    def matrix(self) -> mat4:
+        return mat4(self.c_transform.matrix)
+    
+    @matrix.setter
+    def matrix(self, value: mat4):
+        self.c_transform.matrix = value.c_mat4
+
+
+    def __cinit__(self):
+        self.c_transform = CGL_transform_create_empty()
+
+    def __init__(self, position: vec3 = None, rotation: vec3 = None, scale: vec3 = None):
+        if position is None:
+            position = vec3()
+        if rotation is None:
+            rotation = vec3()
+        if scale is None:
+            scale = vec3(1.0, 1.0, 1.0)
+        self.c_transform = CGL_transform_create(position.c_vec3, rotation.c_vec3, scale.c_vec3)
+
+    def __hash__(self):
+        return hash((self.position, self.rotation, self.scale))
+    
+    def __repr__(self):
+        return f"transform(position={self.position}, rotation={self.rotation}, scale={self.scale})"
+    
+    def __eq__(self, other):
+        if isinstance(other, transform):
+            return self.position == other.position and self.rotation == other.rotation and self.scale == other.scale
+        return False
+
+    def __str__(self):
+        return f"transform(position={self.position}, rotation={self.rotation}, scale={self.scale})"
+
+    def load_matrix(self, m: mat4):
+        self.c_transform = CGL_transform_create_from_matrix(m.c_mat4)
+
+    def set_parent(self, parent: transform):
+        self.c_transform.parent = &parent.c_transform
+    
+    def update(self):
+        CGL_transform_update(&self.c_transform)
+        
+
 
 # TODO: Quaterneon Lib
 
@@ -1058,12 +1337,97 @@ RELEASE                = 0
 PRESS                  = 1
 REPEAT                 = 2
 
+__WINDOW_TABLE = {}
+
+cdef void __pass_through_window_close_callback(CGL_window* window):
+    window_object = __WINDOW_TABLE[CGL_utils_super_fast_hash(<void*>window, sizeof(CGL_window*))]    
+    window_object.close_callback(window_object)
+
+cdef void __pass_through_window_key_callback(CGL_window* window, int key, int scancode, int action, int mods):
+    window_object = __WINDOW_TABLE[CGL_utils_super_fast_hash(<void*>window, sizeof(CGL_window*))]    
+    window_object.key_callback(window_object, key, scancode, action, mods)
+
+cdef void __pass_through_window_mouse_button_callback(CGL_window* window, int button, int action, int mods):
+    window_object = __WINDOW_TABLE[CGL_utils_super_fast_hash(<void*>window, sizeof(CGL_window*))]    
+    window_object.mouse_button_callback(window_object, button, action, mods)
+
+cdef void __pass_through_window_mouse_position_callback(CGL_window* window, double xpos, double ypos):
+    window_object = __WINDOW_TABLE[CGL_utils_super_fast_hash(<void*>window, sizeof(CGL_window*))]    
+    window_object.mouse_position_callback(window_object, xpos, ypos)
+
+cdef void __pass_through_window_mouse_scroll_callback(CGL_window* window, double xoffset, double yoffset):
+    window_object = __WINDOW_TABLE[CGL_utils_super_fast_hash(<void*>window, sizeof(CGL_window*))]    
+    window_object.mouse_scroll_callback(window_object, xoffset, yoffset)
+
+cdef void __pass_through_window_framebuffer_size_callback(CGL_window* window, int width, int height):
+    window_object = __WINDOW_TABLE[CGL_utils_super_fast_hash(<void*>window, sizeof(CGL_window*))]    
+    window_object.framebuffer_size_callback(window_object, width, height)
+
+cdef void __pass_through_window_drag_n_drop_callback(CGL_window* window, const char** paths, int count):
+    window_object = __WINDOW_TABLE[CGL_utils_super_fast_hash(<void*>window, sizeof(CGL_window*))]    
+    path_list = []
+    for i in range(count):
+        path_list.append(paths[i].decode('utf-8'))
+    window_object.drag_n_drop_callback(window_object, path_list)
+    
 cdef class window:
     cdef CGL_window* c_window
     cdef bool is_decorated
     cdef bool has_been_destroyed
     cdef str title
+    cdef object key_callback
+    cdef object mouse_button_callback
+    cdef object mouse_position_callback
+    cdef object mouse_scroll_callback
+    cdef object framebuffer_size_callback
+    cdef object close_callback
+    cdef object drag_n_drop_callback
 
+    @property
+    def close_callback(self):
+        return self.close_callback
+    
+    @property
+    def key_callback(self):
+        return self.key_callback
+    
+    @property
+    def mouse_button_callback(self):
+        return self.mouse_button_callback
+    
+    @property
+    def mouse_position_callback(self):
+        return self.mouse_position_callback
+    
+    @property
+    def mouse_scroll_callback(self):
+        return self.mouse_scroll_callback
+    
+    @property
+    def framebuffer_size_callback(self):
+        return self.framebuffer_size_callback
+    
+    @property
+    def drag_n_drop_callback(self):
+        return self.drag_n_drop_callback
+    
+    @property
+    def width(self) -> int:
+        return self.get_size()[0]
+    
+    @property
+    def height(self) -> int:
+        return self.get_size()[1]
+    
+    @property
+    def x(self) -> int:
+        return self.get_position()[0]
+    
+    @property
+    def y(self) -> int:
+        return self.get_position()[1]
+
+    
     def __init__(self, width: int, height: int, title: str = "CGL Window", decorated: bool = True):
         self.is_decorated = decorated
         self.title = title
@@ -1074,16 +1438,24 @@ cdef class window:
         if self.c_window == NULL:
             raise RuntimeError("Failed to create window")
         self.has_been_destroyed = False
+        __WINDOW_TABLE[self.get_id()] = self
         
     def __dealloc__(self):
         self.destroy()
     
+    def __hash__(self) -> int:
+        return self.get_id()
+    
     def destroy(self):
         if self.has_been_destroyed:
             return
+        __WINDOW_TABLE.pop(self.get_id())
         CGL_window_destroy(self.c_window)
         self.has_been_destroyed = True
     
+    def get_id(self) -> int:
+        return CGL_utils_super_fast_hash(<void*>self.c_window, sizeof(CGL_window*))
+
     def poll_events(self):
         CGL_window_poll_events(self.c_window)
     
@@ -1116,6 +1488,34 @@ cdef class window:
         CGL_window_get_size(self.c_window, &width, &height)
         return (width, height)
     
+    def set_close_callback(self, callback: Callable):
+        self.close_callback = callback
+        CGL_window_set_close_callback(self.c_window, __pass_through_window_close_callback)
+    
+    def set_key_callback(self, callback: Callable):
+        self.key_callback = callback
+        CGL_window_set_key_callback(self.c_window, __pass_through_window_key_callback)
+    
+    def set_mouse_button_callback(self, callback: Callable):
+        self.mouse_button_callback = callback
+        CGL_window_set_mouse_button_callback(self.c_window, __pass_through_window_mouse_button_callback)
+    
+    def set_mouse_position_callback(self, callback: Callable):
+        self.mouse_position_callback = callback
+        CGL_window_set_mouse_position_callback(self.c_window, __pass_through_window_mouse_position_callback)
+    
+    def set_mouse_scroll_callback(self, callback: Callable):
+        self.mouse_scroll_callback = callback
+        CGL_window_set_mouse_scroll_callback(self.c_window, __pass_through_window_mouse_scroll_callback)
+    
+    def set_framebuffer_size_callback(self, callback: Callable):
+        self.framebuffer_size_callback = callback
+        CGL_window_set_framebuffer_size_callback(self.c_window, __pass_through_window_framebuffer_size_callback)
+    
+    def set_drag_n_drop_callback(self, callback: Callable):
+        self.drag_n_drop_callback = callback
+        CGL_window_set_drag_n_drop_callback(self.c_window, __pass_through_window_drag_n_drop_callback)
+
     def get_position(self) -> tuple:
         cdef int x, y
         CGL_window_get_position(self.c_window, &x, &y)
@@ -1155,19 +1555,539 @@ cdef class window:
     def __str__(self):
         return f"window({self.width}, {self.height}, {self.title})"
     
+cdef class image:
+    cdef CGL_image c_image
+    cdef object image_data
+
     @property
     def width(self) -> int:
-        return self.get_size()[0]
+        return self.c_image.width
     
     @property
     def height(self) -> int:
-        return self.get_size()[1]
+        return self.c_image.height
     
     @property
-    def x(self) -> int:
-        return self.get_position()[0]
+    def channels(self) -> int:
+        return self.c_image.channels
     
     @property
-    def y(self) -> int:
-        return self.get_position()[1]
+    def data(self) -> object:
+        return self.image_data
 
+    def __init__(self):
+        self.c_image = CGL_image()
+    
+    def __hash__(self):
+        return hash(self.image_data)
+    
+    def __repr__(self):
+        return f"image({self.width}, {self.height}, {self.channels})"
+    
+    def __str__(self):
+        return f"image({self.width}, {self.height}, {self.channels})"
+    
+    def load_image(self, path: str):
+        img = PIL.Image.open(path)
+        self.c_image.width = img.width
+        self.c_image.height = img.height
+        self.c_image.channels = 3
+        self.c_image.bytes_per_channel = 8
+        self.image_data = img.tobytes()
+        self.c_image.data = <void*>self.image_data
+
+cdef class mesh_vertex:
+    cdef CGL_mesh_vertex c_vertex
+
+    @property
+    def position(self) -> vec4:
+        return vec4(self.c_vertex.position.x, self.c_vertex.position.y, self.c_vertex.position.z, self.c_vertex.position.w)
+    
+    @position.setter
+    def position(self, value: vec4):
+        self.c_vertex.position.x = value.x
+        self.c_vertex.position.y = value.y
+        self.c_vertex.position.z = value.z
+        self.c_vertex.position.w = value.w
+    
+    @property
+    def normal(self) -> vec4:
+        return vec4(self.c_vertex.normal.x, self.c_vertex.normal.y, self.c_vertex.normal.z, self.c_vertex.normal.w)
+    
+    @normal.setter
+    def normal(self, value: vec4):
+        self.c_vertex.normal.x = value.x
+        self.c_vertex.normal.y = value.y
+        self.c_vertex.normal.z = value.z
+        self.c_vertex.normal.w = value.w
+    
+    @property
+    def texture_coordinates(self) -> vec4:
+        return vec4(self.c_vertex.texture_coordinates.x, self.c_vertex.texture_coordinates.y, self.c_vertex.texture_coordinates.z, self.c_vertex.texture_coordinates.w)
+    
+    @texture_coordinates.setter
+    def texture_coordinates(self, value: vec4):
+        self.c_vertex.texture_coordinates.x = value.x
+        self.c_vertex.texture_coordinates.y = value.y
+        self.c_vertex.texture_coordinates.z = value.z
+        self.c_vertex.texture_coordinates.w = value.w
+    
+    @property
+    def bone_wieghts(self) -> vec4:
+        return vec4(self.c_vertex.bone_wieghts.x, self.c_vertex.bone_wieghts.y, self.c_vertex.bone_wieghts.z, self.c_vertex.bone_wieghts.w)
+    
+    @bone_wieghts.setter
+    def bone_wieghts(self, value: vec4):
+        self.c_vertex.bone_wieghts.x = value.x
+        self.c_vertex.bone_wieghts.y = value.y
+        self.c_vertex.bone_wieghts.z = value.z
+        self.c_vertex.bone_wieghts.w = value.w
+    
+    @property
+    def bone_ids(self) -> ivec4:
+        return ivec4(self.c_vertex.bone_ids.x, self.c_vertex.bone_ids.y, self.c_vertex.bone_ids.z, self.c_vertex.bone_ids.w)
+    
+    @bone_ids.setter
+    def bone_ids(self, value: ivec4):
+        self.c_vertex.bone_ids.x = value.x
+        self.c_vertex.bone_ids.y = value.y
+        self.c_vertex.bone_ids.z = value.z
+        self.c_vertex.bone_ids.w = value.w
+    
+    def __init__(self, c_vertex = None):
+        if c_vertex is not None:
+            self.c_vertex = c_vertex
+        else:
+            self.c_vertex = CGL_mesh_vertex()
+    
+    def __hash__(self):
+        return hash((self.position, self.normal, self.texture_coordinates, self.bone_wieghts, self.bone_ids))
+    
+    def __repr__(self):
+        return f"mesh_vertex({self.position}, {self.normal}, {self.texture_coordinates}, {self.bone_wieghts}, {self.bone_ids})"
+    
+    def __str__(self):
+        return f"mesh_vertex({self.position}, {self.normal}, {self.texture_coordinates}, {self.bone_wieghts}, {self.bone_ids})"
+    
+
+cdef class mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh
+    cdef bool has_been_destroyed
+
+    @property
+    def index_count(self) -> int:
+        return self.c_mesh.index_count
+
+    @property
+    def index_count_used(self) -> int:
+        return self.c_mesh.index_count_used
+    
+    @property
+    def indices(self) -> list:
+        return [self.c_mesh.indices[i] for i in range(self.index_count_used)]
+    
+    @indices.setter
+    def indices(self, value: list):
+        if len(value) > self.index_count:
+            raise ValueError("The number of indices is greater than the maximum number of indices")
+        self.c_mesh.index_count_used = len(value)
+        for i in range(self.index_count_used):
+            self.c_mesh.indices[i] = value[i]
+    
+    @property
+    def vertex_count(self) -> int:
+        return self.c_mesh.vertex_count
+    
+    @property
+    def vertex_count_used(self) -> int:
+        return self.c_mesh.vertex_count_used
+    
+    @property
+    def vertices(self) -> list:
+        return [mesh_vertex(self.c_mesh.vertices[i]) for i in range(self.vertex_count_used)]
+
+    def __init__(self):
+        self.c_mesh = NULL
+        self.has_been_destroyed = True
+    
+    def __dealloc__(self):
+        self.destroy()
+    
+    def __hash__(self):
+        return <int><CGL_ulong>self.c_mesh
+    
+    def __repr__(self):
+        return f"mesh_cpu({self.index_count}, {self.index_count_used}, {self.vertex_count}, {self.vertex_count_used})"
+    
+    def __str__(self):
+        return f"mesh_cpu({self.index_count}, {self.index_count_used}, {self.vertex_count}, {self.vertex_count_used})"
+
+    cdef set_c_mesh(self, CGL_mesh_cpu* c_mesh):
+        if not self.has_been_destroyed:
+            self.destroy()
+        self.c_mesh = c_mesh
+        self.has_been_destroyed = False
+
+    def destroy(self):
+        if not self.has_been_destroyed:
+            self.has_been_destroyed = True
+            CGL_mesh_cpu_destroy(self.c_mesh)
+
+    def recalculate_normals(self):
+        CGL_mesh_cpu_recalculate_normals(self.c_mesh)
+
+    def load_obj(self, path: str):
+        self.c_mesh = CGL_mesh_cpu_load_obj(path.encode("utf-8"))
+        if self.c_mesh == NULL:
+            raise RuntimeError("Failed to load mesh from obj file")
+        self.has_been_destroyed = False
+    
+    def add_mesh(self, mesh: mesh_cpu):
+        CGL_mesh_cpu_add_mesh(self.c_mesh, mesh.c_mesh)
+    
+    def add_cube(self, use_texture_coordinates: bool = True):
+        CGL_mesh_cpu_add_cube(self.c_mesh, use_texture_coordinates)
+    
+    def add_triangle(self, a: vec3, b: vec3, c: vec3):
+        CGL_mesh_cpu_add_triangle(self.c_mesh, a.c_vec3, b.c_vec3, c.c_vec3)
+    
+    def add_quad(self, a: vec3, b: vec3, c: vec3, d: vec3):
+        CGL_mesh_cpu_add_quad(self.c_mesh, a.c_vec3, b.c_vec3, c.c_vec3, d.c_vec3)
+    
+    def add_sphere(self, res_u: int, res_v: int):
+        CGL_mesh_cpu_add_sphere(self.c_mesh, res_u, res_v)
+
+    def add_cylinder(self, start: vec3, end: vec3, radius0: float, radius1: float, res: int):
+        CGL_mesh_cpu_add_cylinder(self.c_mesh, start.c_vec3, end.c_vec3, radius0, radius1, res)
+
+    def offset_vetices(self, offset: vec3):
+        CGL_mesh_cpu_offset_vertices(self.c_mesh, offset.c_vec3)
+    
+    def scale_vertices(self, scale: float):
+        CGL_mesh_cpu_scale_vertices(self.c_mesh, scale)
+    
+    # def rotate_vertices(self, rotation: quat):
+    #     CGL_mesh_cpu_rotate_vertices(self.c_mesh, rotation.c_quat)
+    
+    def transform_vertices(self, transform: mat4):
+        CGL_mesh_cpu_transform_vertices(self.c_mesh, transform.c_mat4)
+
+def mesh_cpu_create(index_count: int, vertex_count: int) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_create(index_count, vertex_count)
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to create mesh")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+def mesh_cpu_load_obj(path: str) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_load_obj(path.encode("utf-8"))
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to load mesh from obj file")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+def mesh_cpu_triangle(a: vec3, b: vec3, c: vec3) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_triangle(a.c_vec3, b.c_vec3, c.c_vec3)
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to create triangle mesh")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+def mesh_cpu_quad(a: vec3, b: vec3, c: vec3, d: vec3) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_quad(a.c_vec3, b.c_vec3, c.c_vec3, d.c_vec3)
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to create quad mesh")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+def mesh_cpu_plane(front: vec3, right: vec3, resolution: int, scale: float) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_plane(front.c_vec3, right.c_vec3, resolution, scale)
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to create plane mesh")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+def mesh_cpu_cube(use_3d_tex_coords: bool) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_cube(use_3d_tex_coords)
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to create cube mesh")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+def mesh_cpu_sphere(res_u: int, res_v: int) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_sphere(res_u, res_v)
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to create sphere mesh")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+def mesh_cpu_cylinder(start: vec3, end: vec3, radius0: float, radius1: float, resolution: int) -> mesh_cpu:
+    cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_create_cylinder(start.c_vec3, end.c_vec3, radius0, radius1, resolution)
+    if c_mesh == NULL:
+        raise RuntimeError("Failed to create cylinder mesh")
+    res = mesh_cpu()
+    res.set_c_mesh(c_mesh)
+    return res
+
+CUBEMAP_POSITIVE_X = 0x8515 
+CUBEMAP_NEGATIVE_X = 0x8516 
+CUBEMAP_POSITIVE_Y = 0x8517 
+CUBEMAP_NEGATIVE_Y = 0x8518 
+CUBEMAP_POSITIVE_Z = 0x8519 
+CUBEMAP_NEGATIVE_Z = 0x851A 
+
+cdef class texture:
+    cdef CGL_texture* c_texture
+    cdef bool has_been_destroyed
+    
+    @property
+    def width(self):
+        return self.get_size()[0]
+    
+    @property
+    def height(self):
+        return self.get_size()[1]
+
+    def __init__(self):
+        self.c_texture = NULL
+        self.has_been_destroyed = True
+    
+    def __dealloc__(self):
+        self.destroy()
+    
+    def __hash__(self):
+        return self.get_internal_handle()
+    
+    def __repr__(self):
+        return f"texture({self.get_internal_handle()})"
+    
+    def __eq__(self, other):
+        if isinstance(other, texture):
+            return self.get_internal_handle() == other.get_internal_handle()
+        return False
+    
+    def __str__(self):
+        return f"texture({self.get_internal_handle()})"
+    
+    cdef set_c_texture(self, CGL_texture* c_texture):
+        if not self.has_been_destroyed:
+            self.destroy()
+        self.c_texture = c_texture
+        self.has_been_destroyed = False       
+    
+    def destroy(self):
+        if not self.has_been_destroyed:
+            CGL_texture_destroy(self.c_texture)
+            self.has_been_destroyed = True
+    
+    def load_image(self, image: image):
+        self.c_texture = CGL_texture_create(&image.c_image)
+        if self.c_texture == NULL:
+            raise RuntimeError("Failed to create texture from image")
+        self.has_been_destroyed = False
+    
+    def bind(self, slot: int):
+        CGL_texture_bind(self.c_texture, slot)
+    
+    def cubemap_set_face(self, face: int, image: image):
+        CGL_texture_cubemap_set_face(self.c_texture, face, &image.c_image)
+    
+    def array_set_layer_data(self, layer: int, data: bytes):
+        CGL_texture_array_set_layer_data(self.c_texture, layer, <void*>data)
+    
+    def set_data(self, data: bytes):
+        CGL_texture_set_data(self.c_texture, <void*>data)
+    
+    def set_sub_data(self, x: int, y: int, width: int, height: int, data: bytes):
+        CGL_texture_set_sub_data(self.c_texture, x, y, width, height, <void*>data)
+    
+    def set_pixel_data(self, x: int, y: int, data: bytes):
+        CGL_texture_set_pixel_data(self.c_texture, x, y, <void*>data)
+    
+    def set_user_data(self, data: object):
+        CGL_texture_set_user_data(self.c_texture, <void*>data)
+    
+    def get_user_data(self) -> object:
+        return <object>CGL_texture_get_user_data(self.c_texture)
+    
+    def get_internal_handle(self) -> int:
+        return CGL_texture_get_internal_handle(self.c_texture)
+    
+    def get_size(self) -> tuple:
+        cdef CGL_int width
+        cdef CGL_int height
+        CGL_texture_get_size(self.c_texture, &width, &height)
+        return (width, height)
+
+    def set_scaling_method(self, scaling_method: int):
+        CGL_texture_set_scaling_method(self.c_texture, scaling_method)
+    
+    def set_wrapping_method(self, wrapping_method: int):
+        CGL_texture_set_wrapping_method(self.c_texture, wrapping_method)
+    
+
+
+def texture_create_from_image(image: image) -> texture:
+    cdef CGL_texture* c_texture = CGL_texture_create(&image.c_image)
+    if c_texture == NULL:
+        raise RuntimeError("Failed to create texture from image")
+    res = texture()
+    res.set_c_texture(c_texture)
+    return res
+
+def texture_create_blank(width: int, height: int, formatf: GLenum, internal_format: GLenum, typef: GLenum) -> texture:
+    cdef CGL_texture* c_texture = CGL_texture_create_blank(width, height, formatf, internal_format, typef)
+    if c_texture == NULL:
+        raise RuntimeError("Failed to create blank texture")
+    res = texture()
+    res.set_c_texture(c_texture)
+    return res
+
+def texture_create_array(width: int, height: int, depth: int, formatf: GLenum, internal_format: GLenum, typef: GLenum) -> texture:
+    cdef CGL_texture* c_texture = CGL_texture_create_array(width, height, depth, formatf, internal_format, typef)
+    if c_texture == NULL:
+        raise RuntimeError("Failed to create texture array")
+    res = texture()
+    res.set_c_texture(c_texture)
+    return res
+
+def texture_creae_3d(width: int, height: int, depth: int, formatf: GLenum, internal_format: GLenum, typef: GLenum) -> texture:
+    cdef CGL_texture* c_texture = CGL_texture_create_3d(width, height, depth, formatf, internal_format, typef)
+    if c_texture == NULL:
+        raise RuntimeError("Failed to create 3d texture")
+    res = texture()
+    res.set_c_texture(c_texture)
+    return res
+
+def texture_create_cubemap() -> texture:
+    cdef CGL_texture* c_texture = CGL_texture_create_cubemap()
+    if c_texture == NULL:
+        raise RuntimeError("Failed to create cubemap texture")
+    res = texture()
+    res.set_c_texture(c_texture)
+    return res
+
+cdef class framebuffer:
+    cdef CGL_framebuffer* c_framebuffer
+    cdef bool has_been_destroyed
+
+    def __init__(self):
+        self.c_framebuffer = NULL
+        self.has_been_destroyed = True
+    
+    def __dealloc__(self):
+        self.destroy()
+    
+    def __repr__(self):
+        return f"framebuffer({self.get_id()})"
+    
+    def __str__(self):
+        return f"framebuffer({self.get_id()})"
+    
+    def __hash__(self):
+        return self.get_id()
+
+    def destroy(self):
+        if not self.has_been_destroyed:
+            CGL_framebuffer_destroy(self.c_framebuffer)
+            self.has_been_destroyed = True
+    
+    def get_id(self) -> int:
+        return CGL_utils_super_fast_hash(&self.c_framebuffer, sizeof(CGL_framebuffer*))
+    
+    cdef set_c_framebuffer(self, CGL_framebuffer* c_framebuffer):
+        if not self.has_been_destroyed:
+            self.destroy()
+        self.c_framebuffer = c_framebuffer
+        self.has_been_destroyed = False
+    
+    def add_color_attachment(self, tex: texture):
+        CGL_framebuffer_add_color_attachment(self.c_framebuffer, tex.c_texture)
+    
+    def get_color_attacment(self, index: int) -> texture:
+        cdef CGL_texture* c_texture = CGL_framebuffer_get_color_attachment(self.c_framebuffer, index)
+        if c_texture == NULL:
+            raise RuntimeError("Failed to get color attachment")
+        res = texture()
+        res.set_c_texture(c_texture)
+        return res
+    
+    def bind(self):
+        CGL_framebuffer_bind(self.c_framebuffer)
+
+    def set_user_data(self, data: object):
+        CGL_framebuffer_set_user_data(self.c_framebuffer, <void*>data)
+    
+    def get_user_data(self) -> object:
+        return <object>CGL_framebuffer_get_user_data(self.c_framebuffer)
+    
+    def read_pixels(self, x: int, y: int, width: int, height: int) -> bytes:
+        cdef CGL_int size = width * height * 4
+        cdef void* data = stdlib.malloc(size)
+        CGL_framebuffer_read_pixels(self.c_framebuffer, x, y, width, height, data)
+        temp = <bytes>data
+        res = copy.deepcopy(temp)
+        stdlib.free(data)
+        return res
+
+    def get_mouse_pick_id(self, x: int, y: int, index: int) -> int:
+        return CGL_framebuffer_get_mouse_pick_id(self.c_framebuffer, x, y, index)
+    
+    def get_color_texture(self) -> texture:
+        cdef CGL_texture* c_texture = CGL_framebuffer_get_color_texture(self.c_framebuffer)
+        if c_texture == NULL:
+            raise RuntimeError("Failed to get color texture")
+        res = texture()
+        res.set_c_texture(c_texture)
+        return res
+
+    def get_depth_texture(self) -> texture:
+        cdef CGL_texture* c_texture = CGL_framebuffer_get_depth_texture(self.c_framebuffer)
+        if c_texture == NULL:
+            raise RuntimeError("Failed to get depth texture")
+        res = texture()
+        res.set_c_texture(c_texture)
+        return res
+
+def framebuffer_create_from_default(wnd: window) -> framebuffer:
+    cdef CGL_framebuffer* c_framebuffer = CGL_framebuffer_create_from_default(wnd.c_window)
+    if c_framebuffer == NULL:
+        raise RuntimeError("Failed to create framebuffer from default")
+    res = framebuffer()
+    res.set_c_framebuffer(c_framebuffer)
+    return res
+
+def framebuffer_create(width: int, height: int) -> framebuffer:
+    cdef CGL_framebuffer* c_framebuffer = CGL_framebuffer_create(width, height)
+    if c_framebuffer == NULL:
+        raise RuntimeError("Failed to create framebuffer")
+    res = framebuffer()
+    res.set_c_framebuffer(c_framebuffer)
+    return res
+
+def framebuffer_create_basic(width: int, height: int) -> framebuffer:
+    cdef CGL_framebuffer* c_framebuffer = CGL_framebuffer_create_basic(width, height)
+    if c_framebuffer == NULL:
+        raise RuntimeError("Failed to create basic framebuffer")
+    res = framebuffer()
+    res.set_c_framebuffer(c_framebuffer)
+    return res
+
+def gl_clear(r: float, g: float, b: float, a: float):
+    CGL_gl_clear(r, g, b, a)
+
+def gl_init() -> bool:
+    return CGL_gl_init()
+
+def gl_shutdown():
+    CGL_gl_shutdown()
+
+def gl_render_screen_quad():
+    CGL_gl_render_screen_quad()
