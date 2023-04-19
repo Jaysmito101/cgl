@@ -1851,6 +1851,7 @@ void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_i
 CGL_ssbo* CGL_ssbo_create(uint32_t binding); // create ssbo
 void CGL_ssbo_destroy(CGL_ssbo* ssbo); // destroy ssbo
 void CGL_ssbo_bind(CGL_ssbo* ssbo); // bind ssbo
+void CGL_ssbo_bind2(CGL_ssbo* ssbo, uint32_t binding); // bind ssbo to binding
 void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_draw); // set ssbo data
 void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data, bool static_draw); // set ssbo sub data
 void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data); // get ssbo data
@@ -7497,6 +7498,12 @@ void CGL_ssbo_destroy(CGL_ssbo* ssbo)
 // bind ssbo
 void CGL_ssbo_bind(CGL_ssbo* ssbo)
 {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
+}
+
+void CGL_ssbo_bind2(CGL_ssbo* ssbo, uint32_t binding)
+{
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo->handle);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
 }
 
