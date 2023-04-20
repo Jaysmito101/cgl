@@ -6,6 +6,8 @@ import copy
 from typing import Callable
 from PIL import Image
 import PIL
+import os
+import random
 
 # CGL typedefs of standard types
 
@@ -164,12 +166,42 @@ cdef extern from "cgl.h":
     CGL_mat4 CGL_mat4_rotate_y(CGL_float angle)
     CGL_mat4 CGL_mat4_rotate_z(CGL_float angle)
 
+    cdef struct CGL_shape:
+        CGL_vec3* vertices
+        CGL_vec3 position
+        CGL_vec3 rotation
+        CGL_vec3 scale
+        size_t vertices_count
+
+    void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
+    void CGL_shape_destroy(CGL_shape* shape)
+
     cdef struct CGL_transform:
         CGL_vec4 position
         CGL_vec4 rotation
         CGL_vec4 scale
         CGL_mat4 matrix
         CGL_transform* parent
+    
+    
+    bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount)
+    bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector)
+    void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count)
+    CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
+    CGL_bool CGL_utils_is_point_in_circle(CGL_vec2 p, CGL_float r)
+    CGL_bool CGL_utils_calculate_circumcircle(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c, CGL_vec2* center, CGL_float* radius)
+    CGL_bool CGL_utils_calculate_super_triangle(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_float padding)
+    CGL_bool CGL_utils_calculate_bounding_square(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding)
+    CGL_bool CGL_utils_calculate_bounding_box(CGL_vec2* points, CGL_int points_count, CGL_vec2* a, CGL_vec2* b, CGL_vec2* c, CGL_vec2* d, CGL_float padding)
+    CGL_float CGL_utils_random_gaussian(CGL_float mean, CGL_float std_dev)
+    CGL_vec3 CGL_gjk_shape_default_support(CGL_shape* a, CGL_vec3 d)
+    CGL_vec3 CGL_gjk_default_support(CGL_shape* a, CGL_shape* b, CGL_vec3 d)
+    CGL_bool CGL_gjk_check_collision_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex_out)
+    CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex)
+    CGL_bool CGL_aabb_contains_point(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 point)
+    CGL_bool CGL_aabb_intersects_aabb(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 aabb_min2, CGL_vec2 aabb_max2)
+    CGL_bool CGL_triangulate_points_incremental(CGL_vec2* points, CGL_int points_count, CGL_int* triangles_out, CGL_int* triangles_count_out)
+
 
     CGL_transform CGL_transform_create_empty()
     CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec3 scale)
@@ -330,8 +362,289 @@ cdef extern from "cgl.h":
     void CGL_gl_shutdown()
     void CGL_gl_render_screen_quad()
 
+    
+    CGL_mesh_gpu* CGL_mesh_gpu_create()
+    void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh)
+    void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
+    void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
+    void CGL_mesh_gpu_set_user_data(CGL_mesh_gpu* mesh, void* user_data) 
+    void* CGL_mesh_gpu_get_user_data(CGL_mesh_gpu* mesh)
+    void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw)
+
+    CGL_shader* CGL_shader_create(const char* vertex_shader_source, const char* fragment_shader_source, char** error)
+    CGL_shader* CGL_shader_compute_create(const char* compute_shader_source, char** error)
+    CGL_shader* CGL_shader_create_from_files(const char* vertex_shader_file, const char* fragment_shader_file, char** error)
+    CGL_shader* CGL_shader_compute_create_from_files(const char* compute_shader_file, char** error)
+    void CGL_shader_destroy(CGL_shader* shader)
+    void CGL_shader_bind(CGL_shader* shader)
+    int CGL_shader_get_uniform_location(CGL_shader* shader, const char* name)
+    void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix)
+    void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector)
+    void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector)
+    void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector)
+    void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value)
+    void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value)
+    void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value)
+    void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value)
+    void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y)
+    void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z)
+    void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w)
+    void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y)
+    void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z)
+    void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w)
+    void CGL_shader_set_user_data(CGL_shader* shader, void* user_data)
+    void* CGL_shader_get_user_data(CGL_shader* shader)
+    void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_int z)
+
+    CGL_ssbo* CGL_ssbo_create(uint32_t binding)
+    void CGL_ssbo_destroy(CGL_ssbo* ssbo)
+    void CGL_ssbo_bind(CGL_ssbo* ssbo)
+    void CGL_ssbo_bind2(CGL_ssbo* ssbo, uint32_t binding)
+    void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_draw)
+    void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data, bool static_draw)
+    void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data)
+    void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data)
+    void CGL_ssbo_set_user_data(CGL_ssbo* ssbo, void* user_data)
+    void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo)
+    size_t CGL_ssbo_get_size(CGL_ssbo* ssbo)
+    void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size)
+
+    CGL_ubo* CGL_ubo_create()
+    void CGL_ubo_destroy(CGL_ubo* ubo)
+    void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32_t binding)
+    void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw)
+    void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw)
+    void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data)
+    void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data)
+    void CGL_ubo_set_user_data(CGL_ubo* ubo, void* user_data)
+    void* CGL_ubo_get_user_data(CGL_ubo* ubo)
+    size_t CGL_ubo_get_size(CGL_ubo* ubo)
+
+    cdef struct CGL_tilemap:
+        pass
+    
+    cdef struct CGL_tile:
+        pass
+    
+    CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, uint32_t tile_size_x, uint32_t tile_size_y, uint32_t ssbo_binding)
+    void CGL_tilemap_destroy(CGL_tilemap* tilemap)
+    void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value)
+    bool CGL_tilemap_get_auto_upload(CGL_tilemap* tilemap)
+    bool CGL_tilemap_upload(CGL_tilemap* tilemap)
+    void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b)
+    void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index)
+    void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
+    void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float g, CGL_float b)
+    void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t texture_index)
+    void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
+    void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y)
+    void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap)
+    void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture)
+    void CGL_tilemap_reset(CGL_tilemap* tilemap)
+
+    cdef struct CGL_font_character:
+        CGL_vec2 size
+        CGL_vec2 normalized_size
+        CGL_vec2 offset
+        CGL_vec2 normalized_offset
+        CGL_vec2 bearing
+        CGL_vec2 bearing_normalized
+        CGL_vec2 advance
+        CGL_vec2 advance_normalized
+        unsigned char* bitmap
+        char ch
+    
+    cdef struct CGL_font:
+        pass
+    
+    CGL_bool CGL_text_init()
+    CGL_void CGL_text_shutdown()
+    CGL_font* CGL_font_load(const char* path)
+    CGL_font* CGL_font_load_from_memory(const char* data, CGL_sizei size)
+    CGL_void CGL_font_destory(CGL_font* font)
+    CGL_texture* CGL_font_get_atlas(CGL_font* font)
+    CGL_bool CGL_font_build_atlas(CGL_font* font, size_t width, size_t height, size_t font_size)
+    CGL_font_character* CGL_font_get_characters(CGL_font* font)
+    CGL_texture* CGL_text_bake_to_texture(const char* string, size_t string_length, CGL_font* font, size_t* width, size_t* height)
+
+    cdef struct CGL_widgets_context:
+        pass    
+    
+    CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_indices)
+    void CGL_widgets_context_destory(CGL_widgets_context* context)
+    CGL_widgets_context* CGL_window_get_current_context()
+    CGL_bool CGL_widgets_init()
+    void CGL_widgets_shutdown()
+    void CGL_window_set_current_context(CGL_widgets_context* context)
+    CGL_bool CGL_widgets_begin()
+    CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
+    CGL_bool CGL_widgets_end()
+    CGL_bool CGL_widgets_flush()
+    CGL_bool CGL_widgets_flush_if_required()
+    void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
+    void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh)
+    void CGL_widgets_add_vertex_p(CGL_vec3 position)
+    void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z)
+    void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord)
+    void CGL_widgets_add_vertex_p3ft(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_vec2 tex_coord)
+    void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float tex_y)
+    void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y)
+    void CGL_widgets_set_stroke_color(CGL_color color)
+    void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
+    void CGL_widgets_set_stroke_thicnkess(CGL_float thickness)
+    void CGL_widgets_set_fill_color(CGL_color color)
+    void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
+    void CGL_widgets_set_fill_mode(CGL_bool is_enabled)
+    void CGL_widgets_set_projection_matrix(CGL_mat4* matrix)
+    void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color)
+    void CGL_widgets_disable_diffuse_shading()
+    void CGL_widgets_set_view_matrix(CGL_mat4* matrix)
+    void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
+    void CGL_widgets_set_texture(CGL_texture* texture)
+    void CGL_widgets_set_font_texture(CGL_texture* texture)
+    void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
+    void CGL_widgets_apply_transformations_on_cpu()
+    void CGL_widgets_apply_transformations_on_gpu()
+    void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+    void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+    void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy)
+    void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
+    void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y)
+    void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size)
+    void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y)
+    void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius)
+    void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius)
+    void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res)
+    void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res)
+    void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius)
+    void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y)
+    void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
+    CGL_bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy)
+    CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy)
+    void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
+    void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
+    void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
+    void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
+    void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
+    void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
+    void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
+    void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
+    void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution)
+    void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color, CGL_bool vertical)
+
+    
+    void CGL_widgets_add_shape_out_line(CGL_shape* shape)
+    CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx, CGL_float scale_y)
+
+    cdef struct CGL_matrix:
+        pass
+    
+    # we use this as this is also in the build lib
+    ctypedef CGL_float CGL_MATRIX_DATA_TYPE
+    
+    CGL_matrix* CGL_matrix_create(CGL_int m, CGL_int n)
+    CGL_void CGL_matrix_destroy(CGL_matrix* m)
+    CGL_matrix* CGL_matrix_create_from_array(CGL_MATRIX_DATA_TYPE* array, CGL_int m, CGL_int n)
+    CGL_matrix* CGL_matrix_add_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_add(CGL_matrix* a, CGL_matrix* b)
+    CGL_matrix* CGL_matrix_sub_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_sub(CGL_matrix* a, CGL_matrix* b)
+    CGL_matrix* CGL_matrix_elem_mul_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_elem_mul(CGL_matrix* a, CGL_matrix* b)
+    CGL_matrix* CGL_matrix_mul_to(CGL_matrix* a, CGL_matrix* b, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_mul(CGL_matrix* a, CGL_matrix* b)
+    CGL_matrix* CGL_matrix_transpose_to(CGL_matrix* m, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_transpose(CGL_matrix* m)
+    CGL_matrix* CGL_matrix_identity_to(CGL_int m, CGL_int n, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_identity(CGL_int m, CGL_int n)
+    CGL_matrix* CGL_matrix_scale_to(CGL_matrix* m, CGL_MATRIX_DATA_TYPE s)
+    CGL_matrix* CGL_matrix_scale(CGL_matrix* m, CGL_MATRIX_DATA_TYPE s)
+    CGL_MATRIX_DATA_TYPE CGL_matrix_get_elem(CGL_matrix* m, CGL_int i, CGL_int j)
+    CGL_bool CGL_matrix_set_elem(CGL_matrix* m, CGL_int i, CGL_int j, CGL_MATRIX_DATA_TYPE value)
+    CGL_bool CGL_matrix_set_row(CGL_matrix* m, CGL_int i, CGL_MATRIX_DATA_TYPE* row)
+    CGL_bool CGL_matrix_set_col(CGL_matrix* m, CGL_int j, CGL_MATRIX_DATA_TYPE* col)
+    CGL_bool CGL_matrix_get_row(CGL_matrix* m, CGL_int i, CGL_MATRIX_DATA_TYPE* out)
+    CGL_bool CGL_matrix_get_col(CGL_matrix* m, CGL_int j, CGL_MATRIX_DATA_TYPE* out)
+    CGL_matrix* CGL_matrix_row_to_matrix_to(CGL_MATRIX_DATA_TYPE* row, CGL_int n, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_row_to_matrix(CGL_MATRIX_DATA_TYPE* row, CGL_int n)
+    CGL_matrix* CGL_matrix_col_to_matrix_to(CGL_MATRIX_DATA_TYPE* col, CGL_int n, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_col_to_matrix(CGL_MATRIX_DATA_TYPE* col, CGL_int n)
+    CGL_bool CGL_matrix_is_square(CGL_matrix* m)
+    CGL_bool CGL_matrix_is_symmetric(CGL_matrix* m)
+    CGL_bool CGL_matrix_is_orthogonal(CGL_matrix* m)
+    CGL_bool CGL_matrix_is_diagonal(CGL_matrix* m)
+    CGL_bool CGL_matrix_is_identity(CGL_matrix* m)
+    CGL_bool CGL_matrix_is_zero(CGL_matrix* m)
+    CGL_bool CGL_matrix_is_equal(CGL_matrix* a, CGL_matrix* b)
+    CGL_MATRIX_DATA_TYPE CGL_matrix_trace(CGL_matrix* m)
+    CGL_MATRIX_DATA_TYPE CGL_matrix_determinant(CGL_matrix* m)
+    CGL_matrix* CGL_matrix_inverse_to(CGL_matrix* m, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_inverse(CGL_matrix* m)
+    CGL_matrix* CGL_matrix_copy_to(CGL_matrix* m, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_copy(CGL_matrix* m)
+    CGL_bool CGL_matrix_print(CGL_matrix* m)
+    CGL_matrix* CGL_matrix_gauss_jordan_to(CGL_matrix* m, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_gauss_jordan(CGL_matrix* m)
+    CGL_matrix* CGL_matrix_submatrix_to(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_int m, CGL_int n, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_submatrix(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_int m, CGL_int n)
+    CGL_matrix* CGL_matrix_minor_to(CGL_matrix* mat, CGL_int i, CGL_int j, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_minor(CGL_matrix* mat, CGL_int i, CGL_int j)
+    CGL_matrix* CGL_matrix_adjugate_to(CGL_matrix* m, CGL_matrix* out)
+    CGL_matrix* CGL_matrix_adjugate(CGL_matrix* m)
+    CGL_matrix* CGL_matrix_transpose_inplace(CGL_matrix* m)
+    CGL_float CGL_matrix_sum_of_row(CGL_matrix* m, CGL_int i)
+    CGL_float CGL_matrix_sum_of_col(CGL_matrix* m, CGL_int j)
+    CGL_float CGL_matrix_product_of_row(CGL_matrix* m, CGL_int i)
+    CGL_float CGL_matrix_product_of_col(CGL_matrix* m, CGL_int j)
+    CGL_matrix* CGL_matrix_make_zero(CGL_matrix* m)
+
+    cdef struct CGL_bloom:
+        pass
+
+    
+    CGL_bloom* CGL_bloom_create(CGL_int width, CGL_int height, CGL_int iterations)
+    void CGL_bloom_destroy(CGL_bloom* bloom)
+    void CGL_bloom_set_threshold(CGL_bloom* bloom, CGL_float val)
+    float CGL_bloom_get_threshold(CGL_bloom* bloom)
+    void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val)
+    float CGL_bloom_get_knee(CGL_bloom* bloom)
+    void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y)
+    void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
+    void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_dst)
+    int CGL_bloom_get_iterations(CGL_bloom* bloom)
+    CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, CGL_int index)
+    CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom)
+
+    ctypedef CGL_float CGL_noise_data_type
+
+    cdef struct CGL_noise_params:
+        CGL_int type
+        CGL_int fractal_type
+        CGL_int octaves
+        CGL_noise_data_type frequency
+        CGL_noise_data_type lacunarity
+        CGL_noise_data_type gain
+        CGL_noise_data_type weighted_strength
+        CGL_noise_data_type ping_pong_strength
+
+    void CGL_noise_init()
+    void CGL_noise_shutdown()
+    CGL_noise_data_type CGL_noise_perlin(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+    CGL_noise_data_type CGL_noise_opensimplex(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+    CGL_noise_data_type CGL_noise_opensimplex2s(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+    CGL_noise_data_type CGL_noise_value(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+    CGL_noise_data_type CGL_noise_valuecubic(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+    CGL_noise_data_type CGL_noise_worley(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+    void CGL_noise_params_default(CGL_noise_params* params)
+    CGL_noise_data_type CGL_noise_get(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
+
+
+
 CGL_TRUE = 1
 CGL_FALSE = 0
+
+def clear_console():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def free(ptr):
     stdlib.free(<void*>ptr)
@@ -1194,11 +1507,224 @@ cdef class transform:
         CGL_transform_update(&self.c_transform)
         
 
+cdef class matrix:
+    cdef int m
+    cdef int n
+    cdef CGL_matrix* c_matrix
+    
+    @property
+    def size(self) -> tuple:
+        return (self.m, self.n)
+    
+    @property
+    def trace(self) -> float:
+        return CGL_matrix_trace(self.c_matrix)
+    
+    @property
+    def determinant(self) -> float:
+        return CGL_matrix_determinant(self.c_matrix)
+    
+    @property
+    def inverse(self) -> matrix:
+        return self.calc_inverse()
+    
+    @property
+    def transpose(self) -> matrix:
+        return self.calc_transpose()
+    
+    @property
+    def adjugate(self) -> matrix:
+        return self.calc_adjugate()
 
-# TODO: Quaterneon Lib
+    def __init__(self, m: int, n: int):
+        self.c_matrix = CGL_matrix_create(m, n)
+        self.m = m
+        self.n = n
+    
+    def __dealloc__(self):
+        CGL_matrix_destroy(self.c_matrix)
+    
+    def load_array(self, array: list, m: int, n: int):
+        CGL_matrix_destroy(self.c_matrix)
+        cdef float* array_ptr = <float*> stdlib.malloc(m * n * sizeof(float))
+        for i in range(m * n):
+            array_ptr[i] = array[i]
+        self.c_matrix = CGL_matrix_create_from_array(array_ptr, m, n)
+        stdlib.free(array_ptr)
+    
+    def __add__(self: matrix, other: matrix):
+        if self.size != other.size:
+            raise ValueError("Matrices must have the same size")
+        result = matrix(self.m, self.n)
+        CGL_matrix_add_to(self.c_matrix, other.c_matrix, result.c_matrix)
+        return result
+    
+    def __sub__(self: matrix, other: matrix):
+        if self.size != other.size:
+            raise ValueError("Matrices must have the same size")
+        result = matrix(self.m, self.n)
+        CGL_matrix_sub_to(self.c_matrix, other.c_matrix, result.c_matrix)
+        return result
+    
+    def __mul__(self: matrix, other: matrix):
+        if self.n != other.m:
+            raise ValueError("Matrices must have the same size")
+        result = matrix(self.m, other.n)
+        CGL_matrix_mul_to(self.c_matrix, other.c_matrix, result.c_matrix)
+        return result
+    
+    def scaled(self: matrix, other: float):
+        result = matrix(self.m, self.n)
+        for i in range(self.m):
+            for j in range(self.n):
+                result[i, j] = self[i, j] * other
+        return result
+    
+    def scale(self: matrix, other: float):
+        CGL_matrix_scale_to(self.c_matrix, other)
 
-# TODO: Linear algebra matrix lib
+    def calc_transpose(self: matrix) -> matrix:
+        result = matrix(self.n, self.m)
+        CGL_matrix_transpose_to(self.c_matrix, result.c_matrix)
+        return result
 
+    def transpose_inplace(self: matrix):
+        CGL_matrix_transpose_inplace(self.c_matrix)
+
+    def load_identity(self: matrix):
+        CGL_matrix_identity_to(self.m, self.n, self.c_matrix)
+
+    def __getitem__(self: matrix, key: tuple):
+        if len(key) != 2:
+            raise ValueError("Matrix index must be a tuple of 2 integers")
+        return CGL_matrix_get_elem(self.c_matrix, key[0], key[1])
+    
+    def __setitem__(self: matrix, key: tuple, value: float):
+        if len(key) != 2:
+            raise ValueError("Matrix index must be a tuple of 2 integers")
+        CGL_matrix_set_elem(self.c_matrix, key[0], key[1], value)
+    
+    def __repr__(self: matrix):
+        result = "matrix(\n"
+        for i in range(self.m):
+            result += "    ["
+            for j in range(self.n):
+                result += f"{self[i, j]}"
+                if j != self.n - 1:
+                    result += ", "
+            result += "]\n"
+        result += ")"
+        return result
+    
+    def __str__(self):
+        result = "matrix(\n"
+        for i in range(self.m):
+            result += "    ["
+            for j in range(self.n):
+                result += f"{self[i, j]}"
+                if j != self.n - 1:
+                    result += ", "
+            result += "]\n"
+        result += ")"
+        return result
+    
+    def set_row(self: matrix, row: int, values: list):
+        if len(values) != self.n:
+            raise ValueError("Values must have the same size as the matrix")
+        cdef float* values_ptr = <float*> stdlib.malloc(self.n * sizeof(float))
+        for i in range(self.n):
+            values_ptr[i] = values[i]
+        CGL_matrix_set_row(self.c_matrix, row, values_ptr)
+        stdlib.free(values_ptr)
+
+    def __eq__(self: matrix, other: matrix) -> bool:
+        return CGL_matrix_is_equal(self.c_matrix, other.c_matrix)
+
+    def get_row(self: matrix, row: int) -> list:
+        cdef float* values_ptr = <float*> stdlib.malloc(self.n * sizeof(float))
+        CGL_matrix_get_row(self.c_matrix, row, values_ptr)
+        result = []
+        for i in range(self.n):
+            result.append(values_ptr[i])
+        stdlib.free(values_ptr)
+        return result
+    
+    def set_column(self: matrix, column: int, values: list):
+        if len(values) != self.m:
+            raise ValueError("Values must have the same size as the matrix")
+        cdef float* values_ptr = <float*> stdlib.malloc(self.m * sizeof(float))
+        for i in range(self.m):
+            values_ptr[i] = values[i]
+        CGL_matrix_set_col(self.c_matrix, column, values_ptr)
+        stdlib.free(values_ptr)
+    
+    def get_column(self: matrix, column: int) -> list:
+        cdef float* values_ptr = <float*> stdlib.malloc(self.m * sizeof(float))
+        CGL_matrix_get_col(self.c_matrix, column, values_ptr)
+        result = []
+        for i in range(self.m):
+            result.append(values_ptr[i])
+        stdlib.free(values_ptr)
+        return result
+    
+    def is_square(self: matrix) -> bool:
+        return CGL_matrix_is_square(self.c_matrix)
+    
+    def is_symmetric(self: matrix) -> bool:
+        return CGL_matrix_is_symmetric(self.c_matrix)
+    
+    def is_ortho(self: matrix) -> bool:
+        return CGL_matrix_is_orthogonal(self.c_matrix)
+
+    def is_identity(self: matrix) -> bool:
+        return CGL_matrix_is_identity(self.c_matrix)
+    
+    def is_zero(self: matrix) -> bool:
+        return CGL_matrix_is_zero(self.c_matrix)
+
+    def calc_inverse(self: matrix) -> matrix:
+        if not self.is_square():
+            raise ValueError("Matrix must be square")
+        result = matrix(self.m, self.n)
+        CGL_matrix_inverse_to(self.c_matrix, result.c_matrix)
+        return result
+    
+    def clone(self: matrix) -> matrix:
+        result = matrix(self.m, self.n)
+        CGL_matrix_copy_to(self.c_matrix, result.c_matrix)
+        return result
+    
+    def print_mat(self: matrix):
+        CGL_matrix_print(self.c_matrix)
+    
+    def gaus_jordan(self: matrix) -> matrix:
+        if not self.is_square():
+            raise ValueError("Matrix must be square")
+        result = matrix(self.m, self.n)
+        CGL_matrix_gauss_jordan_to(self.c_matrix, result.c_matrix)
+        return result
+    
+    def submatrix(self: matrix, row: int, column: int, m: int, n: int) -> matrix:
+        if row + m > self.m or column + n > self.n:
+            raise ValueError("Submatrix must be inside the matrix")
+        result = matrix(m, n)
+        CGL_matrix_submatrix_to(self.c_matrix, row, column, m, n, result.c_matrix)
+        return result
+
+    def calc_adjugate(self: matrix) -> matrix:
+        if not self.is_square():
+            raise ValueError("Matrix must be square")
+        result = matrix(self.m, self.n)
+        CGL_matrix_adjugate_to(self.c_matrix, result.c_matrix)
+        return result
+    
+    def make_zero(self: matrix):
+        CGL_matrix_make_zero(self.c_matrix)
+    
+    def randomize(self: matrix, mian: float, maax: float):
+        for i in range(self.m):
+            for j in range(self.n):
+                self[i, j] = random.uniform(mian, maax)
 
 KEY_UNKNOWN            = -1
 KEY_SPACE              = 32
@@ -1538,7 +2064,7 @@ cdef class window:
     def get_key(self, key: int) -> int:
         return CGL_window_get_key(self.c_window, key)
     
-    def is_key_presswd(self, key: int) -> bool:
+    def is_key_pressed(self, key: int) -> bool:
         return CGL_window_is_key_pressed(self.c_window, key)
 
     def get_mouse_button(self, button: int) -> int:
@@ -1771,6 +2297,15 @@ cdef class mesh_cpu:
     
     def transform_vertices(self, transform: mat4):
         CGL_mesh_cpu_transform_vertices(self.c_mesh, transform.c_mat4)
+    
+    def get_c_initialization_code(self, function_name: str = "load_object") -> str:
+        cdef CGL_byte* buff = <CGL_byte*>stdlib.malloc(1024 * 1024 * 4)
+        CGL_mesh_cpu_generate_c_initialization_code(self.c_mesh, buff, function_name.encode("utf-8"))
+        byts = <bytes>buff
+        result = copy.deepcopy(byts)
+        stdlib.free(buff)
+        return result.decode("utf-8")
+
 
 def mesh_cpu_create(index_count: int, vertex_count: int) -> mesh_cpu:
     cdef CGL_mesh_cpu* c_mesh = CGL_mesh_cpu_create(index_count, vertex_count)
@@ -2091,3 +2626,1195 @@ def gl_shutdown():
 
 def gl_render_screen_quad():
     CGL_gl_render_screen_quad()
+
+cdef class mesh_gpu:
+    cdef CGL_mesh_gpu* c_mesh
+    cdef bool has_been_destroyed
+    cdef str name
+
+    @property
+    def name(self):
+        return self.name
+
+    def __init__(self, name: str = "GPU Mesh"):
+        self.c_mesh = CGL_mesh_gpu_create()
+        self.has_been_destroyed = False
+        self.name = name
+    
+    def __dealloc__(self):
+        self.destroy()
+    
+    def __repr__(self):
+        return f"mesh_gpu({self.name})"
+    
+    def __str__(self):  
+        return f"mesh_gpu({self.name})"
+    
+    def __hash__(self):
+        return self.get_id()
+    
+    def destroy(self):
+        if not self.has_been_destroyed:
+            CGL_mesh_gpu_destroy(self.c_mesh)
+            self.has_been_destroyed = True
+    
+    cdef set_c_mesh(self, CGL_mesh_gpu* c_mesh):
+        if not self.has_been_destroyed:
+            self.destroy()
+        self.c_mesh = c_mesh
+        self.has_been_destroyed = False
+    
+    def get_id(self) -> int:
+        return CGL_utils_super_fast_hash(&self.c_mesh, sizeof(CGL_mesh_gpu*))
+    
+    def render(self):
+        CGL_mesh_gpu_render(self.c_mesh)
+    
+    def render_instanced(self, count: int):
+        CGL_mesh_gpu_render_instanced(self.c_mesh, count)
+    
+    def set_user_data(self, data: object):
+        CGL_mesh_gpu_set_user_data(self.c_mesh, <void*>data)
+    
+    def get_user_data(self) -> object:
+        return <object>CGL_mesh_gpu_get_user_data(self.c_mesh)
+    
+    def upload_mesh_cpu(self, mesh: mesh_cpu, static_draw: bool = True):
+        CGL_mesh_gpu_upload(self.c_mesh, mesh.c_mesh, static_draw)
+    
+
+cdef class shader:
+    cdef CGL_shader* c_shader
+    cdef bool has_been_destroyed
+    cdef str name
+    cdef dict uniform_map
+
+    @property
+    def name(self):
+        return self.name
+
+    def __init__(self, name: str = "Shader"):
+        self.has_been_destroyed = True
+        self.name = name
+        self.uniform_map = {}
+    
+    def __dealloc__(self):
+        self.destroy()
+    
+    def __repr__(self):
+        return f"shader({self.name})"
+    
+    def __str__(self):  
+        return f"shader({self.name})"
+    
+    def __hash__(self):
+        return self.get_id()
+    
+    def destroy(self):
+        if not self.has_been_destroyed:
+            CGL_shader_destroy(self.c_shader)
+            self.has_been_destroyed = True
+        self.uniform_map = {}
+    
+    cdef set_c_shader(self, CGL_shader* c_shader):
+        if not self.has_been_destroyed:
+            self.destroy()
+        self.c_shader = c_shader
+        self.has_been_destroyed = False
+    
+    def get_id(self) -> int:
+        return CGL_utils_super_fast_hash(&self.c_shader, sizeof(CGL_shader*))
+    
+    def set_user_data(self, data: object):
+        CGL_shader_set_user_data(self.c_shader, <void*>data)
+    
+    def get_user_data(self) -> object:
+        return <object>CGL_shader_get_user_data(self.c_shader)
+    
+    def load_from_file(self, vertex_shader_path: str, fragment_shader_path: str) -> bool:
+        cdef CGL_shader* c_shader = CGL_shader_create_from_files(vertex_shader_path.encode("utf-8"), fragment_shader_path.encode("utf-8"), NULL)
+        if c_shader == NULL:
+            raise RuntimeError("Failed to create shader")
+        self.set_c_shader(c_shader)
+        has_been_destroyed = False
+        return True
+    
+    def load(self, vertex_shader_source: str, fragment_shader_source: str) -> bool:
+        cdef CGL_shader* c_shader = CGL_shader_create(vertex_shader_source.encode("utf-8"), fragment_shader_source.encode("utf-8"), NULL)
+        if c_shader == NULL:
+            raise RuntimeError("Failed to create shader")
+        self.set_c_shader(c_shader)
+        has_been_destroyed = False
+        return True
+    
+    def load_compute_from_file(self, compute_shader_path: str) -> bool:
+        cdef CGL_shader* c_shader = CGL_shader_compute_create_from_files(compute_shader_path.encode("utf-8"), NULL)
+        if c_shader == NULL:
+            raise RuntimeError("Failed to create shader")
+        self.set_c_shader(c_shader)
+        has_been_destroyed = False
+        return True
+    
+    def load_compute(self, compute_shader_source: str) -> bool:
+        cdef CGL_shader* c_shader = CGL_shader_compute_create(compute_shader_source.encode("utf-8"), NULL)
+        if c_shader == NULL:
+            raise RuntimeError("Failed to create shader")
+        self.set_c_shader(c_shader)
+        has_been_destroyed = False
+        return True
+
+    def bind(self):
+        CGL_shader_bind(self.c_shader)
+    
+    def get_uniform_location(self, name: str) -> int:
+        if name in self.uniform_map:
+            return self.uniform_map[name]
+        cdef int location = CGL_shader_get_uniform_location(self.c_shader, name.encode("utf-8"))
+        self.uniform_map[name] = location
+        return location
+    
+    def set_uniform_mat4(self, name: str, mat: mat4):
+        CGL_shader_set_uniform_mat4(self.c_shader, self.get_uniform_location(name), &mat.c_mat4)
+    
+    def set_uniform_vec4(self, name: str, vec: vec4):
+        CGL_shader_set_uniform_vec4(self.c_shader, self.get_uniform_location(name), &vec.c_vec4)
+    
+    def set_uniform_vec3(self, name: str, vec: vec3):
+        CGL_shader_set_uniform_vec3(self.c_shader, self.get_uniform_location(name), &vec.c_vec3)
+    
+    def set_uniform_vec2(self, name: str, vec: vec2):
+        CGL_shader_set_uniform_vec2(self.c_shader, self.get_uniform_location(name), &vec.c_vec2)    
+    
+    def set_uniform_float(self, name: str, value: float):
+        CGL_shader_set_uniform_float(self.c_shader, self.get_uniform_location(name), value)
+    
+    def set_uniform_int(self, name: str, value: int):
+        CGL_shader_set_uniform_int(self.c_shader, self.get_uniform_location(name), value)
+    
+    def set_uniform_bool(self, name: str, value: bool):
+        CGL_shader_set_uniform_bool(self.c_shader, self.get_uniform_location(name), value)
+    
+    def set_uniform_doublt(self, name: str, value: double):
+        CGL_shader_set_uniform_double(self.c_shader, self.get_uniform_location(name), value)
+    
+    def set_uniform_vec2v(self, name: str, x: float, y: float):
+        CGL_shader_set_uniform_vec2v(self.c_shader, self.get_uniform_location(name), x, y)
+    
+    def set_uniform_vec3v(self, name: str, x: float, y: float, z: float):
+        CGL_shader_set_uniform_vec3v(self.c_shader, self.get_uniform_location(name), x, y, z)
+    
+    def set_uniform_vec4v(self, name: str, x: float, y: float, z: float, w: float):
+        CGL_shader_set_uniform_vec4v(self.c_shader, self.get_uniform_location(name), x, y, z, w)
+    
+    def set_uniform_ivec2v(self, name: str, x: int, y: int):
+        CGL_shader_set_uniform_ivec2v(self.c_shader, self.get_uniform_location(name), x, y)
+    
+    def set_uniform_ivec3v(self, name: str, x: int, y: int, z: int):
+        CGL_shader_set_uniform_ivec3v(self.c_shader, self.get_uniform_location(name), x, y, z)
+    
+    def set_uniform_ivec4v(self, name: str, x: int, y: int, z: int, w: int):
+        CGL_shader_set_uniform_ivec4v(self.c_shader, self.get_uniform_location(name), x, y, z, w)   
+    
+    def compute_dispatch(self, x: int, y: int, z: int):
+        CGL_shader_compute_dispatch(self.c_shader, x, y, z)
+
+cdef class ssbo:
+    cdef CGL_ssbo* c_ssbo
+    cdef bool has_been_destroyed
+
+    @property
+    def size(self) -> int:
+        return CGL_ssbo_get_size(self.c_ssbo)
+
+    def __init__(self):
+        self.c_ssbo = CGL_ssbo_create(0)
+        self.has_been_destroyed = False
+    
+    def __dealloc__(self):
+        if not self.has_been_destroyed:
+            self.destroy()
+
+    def __repr__(self):
+        return f"ssbo({self.get_id()})"
+    
+    def __str__(self):
+        return f"ssbo({self.get_id()})"
+    
+    def __hash__(self):
+        return self.get_id()
+    
+    def bind(self):
+        CGL_ssbo_bind(self.c_ssbo)
+    
+    def bind_base(self, index: int):
+        CGL_ssbo_bind2(self.c_ssbo, index)
+    
+    def set_data(self, data: bytes, static_draw: bool = True):
+        CGL_ssbo_set_data(self.c_ssbo, len(data), <void*>data,  static_draw)
+    
+    def set_sub_data(self, data: bytes, offset: int, static_draw: bool = True):
+        CGL_ssbo_set_sub_data(self.c_ssbo, offset, len(data), <void*>data, static_draw)
+
+    def get_data(self, max_size = 100000000) -> bytes:
+        cdef size_t size
+        cdef void* buff = stdlib.malloc(max_size)
+        CGL_ssbo_get_data(self.c_ssbo, &size, buff)
+        byts = <bytes>buff
+        result = copy.deepcopy(byts)
+        stdlib.free(buff)
+        return result
+    
+    def get_sub_data(self, offset: int, size) -> bytes:
+        cdef void* buff = stdlib.malloc(size)
+        CGL_ssbo_get_sub_data(self.c_ssbo, offset, size, buff)
+        byts = <bytes>buff
+        result = copy.deepcopy(byts)
+        stdlib.free(buff)
+        return result
+    
+    def get_size(self) -> int:
+        return CGL_ssbo_get_size(self.c_ssbo)
+    
+    def set_user_data(self, data):
+        CGL_ssbo_set_user_data(self.c_ssbo, <void*>data)
+    
+    def get_user_data(self) -> object:
+        return <object>CGL_ssbo_get_user_data(self.c_ssbo)
+
+    def get_id(self) -> int:
+        return CGL_utils_super_fast_hash(&self.c_ssbo, sizeof(CGL_ssbo*))
+    
+
+    def destroy(self):
+        if not self.has_been_destroyed:
+            CGL_ssbo_destroy(self.c_ssbo)
+            self.has_been_destroyed = True
+    
+def ssbo_copy(dst: ssbo, src: ssbo, src_offset: int, dst_offset: int, size: int):
+    CGL_ssbo_copy(dst.c_ssbo, src.c_ssbo, src_offset, dst_offset, size)
+
+cdef class ubo:
+    cdef CGL_ubo* c_ubo
+    cdef bool has_been_destroyed
+
+    @property
+    def size(self) -> int:
+        return CGL_ubo_get_size(self.c_ubo)
+    
+    def __init__(self):
+        self.c_ubo = CGL_ubo_create()
+        self.has_been_destroyed = False
+    
+    def __dealloc__(self):
+        self.destroy()
+    
+    def __repr__(self):
+        return f"ubo({self.get_id()})"
+    
+    def __str__(self):
+        return f"ubo({self.get_id()})"
+    
+    def __hash__(self):
+        return self.get_id()
+    
+    def destroy(self):
+        if not self.has_been_destroyed:
+            CGL_ubo_destroy(self.c_ubo)
+            self.has_been_destroyed = True
+
+    def bind(self, shd: shader, name: str, binding: int):
+        CGL_ubo_bind(self.c_ubo, shd.c_shader, name.encode("utf-8"), binding)
+    
+    def set_data(self, data: bytes, static_draw: bool = True):
+        CGL_ubo_set_data(self.c_ubo, len(data), <void*>data, static_draw)
+    
+    def set_sub_data(self, offset: int, data: bytes, static_draw: bool = True):
+        CGL_ubo_set_sub_data(self.c_ubo, offset, len(data), <void*>data, static_draw)
+    
+    def get_data(self, max_size: int = 100000000) -> bytes:
+        cdef size_t size
+        cdef void* buff = stdlib.malloc(max_size)
+        CGL_ubo_get_data(self.c_ubo, &size, buff)
+        byts = <bytes>buff
+        result = copy.deepcopy(byts)
+        stdlib.free(buff)
+        return result
+    
+    def get_sub_data(self, offset: int, size: int) -> bytes:
+        cdef void* buff = stdlib.malloc(size)
+        CGL_ubo_get_sub_data(self.c_ubo, offset, size, buff)
+        byts = <bytes>buff
+        result = copy.deepcopy(byts)
+        stdlib.free(buff)
+        return result
+    
+    def get_size(self) -> int:
+        return CGL_ubo_get_size(self.c_ubo)
+    
+    def set_user_data(self, data: object):
+        CGL_ubo_set_user_data(self.c_ubo, <void*>data)
+    
+    def get_user_data(self) -> object:
+        return <object>CGL_ubo_get_user_data(self.c_ubo)
+    
+    def get_id(self) -> int:
+        return CGL_utils_super_fast_hash(&self.c_ubo, sizeof(CGL_ubo*))
+
+
+cdef class shape:
+    cdef CGL_shape c_shape
+
+    @property
+    def vertices_count(self) -> int:
+        return self.c_shape.vertices_count
+    
+    @property
+    def vertices(self) -> list:
+        result = []
+        for i in range(self.vertices_count):
+            result.append(vec3(self.c_shape.vertices[i].x, self.c_shape.vertices[i].y, self.c_shape.vertices[i].z))
+        return result
+    
+    @property
+    def position(self) -> vec3:
+        return vec3(self.c_shape.position.x, self.c_shape.position.y, self.c_shape.position.z)
+    
+    @position.setter
+    def position(self, value: vec3):
+        self.c_shape.position.x = value.x
+        self.c_shape.position.y = value.y
+        self.c_shape.position.z = value.z
+    
+    @property
+    def rotation(self) -> vec3:
+        return vec3(self.c_shape.rotation.x, self.c_shape.rotation.y, self.c_shape.rotation.z)
+    
+    @rotation.setter
+    def rotation(self, value: vec3):
+        self.c_shape.rotation.x = value.x
+        self.c_shape.rotation.y = value.y
+        self.c_shape.rotation.z = value.z
+    
+    @property
+    def scale(self) -> vec3:
+        return vec3(self.c_shape.scale.x, self.c_shape.scale.y, self.c_shape.scale.z)
+    
+    @scale.setter
+    def scale(self, value: vec3):
+        self.c_shape.scale.x = value.x
+        self.c_shape.scale.y = value.y
+        self.c_shape.scale.z = value.z
+
+    def __init__(self, vertices_count: int):
+        CGL_shape_init(&self.c_shape, vertices_count)
+    
+    def __dealloc__(self):
+        CGL_shape_destroy(&self.c_shape)
+    
+    def __repr__(self):
+        return f"shape({self.vertices_count}, {self.position}, {self.rotation}, {self.scale})"
+    
+    def __str__(self):
+        return f"shape({self.vertices_count}, {self.position}, {self.rotation}, {self.scale})"
+    
+    def __getitem__(self, index: int) -> vec3:
+        return vec3(self.c_shape.vertices[index].x, self.c_shape.vertices[index].y, self.c_shape.vertices[index].z)
+    
+    def __setitem__(self, index: int, value: vec3):
+        self.c_shape.vertices[index].x = value.x
+        self.c_shape.vertices[index].y = value.y
+        self.c_shape.vertices[index].z = value.z
+    
+    def __len__(self):
+        return self.vertices_count
+
+def sat_collison_overlap_on_axis(a: shape, b: shape, axis: vec2) -> (bool, float):
+    cdef float overlap_amount
+    result = CGL_sat_collision_overlap_on_axis(&a.c_shape, &b.c_shape, axis.c_vec2, &overlap_amount)
+    return (result, overlap_amount)
+
+def  sat_collision_detect(a: shape, b: shape) -> tuple:
+    n_vector = vec2(0, 0)
+    result = CGL_sat_collision_detect(&a.c_shape, &b.c_shape, &n_vector.c_vec2)
+    return (result, n_vector)
+
+def sat_collision_calculate_axes(a: shape, max_axes: int = 10000) -> list:
+    cdef int axes_count
+    cdef CGL_vec2* axes = <CGL_vec2*>stdlib.malloc(max_axes * sizeof(CGL_vec2))
+    CGL_sat_collision_calculate_axes(&a.c_shape, axes, &axes_count)
+    result = []
+    for i in range(axes_count):
+        result.append(vec2(axes[i].x, axes[i].y))
+    stdlib.free(axes)
+    return result
+
+def is_point_in_circle(point: vec2, circle_radius: float) -> bool:
+    return CGL_utils_is_point_in_circle(point.c_vec2, circle_radius)
+
+def is_point_in_triangle(point: vec2, a: vec2, b: vec2, c: vec2) -> bool:
+    return CGL_utils_is_point_in_triangle(point.c_vec2, a.c_vec2, b.c_vec2, c.c_vec2)
+
+def calculate_circumcircle(a: vec2, b: vec2, c: vec2) -> tuple:
+    center = vec2(0, 0)
+    cdef float f_radius = 0
+    CGL_utils_calculate_circumcircle(a.c_vec2, b.c_vec2, c.c_vec2, &center.c_vec2, &f_radius)
+    return (center, f_radius)
+
+def calculate_super_triangle(vertices: list, padding: float) -> tuple:
+    cdef CGL_vec2* c_vertices = <CGL_vec2*>stdlib.malloc(len(vertices) * sizeof(CGL_vec2))
+    for i in range(len(vertices)):
+        c_vertices[i].x = vertices[i].x
+        c_vertices[i].y = vertices[i].y
+    r_a = vec2(0, 0)
+    r_b = vec2(0, 0)
+    r_c = vec2(0, 0)
+    CGL_utils_calculate_super_triangle(c_vertices, len(vertices), &r_a.c_vec2, &r_b.c_vec2, &r_c.c_vec2, padding)
+    stdlib.free(c_vertices)
+    return (r_a, r_b, r_c)
+
+def calculate_bounding_square(vertices: list, padding: float) -> tuple:
+    cdef CGL_vec2* c_vertices = <CGL_vec2*>stdlib.malloc(len(vertices) * sizeof(CGL_vec2))
+    for i in range(len(vertices)):
+        c_vertices[i].x = vertices[i].x
+        c_vertices[i].y = vertices[i].y
+    r_a = vec2(0, 0)
+    r_b = vec2(0, 0)
+    r_c = vec2(0, 0)
+    r_d = vec2(0, 0)
+    CGL_utils_calculate_bounding_square(c_vertices, len(vertices), &r_a.c_vec2, &r_b.c_vec2, &r_c.c_vec2, &r_d.c_vec2, padding)
+    stdlib.free(c_vertices)
+    return (r_a, r_b, r_c, r_d)
+
+def calculate_bounding_box(vertices: list, padding: float) -> tuple:
+    cdef CGL_vec2* c_vertices = <CGL_vec2*>stdlib.malloc(len(vertices) * sizeof(CGL_vec2))
+    for i in range(len(vertices)):
+        c_vertices[i].x = vertices[i].x
+        c_vertices[i].y = vertices[i].y
+    r_a = vec2(0, 0)
+    r_b = vec2(0, 0)
+    r_c = vec2(0, 0)
+    r_d = vec2(0, 0)
+    CGL_utils_calculate_bounding_box(c_vertices, len(vertices), &r_a.c_vec2, &r_b.c_vec2, &r_c.c_vec2, &r_d.c_vec2, padding)
+    stdlib.free(c_vertices)
+    return (r_a, r_b, r_c, r_d)
+
+def random_gaussian(mean: float, std_dev: float) -> float:
+    return CGL_utils_random_gaussian(mean, std_dev)
+
+def gjk_shape_default_support(a: shape, d: vec3) -> vec3:
+    return CGL_gjk_shape_default_support(&a.c_shape, d.c_vec3)
+
+def gjk_default_support(a: shape, b: shape, d: vec3) -> vec3:
+    return CGL_gjk_default_support(&a.c_shape, &b.c_shape, d.c_vec3)
+
+def gjk_check_collision_2d(a: shape, b: shape) -> tuple:
+    cdef CGL_vec3* simplex_out_ptr = <CGL_vec3*>stdlib.malloc(sizeof(CGL_vec3) * 3)
+    result = CGL_gjk_check_collision_2d(&a.c_shape, &b.c_shape, simplex_out_ptr)
+    simplex_out = []
+    for i in range(3):
+        simplex_out.append(vec3(simplex_out_ptr[i].x, simplex_out_ptr[i].y, simplex_out_ptr[i].z))
+    stdlib.free(simplex_out_ptr)
+    return (result, simplex_out)
+
+def gjk_epa_2d(a: shape, b: shape, simplex: list) ->  vec3:
+    cdef CGL_vec3* simplex_ptr = <CGL_vec3*>stdlib.malloc(sizeof(CGL_vec3) * 3)
+    for i in range(3):
+        simplex_ptr[i].x = simplex[i].x
+        simplex_ptr[i].y = simplex[i].y
+        simplex_ptr[i].z = simplex[i].z
+    result = CGL_gjk_epa_2d(&a.c_shape, &b.c_shape, simplex_ptr)
+    stdlib.free(simplex_ptr)
+    return vec3(result.x, result.y, result.z)
+
+def aabb_contains_point(aabb_min: vec2, aabb_max: vec2, point: vec2) -> bool:
+    return CGL_aabb_contains_point(aabb_min.c_vec2, aabb_max.c_vec2, point.c_vec2)
+
+def aabb_intersects_aabb(aabb_min_a: vec2, aabb_max_a: vec2, aabb_min_b: vec2, aabb_max_b: vec2) -> bool:
+    return CGL_aabb_intersects_aabb(aabb_min_a.c_vec2, aabb_max_a.c_vec2, aabb_min_b.c_vec2, aabb_max_b.c_vec2)
+
+def triangulate_points_incremental(points: list) -> list:
+    cdef CGL_vec2* c_points = <CGL_vec2*>stdlib.malloc(len(points) * sizeof(CGL_vec2))
+    for i in range(len(points)):
+        c_points[i].x = points[i].x
+        c_points[i].y = points[i].y
+    cdef int* c_indices = <int*>stdlib.malloc(len(points) * sizeof(int) * 3)
+    cdef int c_num_indices = 0
+    CGL_triangulate_points_incremental(c_points, len(points), c_indices, &c_num_indices)
+    indices = []
+    for i in range(c_num_indices / 3):
+        indices.append((c_indices[i * 3], c_indices[i * 3 + 1], c_indices[i * 3 + 2]))
+    stdlib.free(c_points)
+    stdlib.free(c_indices)
+    return indices
+
+BLOOM_SHADER_MODE_PREFILTER    = 0
+BLOOM_SHADER_MODE_DOWNSAMPLE   = 1
+BLOOM_SHADER_MODE_UPSAMPLE     = 2
+BLOOM_SHADER_MODE_COMPOSITE    = 3
+
+cdef class bloom:
+    cdef CGL_bloom* c_bloom
+    cdef int width
+    cdef int height
+    cdef int iterations
+
+    @property
+    def width(self):
+        return self.width
+    
+    @property
+    def height(self):
+        return self.height
+    
+    @property
+    def iterations(self):
+        return self.iterations
+    
+
+    @property
+    def threshold(self):
+        return CGL_bloom_get_threshold(self.c_bloom)
+    
+    @threshold.setter
+    def threshold(self, threshold: float):
+        CGL_bloom_set_threshold(self.c_bloom, threshold)
+    
+    @property
+    def knee(self):
+        return CGL_bloom_get_knee(self.c_bloom)
+    
+    @knee.setter
+    def knee(self, knee: float):
+        CGL_bloom_set_knee(self.c_bloom, knee)
+
+    def __init__(self, width: int, height: int, iterations: int):
+        self.c_bloom = CGL_bloom_create(width, height, iterations)
+        self.width = width
+        self.height = height
+        self.iterations = iterations
+    
+    def __dealloc__(self):
+        CGL_bloom_destroy(self.c_bloom)
+    
+    def __repr__(self):
+        return f"bloom({self.width}, {self.height}, {self.iterations})"
+    
+    def __str__(self):
+        return f"bloom({self.width}, {self.height}, {self.iterations})"
+    
+    def __hash__(self):
+        return CGL_utils_super_fast_hash(<void*>self.c_bloom, sizeof(CGL_bloom*))
+
+    def set_threshold(self, threshold: float):
+        CGL_bloom_set_threshold(self.c_bloom, threshold)
+    
+    def get_threshold(self) -> float:
+        return CGL_bloom_get_threshold(self.c_bloom)
+    
+    def set_knee(self, knee: float):
+        CGL_bloom_set_knee(self.c_bloom, knee)
+    
+    def get_knee(self) -> float:
+        return CGL_bloom_get_knee(self.c_bloom)
+    
+    def set_offset(self, offset_x: float, offset_y: float):
+        CGL_bloom_set_offset(self.c_bloom, offset_x, offset_y)
+
+    def apply(self, tex: texture):
+        CGL_bloom_apply(self.c_bloom, tex.c_texture)
+    
+    def apply2(self, texture_src: texture, texture_dst: texture):
+        CGL_bloom_apply2(self.c_bloom, texture_src.c_texture, texture_dst.c_texture)
+    
+    def get_lod_texture(self, lod: int) -> texture:
+        result = texture()
+        result.set_c_texture(CGL_bloom_get_lod_texture(self.c_bloom, lod))
+        # this is a hack to prevent the texture from 
+        # being destroyed when the result goes out of scope
+        # as this texture object is managed by the bloom object
+        result.has_been_destroyed = True
+        return result
+    
+    def get_prefiltered_texture(self) -> texture:
+        result = texture()
+        result.set_c_texture(CGL_bloom_get_prefiltered_texture(self.c_bloom))
+        # this is a hack to prevent the texture from 
+        # being destroyed when the result goes out of scope
+        # as this texture object is managed by the bloom object
+        result.has_been_destroyed = True
+        return result
+    
+cdef class tilemap:
+    cdef CGL_tilemap* c_tilemap
+    cdef int tile_count_x
+    cdef int tile_count_y
+    cdef int tile_size_x
+    cdef int tile_size_y
+    cdef int ssbo_binding
+
+    @property
+    def tile_count_x(self):
+        return self.tile_count_x
+    
+    @property
+    def tile_count_y(self):
+        return self.tile_count_y
+    
+    @property
+    def tile_size_x(self):
+        return self.tile_size_x
+    
+    @property
+    def tile_size_y(self):
+        return self.tile_size_y
+    
+    @property
+    def ssbo_binding(self):
+        return self.ssbo_binding
+    
+    @property
+    def auto_upload(self):
+        return self.get_auto_upload()
+
+    @auto_upload.setter
+    def auto_upload(self, auto_upload: bool):
+        self.set_auto_upload(auto_upload)
+
+    def __init__(self, tile_count_x: int, tile_count_y: int, tile_size_x: int, tile_size_y: int, ssbo_binding: int):
+        self.c_tilemap = CGL_tilemap_create(tile_count_x, tile_count_y, tile_size_x, tile_size_y, ssbo_binding)
+        self.tile_count_x = tile_count_x
+        self.tile_count_y = tile_count_y
+        self.tile_size_x = tile_size_x
+        self.tile_size_y = tile_size_y
+        self.ssbo_binding = ssbo_binding
+    
+    def __dealloc__(self):
+        CGL_tilemap_destroy(self.c_tilemap)
+    
+    def __repr__(self):
+        return f"tilemap({self.tile_count_x}, {self.tile_count_y}, {self.tile_size_x}, {self.tile_size_y}, {self.ssbo_binding})"
+    
+    def __str__(self):
+        return f"tilemap({self.tile_count_x}, {self.tile_count_y}, {self.tile_size_x}, {self.tile_size_y}, {self.ssbo_binding})"
+    
+    def __hash__(self):
+        return CGL_utils_super_fast_hash(<void*>self.c_tilemap, sizeof(CGL_tilemap*))
+    
+    def set_auto_upload(self, auto_upload: bool):
+        CGL_tilemap_set_auto_upload(self.c_tilemap, auto_upload)
+    
+    def get_auto_upload(self) -> bool:
+        return CGL_tilemap_get_auto_upload(self.c_tilemap)
+    
+    def upload(self):
+        CGL_tilemap_upload(self.c_tilemap)
+    
+    def set_tile_color(self, tile_x: int, tile_y: int, r: float, g: float, b: float):
+        CGL_tilemap_set_tile_color(self.c_tilemap, tile_x, tile_y, r, g, b)
+    
+    def set_tile_texture_from_array(self, tile_x: int, tile_y: int, texture_index: int):
+        CGL_tilemap_set_tile_texture_from_array(self.c_tilemap, tile_x, tile_y, texture_index)
+    
+    def set_tile_texture_from_tileset(self, tile_x: int, tile_y: int, texture_x_min: float, texture_y_min: float, texture_x_max: float, texture_y_max: float):
+        CGL_tilemap_set_tile_texture_from_tileset(self.c_tilemap, tile_x, tile_y, texture_x_min, texture_y_min, texture_x_max, texture_y_max)
+    
+    def set_all_tile_color(self, r: float, g: float, b: float):
+        CGL_tilemap_set_all_tile_color(self.c_tilemap, r, g, b)
+    
+    def set_all_tile_texture_from_array(self, texture_index: int):
+        CGL_tilemap_set_all_tile_texture_from_array(self.c_tilemap, texture_index)
+
+    def set_all_tile_texture_from_tileset(self, texture_x_min: float, texture_y_min: float, texture_x_max: float, texture_y_max: float):
+        CGL_tilemap_set_all_tile_texture_from_tileset(self.c_tilemap, texture_x_min, texture_y_min, texture_x_max, texture_y_max)
+    
+    def clear_tile(self, tile_x: int, tile_y: int):
+        CGL_tilemap_clear_tile(self.c_tilemap, tile_x, tile_y)
+    
+    def clear_all_tile(self):
+        CGL_tilemap_clear_all_tile(self.c_tilemap)
+    
+    def render(self, scale_x: float, scale_y: float, offset_x: float, offset_y: float, tex: texture = None):
+        cdef CGL_texture* c_tex = NULL
+        if tex is not None:
+            c_tex = tex.c_texture
+        CGL_tilemap_render(self.c_tilemap, scale_x, scale_y, offset_x, offset_y, c_tex)
+    
+    def reset(self):
+        CGL_tilemap_reset(self.c_tilemap)
+    
+cdef class font_character:
+    cdef CGL_font_character c_font_character
+
+    @property
+    def size(self) -> vec2:
+        return vec2(self.c_font_character.size.x, self.c_font_character.size.y)
+    
+    @property
+    def bearing(self) -> vec2:
+        return vec2(self.c_font_character.bearing.x, self.c_font_character.bearing.y)
+    
+    @property
+    def advance(self) -> vec2:
+        return vec2(self.c_font_character.advance.x, self.c_font_character.advance.y)
+    
+    @property
+    def normalized_size(self) -> vec2:
+        return vec2(self.c_font_character.normalized_size.x, self.c_font_character.normalized_size.y)
+    
+    @property
+    def normalized_offset(self) -> vec2:
+        return vec2(self.c_font_character.normalized_offset.x, self.c_font_character.normalized_offset.y)
+    
+    @property
+    def bearing_normalized(self) -> vec2:
+        return vec2(self.c_font_character.bearing_normalized.x, self.c_font_character.bearing_normalized.y)
+
+    @property
+    def advance_normalized(self) -> vec2:
+        return vec2(self.c_font_character.advance_normalized.x, self.c_font_character.advance_normalized.y)
+    
+    @property
+    def character(self) -> char:
+        return self.c_font_character.ch
+    
+    def __init__(self, CGL_font_character c_font_character):
+        self.c_font_character = c_font_character
+    
+    def __repr__(self):
+        return f"font_character({self.c_font_character})"
+    
+    def __str__(self):
+        return f"font_character({self.c_font_character})"
+    
+    def __hash__(self):
+        return self.c_font_character.ch
+    
+cdef class font:
+    cdef CGL_font* c_font
+    cdef bool has_been_destroyed
+    cdef str meta_data
+
+    def __init__(self):
+        self.c_font = NULL
+        self.has_been_destroyed = True
+        self.meta_data = "not_loaded"
+    
+    def __dealloc__(self):
+        self.destroy()
+    
+    def destroy(self):
+        if not self.has_been_destroyed:
+            CGL_font_destory(self.c_font)
+            self.has_been_destroyed = True
+        self.meta_data = "not_loaded"
+    
+    
+    def load_from_memory(self, data: bytes):
+        self.has_been_destroyed = False
+        self.c_font = CGL_font_load_from_memory(data, len(data))
+        self.meta_data = "memory_font"
+    
+    def load(self, path: str):
+        self.has_been_destroyed = False
+        self.c_font = CGL_font_load(path.encode("utf-8"))
+        self.meta_data = str(f"file_font{path}")
+    
+    def get_atlas(self) -> texture:
+        result = texture()
+        result.set_c_texture(CGL_font_get_atlas(self.c_font))
+        result.has_been_destroyed = True
+        return result
+    
+    def build_atlas(self, width: int, height: int, font_size: int) -> bool:
+        return CGL_font_build_atlas(self.c_font, width, height, font_size)
+    
+    def bake_to_texture(self, strng: str) -> tuple:
+        result_tex = texture()
+        cdef size_t width
+        cdef size_t height
+        result_tex.set_c_texture(CGL_text_bake_to_texture(strng.encode("utf-8"), len(strng), self.c_font, &width, &height))
+        return (result_tex, width, height)
+    
+    def get_characters(self):
+        cdef CGL_font_character* c_font_characters
+        cdef list result = []
+        c_font_characters = CGL_font_get_characters(self.c_font)
+        for i in range(127):
+            result.append(font_character(c_font_characters[i]))
+        return result
+
+
+def text_init() -> bool:
+    return CGL_text_init()
+
+def text_shutdown():
+    CGL_text_shutdown()
+
+   
+cdef class widgets:
+
+    def __init__(self):
+        raise RuntimeError("widgets is a static class")
+
+    @staticmethod
+    def create_context(max_vertices: int, max_indices: int) -> object:
+        return <object>CGL_widgets_context_create(max_vertices, max_indices)
+    
+    @staticmethod
+    def destroy_context(ctx: object):
+        CGL_widgets_context_destory(<CGL_widgets_context*>ctx)
+    
+    @staticmethod
+    def get_current_context() -> object:
+        # NOTE: this is a type in the original C code,
+        #       not some kind of a bug here
+        #       and will be later fixed
+        return <object>CGL_window_get_current_context()
+    
+    @staticmethod
+    def set_current_context(ctx: object):
+        # NOTE: this is a type in the original C code,
+        #       not some kind of a bug here
+        #       and will be later fixed
+        CGL_window_set_current_context(<CGL_widgets_context*>ctx)
+    
+    @staticmethod
+    def init():
+        CGL_widgets_init()
+    
+    @staticmethod
+    def shutdown():
+        CGL_widgets_shutdown()
+    
+    @staticmethod
+    def begin():
+        CGL_widgets_begin()
+    
+    @staticmethod
+    def begin_int(scale_x: float, scale_y: float, offset_x: float, offset_y: float):
+        CGL_widgets_begin_int(scale_x, scale_y, offset_x, offset_y)
+
+    @staticmethod
+    def end():
+        CGL_widgets_end()
+
+    @staticmethod
+    def flush():
+        CGL_widgets_flush()
+    
+    @staticmethod
+    def flush_if_required():
+        CGL_widgets_flush_if_required()
+    
+    @staticmethod
+    def add_vertex(v: mesh_vertex):
+        CGL_widgets_add_vertex(&v.c_vertex)
+    
+    @staticmethod
+    def add_mesh(m: mesh_cpu):
+        CGL_widgets_add_mesh(m.c_mesh)
+    
+    @staticmethod
+    def add_vertex_p(v: vec3):
+        CGL_widgets_add_vertex_p(v.c_vec3)
+    
+    @staticmethod
+    def add_vertex_p3f(x: float, y: float, z: float):
+        CGL_widgets_add_vertex_p3f(x, y, z)
+    
+    @staticmethod
+    def add_vertex_pt(v: vec3, t: vec2):
+        CGL_widgets_add_vertex_pt(v.c_vec3, t.c_vec2)
+    
+    @staticmethod
+    def add_vertex_p3ft(x: float, y: float, z: float, t: vec2):
+        CGL_widgets_add_vertex_p3ft(x, y, z, t.c_vec2)
+    
+    @staticmethod
+    def add_vertex_pt2f(v: vec3, t0: float, t1: float):
+        CGL_widgets_add_vertex_pt2f(v.c_vec3, t0, t1)
+    
+    @staticmethod
+    def add_vertex_p3ft2f(x: float, y: float, z: float, u: float, v: float):
+        CGL_widgets_add_vertex_p3ft2f(x, y, z, u, v)
+    
+    @staticmethod
+    def set_stroke_color(c: vec4):
+        CGL_widgets_set_stroke_color(c.c_vec4)
+    
+    @staticmethod
+    def set_stroke_colorf(r: float, g: float, b: float, a: float = 1.0):
+        CGL_widgets_set_stroke_colorf(r, g, b, a)
+
+    @staticmethod
+    def set_stroke_thickness(t: float):
+        CGL_widgets_set_stroke_thicnkess(t)
+    
+    @staticmethod
+    def set_fill_color(c: vec4):
+        CGL_widgets_set_fill_color(c.c_vec4)
+    
+    @staticmethod
+    def set_fill_colorf(r: float, g: float, b: float, a: float = 1.0):
+        CGL_widgets_set_fill_colorf(r, g, b, a)
+    
+    @staticmethod
+    def set_fill_mode(enebled: bool):
+        CGL_widgets_set_fill_mode(enebled)
+    
+    @staticmethod
+    def set_projection_matrix(m: mat4):
+        CGL_widgets_set_projection_matrix(&m.c_mat4)
+    
+    @staticmethod
+    def enable_diffuse_shading(light_pos: vec3, light_color: vec3):
+        CGL_widgets_enable_diffuse_shading(light_pos.c_vec3, light_color.c_vec3)
+    
+    @staticmethod
+    def disable_diffuse_shading():
+        CGL_widgets_disable_diffuse_shading()
+    
+    @staticmethod
+    def set_view_matrix(m: mat4):
+        CGL_widgets_set_view_matrix(&m.c_mat4)
+    
+    @staticmethod
+    def set_model_matrix(m: mat4):
+        CGL_widgets_set_model_matrix(&m.c_mat4)
+    
+    @staticmethod
+    def set_texture(tex: texture):
+        CGL_widgets_set_texture(tex.c_texture)
+    
+    @staticmethod
+    def set_font_texture(tex: texture):
+        CGL_widgets_set_font_texture(tex.c_texture)
+    
+    @staticmethod
+    def set_texture_coordinate_so(scale_x: float, scale_y: float, offset_x: float, offset_y: float):
+        CGL_widgets_set_texture_coordinate_so(scale_x, scale_y, offset_x, offset_y)
+    
+    @staticmethod
+    def apply_transformations_on_cpu():
+        CGL_widgets_apply_transformations_on_cpu()
+    
+    @staticmethod
+    def apply_transformations_on_gpu():
+        CGL_widgets_apply_transformations_on_gpu()
+    
+    @staticmethod
+    def add_triangle(a: vec3, b: vec3, c: vec3):
+        CGL_widgets_add_triangle(a.c_vec3, b.c_vec3, c.c_vec3)
+    
+    @staticmethod
+    def add_quad(a: vec3, b: vec3, c: vec3, d: vec3):
+        CGL_widgets_add_quad(a.c_vec3, b.c_vec3, c.c_vec3, d.c_vec3)
+    
+    @staticmethod
+    def add_quad_8f(a_x: float, a_y: float, b_x: float, b_y: float, c_x: float, c_y: float, d_x: float, d_y: float):
+        CGL_widgets_add_quad_8f(a_x, a_y, b_x, b_y, c_x, c_y, d_x, d_y)
+    
+    @staticmethod
+    def add_line(start: vec3, end: vec3):
+        CGL_widgets_add_line(start.c_vec3, end.c_vec3)
+    
+    @staticmethod
+    def add_line2f(start_x: float, start_y: float, end_x: float, end_y: float):
+        CGL_widgets_add_line2f(start_x, start_y, end_x, end_y)
+    
+    @staticmethod
+    def add_rect(start: vec3, size: vec2):
+        CGL_widgets_add_rect(start.c_vec3, size.c_vec2)
+    
+    @staticmethod
+    def add_rect2f(start_x: float, start_y: float, size_x: float, size_y: float):
+        CGL_widgets_add_rect2f(start_x, start_y, size_x, size_y)
+    
+    @staticmethod
+    def add_circle(position: vec3, radius: float):
+        CGL_widgets_add_circle(position.c_vec3, radius)
+    
+    @staticmethod
+    def add_circle2f(position_x: float, position_y: float, radius: float):
+        CGL_widgets_add_circle2f(position_x, position_y, radius)
+    
+    @staticmethod
+    def add_circler(position: vec3, radius: float, segments: int):
+        CGL_widgets_add_circler(position.c_vec3, radius, segments)
+    
+    @staticmethod
+    def add_circler2fr(position_x: float, position_y: float, radius: float, segments: int):
+        CGL_widgets_add_circle2fr(position_x, position_y, radius, segments)
+    
+    @staticmethod
+    def add_oval(position: vec3, radius: vec2):
+        CGL_widgets_add_oval(position.c_vec3, radius.c_vec2)
+    
+    @staticmethod
+    def add_oval2f(position_x: float, position_y: float, radius_x: float, radius_y: float):
+        CGL_widgets_add_oval2f(position_x, position_y, radius_x, radius_y)
+    
+    @staticmethod
+    def add_arc2f(position_x: float, position_y: float, radius: float, start_angle: float, end_angle: float, segments: int):
+        CGL_widgets_add_arc2f(position_x, position_y, radius, start_angle, end_angle, segments)
+    
+    @staticmethod
+    def add_character(ch: str, x: float, y: float, sx: float, sy: float) -> bool:
+        return CGL_widgets_add_character(ch[0], x, y, sx, sy)
+    
+    @staticmethod
+    def add_string(st: str, x: float, y: float, sx: float, sy: float) -> bool:
+        return CGL_widgets_add_string(st.encode('utf-8'), x, y, sx, sy)
+
+    @staticmethod
+    def add_cubic_bazier(start: vec3, end: vec3, control_1: vec3, control_2: vec3, res: int):
+        CGL_widgets_add_cubic_bazier(start.c_vec3, end.c_vec3, control_1.c_vec3, control_2.c_vec3, res)
+    
+    @staticmethod
+    def add_cubic_bazier2v(start: vec2, end: vec2, control_1: vec2, control_2: vec2, res: int):
+        CGL_widgets_add_cubic_bazier2v(start.c_vec2, end.c_vec2, control_1.c_vec2, control_2.c_vec2, res)
+
+    @staticmethod
+    def add_cubic_bazier2f(start_x: float, start_y: float, end_x: float, end_y: float, control_1_x: float, control_1_y: float, control_2_x: float, control_2_y: float, res: int):
+        CGL_widgets_add_cubic_bazier2f(start_x, start_y, end_x, end_y, control_1_x, control_1_y, control_2_x, control_2_y, res)
+    
+    @staticmethod
+    def add_cubic_bazier_points(start: vec3, end: vec3, control_1: vec3, control_2: vec3, res: int):
+        CGL_widgets_add_cubic_bazier_points(start.c_vec3, end.c_vec3, control_1.c_vec3, control_2.c_vec3, res)
+    
+    @staticmethod
+    def add_cubic_bazier_points2v(start: vec2, end: vec2, control_1: vec2, control_2: vec2, res: int):
+        CGL_widgets_add_cubic_bazier_points2v(start.c_vec2, end.c_vec2, control_1.c_vec2, control_2.c_vec2, res)
+    
+    @staticmethod
+    def add_cubic_bazier_points2f(start_x: float, start_y: float, end_x: float, end_y: float, control_1_x: float, control_1_y: float, control_2_x: float, control_2_y: float, res: int):
+        CGL_widgets_add_cubic_bazier_points2f(start_x, start_y, end_x, end_y, control_1_x, control_1_y, control_2_x, control_2_y, res)
+
+    @staticmethod
+    def add_shape_out_line(shape: shape):
+        CGL_widgets_add_shape_out_line(&shape.c_shape)
+    
+    @staticmethod
+    def add_string_with_font(st: str, font: font, x: float, y: float, sx: float, scale_y: float) -> float:
+        return CGL_widgets_add_string_with_font(st.encode('utf-8'), font.c_font, x, y, sx, scale_y)
+
+NOISE_TYPE_PERLIN        = 0
+NOISE_TYPE_OPENSIMPLEX   = 1
+NOISE_TYPE_OPENSIMPLEX2S = 2
+NOISE_TYPE_VALUE         = 3
+NOISE_TYPE_VALUECUBIC    = 4
+NOISE_TYPE_WORLEY        = 5
+NOISE_TYPE_COUNT         = 6
+
+NOISE_FRACTAL_TYPE_NONE     = 0
+NOISE_FRACTAL_TYPE_FBM      = 1
+NOISE_FRACTAL_TYPE_BILLOW   = 2
+NOISE_FRACTAL_TYPE_RIGID    = 3
+NOISE_FRACTAL_TYPE_PINGPONG = 4
+NOISE_FRACTAL_TYPE_COUNT    = 5
+
+cdef class noise_params:
+    cdef CGL_noise_params c_noise_params
+
+    @property
+    def type(self) -> int:
+        return self.c_noise_params.type
+    
+    @type.setter
+    def type(self, value: int):
+        self.c_noise_params.type = value
+    
+    @property
+    def fractal_type(self) -> int:
+        return self.c_noise_params.fractal_type
+    
+    @fractal_type.setter
+    def fractal_type(self, value: int):
+        self.c_noise_params.fractal_type = value
+    
+    @property
+    def octaves(self) -> int:
+        return self.c_noise_params.octaves
+
+    @octaves.setter
+    def octaves(self, value: int):
+        self.c_noise_params.octaves = value
+    
+    @property
+    def lacunarity(self) -> float:
+        return self.c_noise_params.lacunarity
+    
+    @lacunarity.setter
+    def lacunarity(self, value: float):
+        self.c_noise_params.lacunarity = value
+    
+    @property
+    def gain(self) -> float:
+        return self.c_noise_params.gain
+    
+    @gain.setter
+    def gain(self, value: float):
+        self.c_noise_params.gain = value
+    
+    @property
+    def frequency(self) -> float:
+        return self.c_noise_params.frequency
+    
+    @frequency.setter
+    def frequency(self, value: float):
+        self.c_noise_params.frequency = value
+    
+    @property
+    def weighted_strength(self) -> float:
+        return self.c_noise_params.weighted_strength
+    
+    @weighted_strength.setter
+    def weighted_strength(self, value: float):
+        self.c_noise_params.weighted_strength = value
+    
+    @property
+    def ping_pong_strength(self) -> float:
+        return self.c_noise_params.ping_pong_strength
+    
+    @ping_pong_strength.setter
+    def ping_pong_strength(self, value: float):
+        self.c_noise_params.ping_pong_strength = value
+    
+    def __init__(self):
+        self.c_noise_params = CGL_noise_params()
+        CGL_noise_params_default(&self.c_noise_params)
+    
+    def __repr__(self):
+        return f"noise_params(type={self.type}, fractal_type={self.fractal_type}, octaves={self.octaves}, lacunarity={self.lacunarity}, gain={self.gain}, frequency={self.frequency}, weighted_strength={self.weighted_strength}, ping_pong_strength={self.ping_pong_strength})"
+    
+    def __str__(self):
+        return f"noise_params(type={self.type}, fractal_type={self.fractal_type}, octaves={self.octaves}, lacunarity={self.lacunarity}, gain={self.gain}, frequency={self.frequency}, weighted_strength={self.weighted_strength}, ping_pong_strength={self.ping_pong_strength})"
+
+def noise_init():
+    CGL_noise_init()
+
+def noise_shutdown():
+    CGL_noise_shutdown()
+
+def noise_get(x: float, y: float, z: float, np: noise_params = noise_params() ) -> float:
+    return CGL_noise_get(&np.c_noise_params, x, y, z)
+
+def noise_perlin(x: float, y: float, z: float) -> float:
+    return CGL_noise_perlin(x, y, z)
+
+def noise_opensimplex(x: float, y: float, z: float) -> float:
+    return CGL_noise_opensimplex(x, y, z)
+
+def noise_opensimplex2s(x: float, y: float, z: float) -> float:
+    return CGL_noise_opensimplex2s(x, y, z)
+
+def noise_value(x: float, y: float, z: float) -> float:
+    return CGL_noise_value(x, y, z)
+
+def noise_valuecubic(x: float, y: float, z: float) -> float:
+    return CGL_noise_valuecubic(x, y, z)
+
+def noise_worley(x: float, y: float, z: float) -> float:
+    return CGL_noise_worley(x, y, z)
+
+    

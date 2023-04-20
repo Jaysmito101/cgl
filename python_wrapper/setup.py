@@ -15,7 +15,7 @@ def get_extra_link_args():
 
 requirements = ["PyOpenGL", "glfw", "Cython", "Pillow"] 
 
-version = '0.0.7'
+version = '0.0.10'
 
 readme = 'Coming Soon ...'
 
