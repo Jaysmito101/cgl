@@ -2222,6 +2222,8 @@ void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float t
 void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y);
 void CGL_widgets_set_stroke_color(CGL_color color);
 void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
+// for backwards compatibility
+#define CGL_widgets_set_stroke_thickness CGL_widgets_set_stroke_thicnkess 
 void CGL_widgets_set_stroke_thicnkess(CGL_float thickness);
 void CGL_widgets_set_fill_color(CGL_color color);
 void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
@@ -2249,6 +2251,7 @@ void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res);
 void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res);
 void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
 void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y);
+void CGL_widgets_add_oval2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution);
 void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution);
 CGL_bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
@@ -11567,7 +11570,8 @@ void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius
 
 void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res)
 {
-    CGL_widgets_add_arc2f(position.x, position.y, radius, 0.0f, CGL_2PI, res);
+    // CGL_widgets_add_arc2f(position.x, position.y, radius, 0.0f, CGL_2PI, res);
+    CGL_widgets_add_oval2fr(position.x, position.y, radius, radius, res);
 }
 
 void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res)
@@ -11619,18 +11623,56 @@ static void __CGL_widgets_add_arc_stroked2f(CGL_float pos_x, CGL_float pos_y, CG
     }
 }
 
+static void __CGL_widgets_add_oval_filled2f(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
+{
+    CGL_float x = 0.0f, y = 0.0f;
+    CGL_float angle = 0.0f;
+    CGL_float angle_step = (CGL_2PI - 0.0f) / resolution;
+    for(CGL_int i = 0; i < resolution; i++)
+    {
+        x = radiusx * cosf(angle); y = radiusy * sinf(angle);
+        CGL_widgets_add_vertex_p3f(x + pos_x, y + pos_y, 0.0f);
+        angle += angle_step;
+        x = radiusx * cosf(angle); y = radiusy * sinf(angle);
+        CGL_widgets_add_vertex_p3f(x + pos_x, y + pos_y, 0.0f);
+        CGL_widgets_add_vertex_p3f(pos_x, pos_y, 0.0f);
+    }
+}
+
+static void __CGL_widgets_add_oval_stroked2f(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
+{
+    CGL_float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
+    CGL_float angle = 0.0f;
+    CGL_float angle_step = (CGL_2PI - 0.0f) / resolution;
+    for(CGL_int i = 0; i < resolution; i++)
+    {
+        x0 = radiusx * cosf(angle); y0 = radiusy * sinf(angle);
+        angle += angle_step;
+        x1 = radiusx * cosf(angle); y1 = radiusy * sinf(angle);
+        CGL_widgets_add_line2f(pos_x + x0, pos_y + y0, pos_x + x1, pos_y + y1);
+    }
+}
+
+
+
 void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_arc_filled2f(pos_x, pos_y, radius, start_angle, end_angle, resolution);
     else __CGL_widgets_add_arc_stroked2f(pos_x, pos_y, radius, start_angle, end_angle, resolution);
 }
 
+void CGL_widgets_add_oval2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
+{
+    if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled2f(pos_x, pos_y, radiusx, radiusy, resolution);
+    else __CGL_widgets_add_oval_stroked2f(pos_x, pos_y, radiusx, radiusy, resolution);
+}
 
 void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(position, CGL_vec2_init(radius, radius));
     else __CGL_widgets_add_oval_stroked(position, CGL_vec2_init(radius, radius));    
 }
+
 
 
 bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy)
@@ -11983,6 +12025,11 @@ bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, C
         case '-':
         {
             CGL_widgets_add_rect2f(x, y + (0.5f - 0.125f) * sy, sx, sy * 0.25f);
+            return true;
+        }
+        case '\'':
+        {
+            CGL_widgets_add_rect2f(x + (0.5f - 0.125f) * sx, y + sy * 0.75f, sx * 0.25f, sy * 0.25f);
             return true;
         }
         case '.':
@@ -15127,7 +15174,7 @@ CGL_bool CGL_csv_load_from_buffer(CGL_csv* csv, const CGL_byte* buffer, const CG
         }
         line_number++;
     }
-    return CGL_FALSE;
+    return CGL_TRUE;
 }
 
 CGL_bool CGL_csv_load(CGL_csv* csv, const CGL_byte* file_path, const CGL_byte* seperator)
