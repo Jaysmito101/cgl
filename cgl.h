@@ -579,6 +579,7 @@ CGL_uint CGL_utils_rand31();
 #define CGL_utils_lerp(a, b, t) (a + (b - a) * t)
 #define CGL_utils_square(x) ((x) * (x))
 #define CGL_utils_cube(x) ((x) * (x) * (x))
+#define CGL_utils_map(x, in_min, in_max, out_min, out_max) ( ((x) - (in_min)) * ((out_max) - (out_min)) / ((in_max) - (in_min)) + (out_min) )
 CGL_float CGL_utils_sigmoid(CGL_float x);
 CGL_float CGL_utils_sigmoid_derivative(CGL_float x);
 CGL_float CGL_utils_relu(CGL_float x);
@@ -11147,6 +11148,7 @@ CGL_bool CGL_widgets_flush()
     //if(__CGL_WIDGETS_CURRENT_CONTEXT->flushed) return false;
     if(__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count == 0 || __CGL_WIDGETS_CURRENT_CONTEXT->indices_count == 0) return false;
     // first upload the data
+    glBindVertexArray(__CGL_WIDGETS_CURRENT_CONTEXT->vertex_array);
     glBindBuffer(GL_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->vertices_count * sizeof(CGL_mesh_vertex), __CGL_WIDGETS_CURRENT_CONTEXT->vertices, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, __CGL_WIDGETS_CURRENT_CONTEXT->index_buffer);
@@ -11180,6 +11182,8 @@ CGL_bool CGL_widgets_flush()
     }
     glBindVertexArray(__CGL_WIDGETS_CURRENT_CONTEXT->vertex_array);
     glDrawElements(GL_TRIANGLES, (GLsizei)__CGL_WIDGETS_CURRENT_CONTEXT->indices_count, GL_UNSIGNED_INT, NULL);
+    glBindVertexArray(0); 
+    glUseProgram(0);
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices_count = 0;
     __CGL_WIDGETS_CURRENT_CONTEXT->indices_count = 0;
     __CGL_WIDGETS_CURRENT_CONTEXT->flushed = true;
