@@ -677,21 +677,22 @@ struct CGL_list;
 typedef struct CGL_list CGL_list;
 
 CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity);
-void CGL_list_destroy(CGL_list* list);
-void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor);
-float CGL_list_get_increase_factor(CGL_list* list);
-size_t CGL_list_get_item_size(CGL_list* list);
-size_t CGL_list_get_size(CGL_list* list);
-size_t CGL_list_get_capacity(CGL_list* list);
-size_t CGL_list_push(CGL_list* list, void* data);
-size_t CGL_list_pop(CGL_list* list, void* data);
-void* CGL_list_get(CGL_list* list, size_t index, void* data);
-void* CGL_list_get_random(CGL_list* list, void* data);
-void* CGL_list_set(CGL_list* list, size_t index, void* data);
-bool CGL_list_is_empty(CGL_list* list);
-size_t CGL_list_find(CGL_list* list, void* data);
-void CGL_list_reserve(CGL_list* list, size_t size);
-void CGL_list_fill(CGL_list* list, size_t size);
+CGL_void CGL_list_destroy(CGL_list* list);
+CGL_void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor);
+CGL_float CGL_list_get_increase_factor(CGL_list* list);
+CGL_sizei CGL_list_get_item_size(CGL_list* list);
+CGL_sizei CGL_list_get_size(CGL_list* list);
+CGL_sizei CGL_list_get_capacity(CGL_list* list);
+CGL_sizei  CGL_list_push(CGL_list* list, void* data);
+CGL_sizei CGL_list_pop(CGL_list* list, void* data);
+CGL_void* CGL_list_get(CGL_list* list, size_t index, void* data);
+CGL_void* CGL_list_get_random(CGL_list* list, void* data);
+CGL_void* CGL_list_set(CGL_list* list, size_t index, void* data);
+CGL_bool CGL_list_is_empty(CGL_list* list);
+CGL_void CGL_list_clear(CGL_list* list);
+CGL_sizei CGL_list_find(CGL_list* list, void* data);
+CGL_void CGL_list_reserve(CGL_list* list, size_t size);
+CGL_void CGL_list_fill(CGL_list* list, size_t size);
 
 #ifndef CGL_HASHTABLE_MAX_KEY_SIZE
 #define CGL_HASHTABLE_MAX_KEY_SIZE 256
@@ -2692,8 +2693,8 @@ CGL_bool CGL_csv_save(CGL_csv* csv, const CGL_byte* file_path, const CGL_byte* s
 CGL_bool CGL_csv_save_to_buffer(CGL_csv* csv, CGL_byte* buffer, const CGL_byte* separator);
 CGL_bool CGL_csv_add_column(CGL_csv* csv);
 CGL_bool CGL_csv_add_row(CGL_csv* csv);
-CGL_bool CGL_csv_set_item(CGL_csv* csv, CGL_int row, CGL_int column, const CGL_byte* item);
-CGL_bool CGL_csv_get_item(CGL_csv* csv, CGL_int row, CGL_int column, CGL_byte* item_out);
+CGL_byte* CGL_csv_set_item(CGL_csv* csv, CGL_int row, CGL_int column, const CGL_byte* item);
+CGL_byte* CGL_csv_get_item(CGL_csv* csv, CGL_int row, CGL_int column, CGL_byte* item_out);
 CGL_bool CGL_csv_get_row(CGL_csv* csv, CGL_int row, CGL_byte* row_out);
 CGL_bool CGL_csv_get_column(CGL_csv* csv, CGL_int column, CGL_byte* column_out);
 CGL_int CGL_csv_get_row_count(CGL_csv* csv);
@@ -2749,38 +2750,38 @@ CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity)
     return list;
 }
 
-void CGL_list_destroy(CGL_list* list)
+CGL_void CGL_list_destroy(CGL_list* list)
 {
     CGL_free(list->data);
     CGL_free(list);
 }
 
-void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor)
+CGL_void CGL_list_set_increase_factor(CGL_list* list, CGL_float increase_factor)
 {
     list->increase_factor = increase_factor;
 }
 
-float CGL_list_get_increase_factor(CGL_list* list)
+CGL_float CGL_list_get_increase_factor(CGL_list* list)
 {
     return list->increase_factor;
 }
 
-size_t CGL_list_get_item_size(CGL_list* list)
+CGL_sizei CGL_list_get_item_size(CGL_list* list)
 {
     return list->item_size;
 }
 
-size_t CGL_list_get_size(CGL_list* list)
+CGL_sizei CGL_list_get_size(CGL_list* list)
 {
     return list->size;
 }
 
-size_t CGL_list_get_capacity(CGL_list* list)
+CGL_sizei CGL_list_get_capacity(CGL_list* list)
 {
     return list->capacity;
 }
 
-size_t CGL_list_push(CGL_list* list, void* data)
+CGL_sizei CGL_list_push(CGL_list* list, void* data)
 {
     if(list->size == list->capacity)
     {
@@ -2793,7 +2794,7 @@ size_t CGL_list_push(CGL_list* list, void* data)
     return list->size - 1;
 }
 
-size_t CGL_list_pop(CGL_list* list, void* data)
+CGL_sizei CGL_list_pop(CGL_list* list, void* data)
 {
     if(list->size == 0) return 0;
     list->size -= 1;
@@ -2801,40 +2802,40 @@ size_t CGL_list_pop(CGL_list* list, void* data)
     return list->size; 
 }
 
-void* CGL_list_get(CGL_list* list, size_t index, void* data)
+CGL_void* CGL_list_get(CGL_list* list, size_t index, void* data)
 {
     if(index >= list->size || index < 0) return NULL;
     if(data) memcpy( data, ((char*)list->data + index * list->item_size), list->item_size );
     return ((char*)list->data + index * list->item_size);
 }
 
-void* CGL_list_get_random(CGL_list* list, void* data)
+CGL_void* CGL_list_get_random(CGL_list* list, void* data)
 {
     CGL_int index = CGL_utils_random_int(0, list->size-1);
     return CGL_list_get(list, index, data);
 }
 
-void* CGL_list_set(CGL_list* list, size_t index, void* data)
+CGL_void* CGL_list_set(CGL_list* list, size_t index, void* data)
 {
     if (index >= list->size || index < 0) return NULL;
     if(data) memcpy( ((char*)list->data + index * list->item_size), data, list->item_size );
     return ((char*)list->data + index * list->item_size);
 }
 
-bool CGL_list_is_empty(CGL_list* list)
+CGL_bool CGL_list_is_empty(CGL_list* list)
 {
     return list->size == 0;
 }
 
-size_t CGL_list_find(CGL_list* list, void* data)
+CGL_sizei CGL_list_find(CGL_list* list, void* data)
 {
-    for(size_t i = 0 ; i < list->size ; i++)
-        if(memcmp(((char*)list->data + i * list->item_size), data, list->item_size) == 0)
+    for(CGL_sizei i = 0 ; i < list->size ; i++)
+        if(memcmp(((CGL_byte*)list->data + i * list->item_size), data, list->item_size) == 0)
             return i;
-    return (size_t)UINT64_MAX;
+    return (CGL_sizei)UINT64_MAX;
 }
 
-void CGL_list_reserve(CGL_list* list, size_t size)
+CGL_void CGL_list_reserve(CGL_list* list, size_t size)
 {
     if(list->capacity > size) return;
     size_t new_capacity = size;
@@ -2842,10 +2843,15 @@ void CGL_list_reserve(CGL_list* list, size_t size)
     list->capacity = new_capacity;
 }
 
-void CGL_list_fill(CGL_list* list, size_t size)
+CGL_void CGL_list_fill(CGL_list* list, size_t size)
 {
     CGL_list_reserve(list, size);
     list->size = CGL_utils_max(size, list->size);
+}
+
+CGL_void CGL_list_clear(CGL_list* list)
+{
+    list->size = 0;
 }
 
 
@@ -4320,6 +4326,9 @@ CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec
 CGL_transform CGL_transform_create_from_matrix(CGL_mat4 matrix)
 {
     CGL_transform transform;
+    transform.position = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    transform.rotation = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+    transform.scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
     // TODO: Implement
     CGL_warn("CGL_transform_create_from_matrix() is not implemented yet!");
     return transform;
@@ -15014,6 +15023,7 @@ struct CGL_csv
     CGL_sizei item_max_size;
     CGL_sizei column_count;
     CGL_sizei row_count;
+    CGL_list* parser_list;
     CGL_byte* item_buffer;
     CGL_list* columns;
 };
@@ -15028,10 +15038,24 @@ CGL_csv* CGL_csv_create(CGL_sizei item_max_size)
         CGL_free(csv);
         return NULL;
     }
+    csv->columns = CGL_list_create(sizeof(CGL_list*), 100);
+    if (csv->columns == NULL)
+    {
+        CGL_free(csv->item_buffer);
+        CGL_free(csv);
+        return NULL;
+    }
+    csv->parser_list = CGL_list_create(item_max_size, 100);
+    if (csv->parser_list == NULL)
+    {
+        CGL_list_destroy(csv->columns);
+        CGL_free(csv->item_buffer);
+        CGL_free(csv);
+        return NULL;
+    }
     csv->item_max_size = item_max_size;
     csv->column_count = 0;
     csv->row_count = 0;
-    csv->columns = CGL_list_create(sizeof(CGL_list*), 100);
     return csv;
 }
 
@@ -15044,26 +15068,61 @@ CGL_void CGL_csv_destroy(CGL_csv* csv)
         CGL_list_destroy(column);
     }
     CGL_list_destroy(csv->columns);
+    CGL_list_destroy(csv->parser_list);
     CGL_free(csv->item_buffer);
     CGL_free(csv);
 }
 
+#define __CGL_CSV_ERROR_AND_RETURN(...) \
+{\
+    CGL_log_internal(__VA_ARGS__); \
+    return CGL_FALSE; \
+}
+
 CGL_bool CGL_csv_load_from_buffer(CGL_csv* csv, const CGL_byte* buffer, const CGL_byte* seperator)
 {
+    CGL_sizei seperator_length = strlen(seperator);
     CGL_csv_clear(csv);
     CGL_sizei buffer_length = strlen(buffer);
-    CGL_int line_start_index = 0, current_index = 0, line_end_index = 0;
+    CGL_sizei line_start_index = 0, current_index = 0, line_end_index = 0, line_number = 0, column_count = 0, prev_column_start = 0, seperator_count = 0, line_iterator = 0;
     while(buffer[current_index])
     {
         line_start_index = current_index;
         while(buffer[current_index] && (buffer[current_index] != '\n' && !(buffer[current_index] == '\r' && buffer[current_index + 1] == '\n') )) current_index++;
-        line_end_index = current_index;
+        line_end_index = current_index; 
         if (buffer[current_index] == '\r' && buffer[current_index + 1] == '\n') current_index += 2; else current_index++;
         // fwrite(buffer + line_start_index, (line_end_index - line_start_index), 1, stdout);
-
-        // TODO: this is work in progress
+        if(column_count != 0) if(line_end_index - line_start_index <= seperator_length * (column_count - 1))  __CGL_CSV_ERROR_AND_RETURN("CGL_csv_load_from_buffer: line %d is too short", line_number);
+        if(line_end_index - line_start_index == 0) __CGL_CSV_ERROR_AND_RETURN("CGL_csv_load_from_buffer: line %d is empty", line_number);
+        prev_column_start = line_start_index; seperator_count = 0;
+        CGL_list_clear(csv->parser_list);
+        for(line_iterator = line_start_index ; line_iterator <= line_end_index - seperator_length ; line_iterator++)
+        {
+            if(strncmp(buffer + line_iterator, seperator, seperator_length) == 0)
+            {
+                if(line_iterator - prev_column_start > csv->item_max_size) __CGL_CSV_ERROR_AND_RETURN("CGL_csv_load_from_buffer: item %d in line %d is too long", seperator_count, line_number);
+                sprintf(csv->item_buffer, "%.*s ", (CGL_int)(line_iterator - prev_column_start), buffer + prev_column_start);
+                CGL_list_push(csv->parser_list, csv->item_buffer);
+                seperator_count++; line_iterator += seperator_length - 1; prev_column_start = line_iterator + 1;
+            }
+        }
+        if (prev_column_start < line_end_index)
+        {
+            if(line_end_index - prev_column_start > csv->item_max_size) __CGL_CSV_ERROR_AND_RETURN("CGL_csv_load_from_buffer: item %d in line %d is too long", seperator_count, line_number);
+            sprintf(csv->item_buffer, "%.*s ", (CGL_int)(line_end_index - prev_column_start), buffer + prev_column_start);
+            CGL_list_push(csv->parser_list, csv->item_buffer);
+        }
+        if (line_number == 0) column_count = CGL_list_get_size(csv->parser_list);
+        else if (CGL_list_get_size(csv->parser_list) != column_count) __CGL_CSV_ERROR_AND_RETURN("CGL_csv_load_from_buffer: line %d has %d columns, but %d columns are expected", line_number, CGL_list_get_size(csv->parser_list), column_count);
+        if (line_number == 0) for(CGL_sizei i = 0 ; i < column_count; i++) CGL_csv_add_column(csv);
+        CGL_csv_add_row(csv);
+        for(CGL_sizei i = 0 ; i < column_count; i++)
+        {
+            CGL_list* column = *(CGL_list**)CGL_list_get(csv->columns, i, NULL);
+            CGL_list_set(column, line_number, CGL_list_get(csv->parser_list, i, NULL));
+        }
+        line_number++;
     }
-
     return CGL_FALSE;
 }
 
@@ -15137,23 +15196,23 @@ CGL_bool CGL_csv_add_row(CGL_csv* csv)
     return CGL_TRUE;
 }
 
-CGL_bool CGL_csv_set_item(CGL_csv* csv, CGL_int row, CGL_int column, const CGL_byte* item)
+CGL_byte* CGL_csv_set_item(CGL_csv* csv, CGL_int row, CGL_int column, const CGL_byte* item)
 {
     CGL_list* column_ptr = *(CGL_list**)CGL_list_get(csv->columns, column, NULL);
-    if (column_ptr == NULL) return CGL_FALSE;
+    if (column_ptr == NULL) return NULL;
     sprintf(csv->item_buffer, "%s", item);
     CGL_list_set(column_ptr, row, csv->item_buffer);
-    return CGL_TRUE;
+    return CGL_list_get(column_ptr, row, NULL);
 }
 
-CGL_bool CGL_csv_get_item(CGL_csv* csv, CGL_int row, CGL_int column, CGL_byte* item_out)
+CGL_byte* CGL_csv_get_item(CGL_csv* csv, CGL_int row, CGL_int column, CGL_byte* item_out)
 {
     CGL_list* column_ptr = *(CGL_list**)CGL_list_get(csv->columns, column, NULL);
     if (column_ptr == NULL) return CGL_FALSE;
     CGL_byte* item = (CGL_byte*)CGL_list_get(column_ptr, row, NULL);
     if (item == NULL) return CGL_FALSE;
-    sprintf(item_out, "%s", item);
-    return CGL_TRUE;
+    if(item_out) sprintf(item_out, "%s", item);
+    return item;
 }
 
 CGL_bool CGL_csv_get_row(CGL_csv* csv, CGL_int row, CGL_byte* row_out)
@@ -15202,7 +15261,8 @@ CGL_void CGL_csv_clear(CGL_csv* csv)
         CGL_list* column = *(CGL_list**)CGL_list_get(csv->columns, i, NULL);
         CGL_list_destroy(column);
     }
-    while (CGL_list_get_size(csv->columns) > 0) CGL_list_pop(csv->columns, NULL);
+    // while (CGL_list_get_size(csv->columns) > 0) CGL_list_pop(csv->columns, NULL);
+    CGL_list_clear(csv->columns);
 }
 
 
