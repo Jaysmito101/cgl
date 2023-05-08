@@ -56,7 +56,7 @@ while not w.should_close():
             rgb = cgl.vec3(frame[py_i, px_i, 0], frame[py_i, px_i, 1], frame[py_i, px_i, 2])
             rgb = rgb / cgl.vec3(256, 256, 256)
             pixel_lum = 0.2126 * rgb.x + 0.7152 * rgb.y + 0.0722 * rgb.z
-            pixel_lum = rgb.dot(cgl.vec3(0, 1, 0))
+            # pixel_lum = rgb.dot(cgl.vec3(0, 1, 0))
             pixel_lum = int(pixel_lum*len(ascii_density))
             pos_x = px_i / ascii_resolution * 2 - 1
             pos_y = (1.0 - py_i / ascii_resolution) * 2 - 1
