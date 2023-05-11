@@ -592,6 +592,7 @@ CGL_float CGL_utils_relu_leaky(CGL_float x);
 CGL_float CGL_utils_relu_leaky_derivative(CGL_float x);
 CGL_float CGL_utils_relu_smooth(CGL_float x);
 CGL_float CGL_utils_relu_smooth_derivative(CGL_float x);
+// CGL_vec3 CGL_utils_hsl_to_rgb(CGL_vec3 hsv);
 
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
@@ -1478,6 +1479,15 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex);
 
 CGL_bool CGL_aabb_contains_point(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 point);
 CGL_bool CGL_aabb_intersects_aabb(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2 aabb_min2, CGL_vec2 aabb_max2);
+CGL_bool CGL_aabb_subdivide_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabbs_min_out, CGL_float* aabbs_max_out);
+CGL_bool CGL_aabb_subdivide_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabbs_min_out, CGL_float* aabbs_max_out);
+CGL_bool CGL_aabb_subdivide_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabbs_min_out, CGL_float* aabbs_max_out);
+CGL_bool CGL_aabb_contains_point_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point);
+CGL_bool CGL_aabb_contains_point_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point);
+CGL_bool CGL_aabb_contains_point_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point);
+CGL_bool CGL_aabb_intersects_aabb_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2);
+CGL_bool CGL_aabb_intersects_aabb_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2);
+CGL_bool CGL_aabb_intersects_aabb_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2);
 
 CGL_bool CGL_triangulate_points_incremental(CGL_vec2* points, CGL_int points_count, CGL_int* triangles_out, CGL_int* triangles_count_out);
 
@@ -1696,6 +1706,16 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 // opengl
 #if 1 // Just to use code folding
 
+struct CGL_image
+{
+    void* data;
+    CGL_int height;
+    CGL_int width;
+    CGL_int bytes_per_channel;
+    CGL_int channels;
+};
+typedef struct CGL_image CGL_image;
+
 #ifndef CGL_EXCLUDE_GRAPHICS_API
 
 //#ifndef  CGL_EXCLUDE_WINDOW_API
@@ -1714,15 +1734,6 @@ void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypo
 #define CGL_OPENGL_VERSION_MINOR_STR "3"
 #endif
 
-struct CGL_image
-{
-    void* data;
-    CGL_int height;
-    CGL_int width;
-    CGL_int bytes_per_channel;
-    CGL_int channels;
-};
-typedef struct CGL_image CGL_image;
 
 // forward declarations
 struct CGL_texture;
@@ -1782,7 +1793,7 @@ CGL_texture* CGL_texture_create_cubemap();
 void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image);
 void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data);
 void CGL_texture_destroy(CGL_texture* texture); // destroy texture
-void CGL_texture_bind(CGL_texture* texture, CGL_int unit); // bind texture to unit
+CGL_int CGL_texture_bind(CGL_texture* texture, CGL_int unit); // bind texture to unit
 void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
 void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data); // set texture data
 void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data); // set texture data at pixel
@@ -2707,6 +2718,60 @@ CGL_void CGL_csv_clear(CGL_csv* csv);
 
 
 #endif
+
+#ifndef CGL_EXCLUDE_IMAGE_FILE_API
+
+#define CGL_IMAGE_FORMAT_UNKNOWN    0x00AB0
+#define CGL_IMAGE_FORMAT_PNG        0x00AB1
+#define CGL_IMAGE_FORMAT_JPEG       0x00AB2
+#define CGL_IMAGE_FORMAT_BMP        0x00AB3
+#define CGL_IMAGE_FORMAT_GIF        0x00AB4
+
+CGL_bool CGL_image_file_is_png_f(FILE* file);
+CGL_bool CGL_image_file_is_png(const CGL_byte* file_path);
+CGL_bool CGL_image_file_is_bmp_f(FILE* file);
+CGL_bool CGL_image_file_is_bmp(const CGL_byte* file_path);
+CGL_bool CGL_image_file_is_gif_f(FILE* file);
+CGL_bool CGL_image_file_is_gif(const CGL_byte* file_path);
+CGL_bool CGL_image_file_is_jpeg_f(FILE* file);
+CGL_bool CGL_image_file_is_jpeg(const CGL_byte* file_path);
+CGL_int CGL_image_file_get_format_f(FILE* file);
+CGL_int CGL_image_file_get_format(const CGL_byte* file_path);
+
+#endif
+
+#ifndef CGL_EXCLUDE_ND_TREE_API
+
+#ifndef CGL_ND_TREE_MAX_ITEMS_PER_MEMORY_BANK
+#define CGL_ND_TREE_MAX_ITEMS_PER_MEMORY_BANK 8
+#endif
+
+#ifndef CGL_ND_TREE_MAX_MEMORY_BANKS_PER_NODE
+#define CGL_ND_TREE_MAX_MEMORY_BANKS_PER_NODE 64
+#endif
+
+struct CGL_nd_tree;
+typedef struct CGL_nd_tree CGL_nd_tree;
+
+struct CGL_nd_tree_node;
+typedef struct CGL_nd_tree_node CGL_nd_tree_node;
+
+CGL_nd_tree* CGL_nd_tree_create(CGL_int dimensions, CGL_sizei item_size, CGL_int max_items_per_node, CGL_sizei max_nodes, CGL_sizei max_items, CGL_bool store_positions);
+CGL_nd_tree* CGL_quad_tree_create(CGL_sizei item_size, CGL_int max_items_per_node, CGL_sizei max_nodes, CGL_sizei max_items, CGL_bool store_positions);
+CGL_nd_tree* CGL_oct_tree_create(CGL_sizei item_size, CGL_int max_items_per_node, CGL_sizei max_nodes, CGL_sizei max_items, CGL_bool store_positions);
+CGL_void CGL_nd_tree_destroy(CGL_nd_tree* tree);
+CGL_bool CGL_nd_tree_reset(CGL_nd_tree* tree, CGL_float* aabb_min, CGL_float* aabb_max, CGL_int items_per_node, CGL_int max_depth, CGL_bool fast_approx_mode);
+CGL_bool CGL_quad_tree_reset(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float x_max, CGL_float y_max, CGL_int items_per_node, CGL_int max_depth, CGL_bool fast_approx_mode);
+CGL_bool CGL_oct_tree_reset(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float z_min, CGL_float x_max, CGL_float y_max, CGL_float z_max, CGL_int items_per_node, CGL_int max_depth, CGL_bool fast_approx_mode);
+CGL_bool CGL_nd_tree_add(CGL_nd_tree* tree, CGL_float* position, CGL_void* item);
+CGL_bool CGL_quad_tree_add(CGL_nd_tree* tree, CGL_float px, CGL_float py, CGL_void* item);
+CGL_bool CGL_oct_tree_add(CGL_nd_tree* tree, CGL_float px, CGL_float py, CGL_float pz, CGL_void* item);
+CGL_int CGL_nd_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float* p_min, CGL_float* p_max, CGL_void* items_out, CGL_int max_items);
+CGL_int CGL_quad_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float x_max, CGL_float y_max, CGL_void* items_out, CGL_int max_items);
+CGL_int CGL_oct_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float z_min, CGL_float x_max, CGL_float y_max, CGL_float z_max, CGL_void* items_out, CGL_int max_items);
+
+#endif
+
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -4192,6 +4257,12 @@ CGL_float CGL_utils_relu_smooth_derivative(CGL_float x)
     return x > 0.0f ? 1.0f : 0.02f * x;
 }
 
+CGL_vec3 CGL_utils_hsl_to_rgb(CGL_vec3 hsv)
+{
+    CGL_log_internal("Not implemented yet");
+    return CGL_vec3_init(0.0f, 0.0f, 0.0f);
+}
+
 CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count)
 {
     static CGL_float prefix[CGL_RAND_GEN_WITH_PROBABILITY_MAX_COUNT];
@@ -4728,6 +4799,95 @@ CGL_bool CGL_aabb_intersects_aabb(CGL_vec2 aabb_min, CGL_vec2 aabb_max, CGL_vec2
 {
     return aabb_min.x <= aabb_max2.x && aabb_max.x >= aabb_min2.x && aabb_min.y <= aabb_max2.y && aabb_max.y >= aabb_min2.y;
 }
+
+
+CGL_bool CGL_aabb_subdivide_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabbs_min_out, CGL_float* aabbs_max_out)
+{
+    static CGL_float aabb_mid_pos[1024], aabb_axis_deltas[1024]; // I don't think we'll ever need more than 1024 dimensions
+    CGL_float nth_dim_val_holder = 0.0f, *pm_a[2];
+    CGL_int result_count = 1 << n, nth_dim_val_holder_index = 0;
+    for (CGL_int i = 0; i < n; i++)
+    {
+        aabb_mid_pos[i] = (aabb_min[i] + aabb_max[i]) * 0.5f;
+        aabb_axis_deltas[i] = aabb_mid_pos[i] - aabb_min[i];
+    }
+
+    for (CGL_int j = 0; j < n; j++)
+    {
+        pm_a[0] = &aabb_min[j]; pm_a[1] = &aabb_mid_pos[j];
+        nth_dim_val_holder = *pm_a[nth_dim_val_holder_index = 0];
+        for (CGL_int i = 0; i < result_count; i++)
+        {
+            aabbs_min_out[i * n + (n - j - 1)] = nth_dim_val_holder;
+            if ((i - 1) % (1 << j) == 0) nth_dim_val_holder = *pm_a[nth_dim_val_holder_index = (nth_dim_val_holder_index + 1) % 2];
+        }
+    }
+
+    for (CGL_int i = 0; i < result_count; i++)
+	{
+		for (CGL_int j = 0; j < n; j++)
+		{
+			aabbs_max_out[i * n + j] = aabbs_min_out[i * n + j] + aabb_axis_deltas[j];
+		}
+	}
+
+    return CGL_TRUE;
+}
+
+
+// hard coded for 2d
+CGL_bool CGL_aabb_subdivide_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabbs_min_out, CGL_float* aabbs_max_out)
+{
+    CGL_float delta_x = (aabb_max[0] - aabb_min[0]) * 0.5f, delta_y = (aabb_max[1] - aabb_min[1]) * 0.5f;
+    aabbs_min_out[0] = aabb_min[0]; aabbs_min_out[1] = aabb_min[1];
+    aabbs_max_out[0] = aabb_min[0] + delta_x; aabbs_max_out[1] = aabb_min[1] + delta_y;
+    aabbs_min_out[2] = aabb_min[0] + delta_x; aabbs_min_out[3] = aabb_min[1];
+    aabbs_max_out[2] = aabb_max[0]; aabbs_max_out[3] = aabb_min[1] + delta_y;
+    aabbs_min_out[4] = aabb_min[0]; aabbs_min_out[5] = aabb_min[1] + delta_y;
+    aabbs_max_out[4] = aabb_min[0] + delta_x; aabbs_max_out[5] = aabb_max[1];
+    aabbs_min_out[6] = aabb_min[0] + delta_x; aabbs_min_out[7] = aabb_min[1] + delta_y;
+    aabbs_max_out[6] = aabb_max[0]; aabbs_max_out[7] = aabb_max[1];
+    return CGL_TRUE;
+}
+
+CGL_bool CGL_aabb_subdivide_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabbs_min_out, CGL_float* aabbs_max_out)
+{
+    // CGL_log_internal("CGL_aabb_subdivide_3d Not implemented yet");
+    return CGL_aabb_subdivide_nd(n, aabb_min, aabb_max, aabbs_min_out, aabbs_max_out);
+}
+
+CGL_bool CGL_aabb_contains_point_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point)
+{
+    for (CGL_int i = 0; i < n; i++) if (point[i] < aabb_min[i] || point[i] > aabb_max[i]) return CGL_FALSE;
+	return CGL_TRUE;
+}
+
+CGL_bool CGL_aabb_contains_point_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point)
+{
+    return (point[0] >= aabb_min[0] && point[0] <= aabb_max[0] && point[1] >= aabb_min[1] && point[1] <= aabb_max[1]);
+}
+
+CGL_bool CGL_aabb_contains_point_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point)
+{
+    return (point[0] >= aabb_min[0] && point[0] <= aabb_max[0] && point[1] >= aabb_min[1] && point[1] <= aabb_max[1] && point[2] >= aabb_min[2] && point[2] <= aabb_max[2]);
+}
+
+CGL_bool CGL_aabb_intersects_aabb_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2)
+{
+	for (CGL_int i = 0; i < n; i++) if (aabb_min[i] > aabb_max2[i] || aabb_max[i] < aabb_min2[i]) return CGL_FALSE;
+	return CGL_TRUE;
+}
+
+CGL_bool CGL_aabb_intersects_aabb_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2)
+{
+	return (aabb_min[0] <= aabb_max2[0] && aabb_max[0] >= aabb_min2[0] && aabb_min[1] <= aabb_max2[1] && aabb_max[1] >= aabb_min2[1]);
+}
+
+CGL_bool CGL_aabb_intersects_aabb_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2)
+{
+	return (aabb_min[0] <= aabb_max2[0] && aabb_max[0] >= aabb_min2[0] && aabb_min[1] <= aabb_max2[1] && aabb_max[1] >= aabb_min2[1] && aabb_min[2] <= aabb_max2[2] && aabb_max[2] >= aabb_min2[2]);
+}
+
 
 #define CGL_INCREMENTAL_TRIANGULATOR_SET_TRIANGLE(triangles, index, a, b, c) \
     triangles[index * 3 + 0] = a; \
@@ -7143,10 +7303,11 @@ void CGL_texture_destroy(CGL_texture* texture)
 }
 
 // bind texture to unit
-void CGL_texture_bind(CGL_texture* texture, CGL_int unit)
+CGL_int CGL_texture_bind(CGL_texture* texture, CGL_int unit)
 {
     glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(texture->target, texture->handle);
+    return unit;
 }
 
 // set texture data
@@ -15315,6 +15476,553 @@ CGL_void CGL_csv_clear(CGL_csv* csv)
     // while (CGL_list_get_size(csv->columns) > 0) CGL_list_pop(csv->columns, NULL);
     CGL_list_clear(csv->columns);
 }
+
+
+#endif
+
+#ifndef CGL_EXCLUDE_IMAGE_FILE_API
+
+CGL_bool CGL_image_file_is_png_f(FILE* file)
+{
+    static const CGL_ubyte png_signature[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    for (CGL_int i = 0; i < 8; ++i)
+    {
+        CGL_ubyte byte = 0;
+        fread(&byte, sizeof(CGL_ubyte), 1, file);
+        if (byte != png_signature[i]) return CGL_FALSE;
+    }
+    fseek(file, 0, SEEK_SET);
+    return CGL_TRUE;
+}
+
+CGL_bool CGL_image_file_is_png(const CGL_byte* file_path)
+{
+    FILE* file = fopen(file_path, "rb");
+    if (file == NULL) return CGL_FALSE;
+    CGL_bool result = CGL_image_file_is_png_f(file);
+    fclose(file);
+    return result;
+}
+
+CGL_bool CGL_image_file_is_bmp_f(FILE* file)
+{
+    CGL_byte d_i8 = 0;
+    CGL_ushort d_u16 = 0;
+    CGL_uint d_u32 = 0;
+    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    if (d_i8 != 'B') return CGL_FALSE;
+    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    if (d_i8 != 'M') return CGL_FALSE;
+    fread(file, sizeof(CGL_uint), 1, &d_u32); // file size
+    fread(file, sizeof(CGL_uint), 1, &d_u32); // reserved
+    fread(file, sizeof(CGL_uint), 1, &d_u32); // data offset
+    fread(file, sizeof(CGL_uint), 1, &d_u32); // header size
+    fseek(file, 0, SEEK_SET);
+    return (d_u32 == 12 || d_u32 == 40 || d_u32 == 56 || d_u32 == 108 || d_u32 == 124);
+}
+
+CGL_bool CGL_image_file_is_bmp(const CGL_byte* file_path)
+{
+    FILE* file = fopen(file_path, "rb");
+	if (file == NULL) return CGL_FALSE;
+	CGL_bool result = CGL_image_file_is_bmp_f(file);
+	fclose(file);
+	return result;
+}
+
+CGL_bool CGL_image_file_is_gif_f(FILE* file)
+{
+    CGL_byte d_i8 = 0;
+	CGL_ushort d_u16 = 0;
+	CGL_uint d_u32 = 0;
+	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	if (d_i8 != 'G') return CGL_FALSE;
+	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	if (d_i8 != 'I') return CGL_FALSE;
+	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	if (d_i8 != 'F') return CGL_FALSE;
+	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	if (d_i8 != '8') return CGL_FALSE;
+	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	if (d_i8 != '7' && d_i8 != '9') return CGL_FALSE;
+	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	if (d_i8 != 'a') return CGL_FALSE;
+    fseek(file, 0, SEEK_SET);
+    return CGL_TRUE;
+}
+
+CGL_bool CGL_image_file_is_gif(const CGL_byte* file_path)
+{
+    FILE* file = fopen(file_path, "rb");
+    if (file == NULL) return CGL_FALSE;
+    CGL_bool result = CGL_image_file_is_gif_f(file);
+    fclose(file);
+    return result;
+}
+
+CGL_bool CGL_image_file_is_jpeg_f(FILE* file)
+{
+    CGL_byte d_i8 = 0;
+    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    if (d_i8 != 0xFF) return CGL_FALSE;
+    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    if (d_i8 != 0xD8) return CGL_FALSE;
+    fseek(file, 0, SEEK_SET);
+    return CGL_TRUE;
+}
+
+CGL_bool CGL_image_file_is_jpeg(const CGL_byte* file_path)
+{
+    
+	FILE* file = fopen(file_path, "rb");
+	if (file == NULL) return CGL_FALSE;
+	CGL_bool result = CGL_image_file_is_jpeg_f(file);
+	fclose(file);
+	return result;
+}
+
+CGL_int CGL_image_file_get_format_f(FILE* file)
+{
+    if (CGL_image_file_is_png_f(file)) return CGL_IMAGE_FORMAT_PNG;
+	if (CGL_image_file_is_bmp_f(file)) return CGL_IMAGE_FORMAT_BMP;
+	if (CGL_image_file_is_gif_f(file)) return CGL_IMAGE_FORMAT_GIF;
+	if (CGL_image_file_is_jpeg_f(file)) return CGL_IMAGE_FORMAT_JPEG;
+	return CGL_IMAGE_FORMAT_UNKNOWN;
+}
+
+CGL_int CGL_image_file_get_format(const CGL_byte* file_path)
+{
+	FILE* file = fopen(file_path, "rb");
+	if (file == NULL) return CGL_FALSE;
+	CGL_int result = CGL_image_file_get_format_f(file);
+	fclose(file);
+	return result;
+}
+
+#endif
+
+
+#ifndef CGL_EXCLUDE_ND_TREE_API
+
+struct CGL_nd_tree
+{
+    CGL_bool(*aabb_subdivide_function)(CGL_int, CGL_float*, CGL_float*, CGL_float*, CGL_float*);
+    CGL_bool(*aabb_contains_point_function)(CGL_int, CGL_float*, CGL_float*, CGL_float*);
+    CGL_bool(*aabb_intersects_aabb_function)(CGL_int, CGL_float*, CGL_float*, CGL_float*, CGL_float*);
+
+    CGL_sizei* children_node_pointers;
+    CGL_float* children_node_aabbs;
+    CGL_nd_tree_node* nodes_bank;
+    CGL_int nodes_bank_size;
+
+    CGL_float* positions_bank;
+    CGL_sizei positions_bank_size;
+
+    CGL_void* memory_bank;
+    CGL_sizei mem_bank_allocation_count;
+
+    CGL_float* aabb_out_min_tmp;
+    CGL_float* aabb_out_max_tmp;
+
+    CGL_int max_items_per_node;
+    CGL_int items_per_node;
+    CGL_int bank_size_per_node;
+    CGL_int dimension;
+    CGL_bool fast_approx_check;
+    CGL_sizei item_size;
+    CGL_int max_depth;
+};
+
+struct CGL_nd_tree_node
+{
+    CGL_sizei banks[CGL_ND_TREE_MAX_MEMORY_BANKS_PER_NODE];
+    CGL_int items_count;
+    CGL_int max_capacity;
+    CGL_int depth;
+    CGL_float* aabb_min;
+    CGL_float* aabb_max;
+    CGL_sizei* children_nodes;
+    CGL_bool has_been_subdivided;
+};
+
+CGL_nd_tree* CGL_nd_tree_create(CGL_int dimensions, CGL_sizei item_size, CGL_int max_items_per_node, CGL_sizei max_nodes, CGL_sizei max_items, CGL_bool store_positions)
+{
+    // the main tree object
+    CGL_nd_tree* tree = (CGL_nd_tree*)CGL_malloc(sizeof(CGL_nd_tree));
+    if (tree == NULL) return NULL;
+
+    // copy the simple values
+    tree->dimension = dimensions;
+    tree->item_size = item_size;
+
+    tree->aabb_out_max_tmp = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (1 << dimensions) * dimensions);
+    if (tree->aabb_out_max_tmp == NULL)
+    {
+        CGL_free(tree);
+        return NULL;
+    }
+    
+    tree->aabb_out_min_tmp = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (1 << dimensions) * dimensions);
+    if (tree->aabb_out_min_tmp == NULL)
+    {
+        CGL_free(tree->aabb_out_max_tmp);
+        CGL_free(tree);
+        return NULL;
+    }
+    // the position bank stores the positions of the items
+    // this is allocated and used only if the user wants to store the positions
+    // NOTE: if this is not allocated, the tree will always use fast approximations
+    tree->positions_bank = NULL;
+    tree->positions_bank_size = 0;
+    if (store_positions)
+    {
+        // preallocate the position bank with all possible particles
+        tree->positions_bank = (CGL_float*)CGL_malloc(sizeof(CGL_float) * dimensions * max_items);
+        if (tree->positions_bank == NULL)
+        {
+            CGL_free(tree->aabb_out_max_tmp);
+            CGL_free(tree->aabb_out_min_tmp);
+			CGL_free(tree);
+			return NULL;
+		}
+    }
+
+    // we choose the aabb subdivide function based on the dimensions
+    // for 2d and 3d we use hard coded functions rather than special
+    // algorithm as they are relatively simple to code and way faster
+    if (dimensions == 2) tree->aabb_subdivide_function = CGL_aabb_subdivide_2d;
+    else if (dimensions == 3) tree->aabb_subdivide_function = CGL_aabb_subdivide_3d; // 3d is not implemented yet
+    else tree->aabb_subdivide_function = CGL_aabb_subdivide_nd;
+
+    
+    if (dimensions == 2) tree->aabb_contains_point_function = CGL_aabb_contains_point_2d;
+	else if (dimensions == 3) tree->aabb_contains_point_function = CGL_aabb_contains_point_3d;
+	else tree->aabb_contains_point_function = CGL_aabb_contains_point_nd;
+
+    
+    if (dimensions == 2) tree->aabb_intersects_aabb_function = CGL_aabb_intersects_aabb_2d;
+    else if (dimensions == 3) tree->aabb_intersects_aabb_function = CGL_aabb_intersects_aabb_3d;
+    else tree->aabb_intersects_aabb_function = CGL_aabb_intersects_aabb_nd;
+
+    // allocate the nodes bank
+    tree->nodes_bank = (CGL_nd_tree_node*)CGL_malloc(sizeof(CGL_nd_tree_node) * max_nodes);
+    tree->nodes_bank_size = 0;
+    if (tree->nodes_bank == NULL)
+    {
+		if (tree->positions_bank) CGL_free(tree->positions_bank);
+        CGL_free(tree->aabb_out_max_tmp);
+        CGL_free(tree->aabb_out_min_tmp);
+		CGL_free(tree);
+		return NULL;
+	}
+
+    tree->children_node_pointers = (CGL_sizei*)CGL_malloc(sizeof(CGL_sizei) * (1 << dimensions) * max_nodes);
+    if (tree->children_node_pointers == NULL)
+    {
+        if (tree->positions_bank) CGL_free(tree->positions_bank);
+        CGL_free(tree->aabb_out_max_tmp);
+        CGL_free(tree->aabb_out_min_tmp);
+        CGL_free(tree->nodes_bank);
+        CGL_free(tree);
+    }
+
+    tree->children_node_aabbs = (CGL_float*)CGL_malloc(sizeof(CGL_float) * dimensions * 2 * (1 << dimensions) * max_nodes);
+    if (tree->children_node_aabbs == NULL)
+    {
+		if (tree->positions_bank) CGL_free(tree->positions_bank);
+        CGL_free(tree->aabb_out_max_tmp);
+        CGL_free(tree->aabb_out_min_tmp);
+		CGL_free(tree->nodes_bank);
+		CGL_free(tree->children_node_pointers);
+		CGL_free(tree);
+	}
+
+    // set the children node pointers
+    for (CGL_int i = 0; i < max_nodes; i++)
+    {
+        tree->nodes_bank[i].children_nodes = tree->children_node_pointers + (1 << dimensions) * i;
+        tree->nodes_bank[i].aabb_min = tree->children_node_aabbs + dimensions * 2 * (1 << dimensions) * i;
+        tree->nodes_bank[i].aabb_max = tree->nodes_bank[i].aabb_min + dimensions;
+    }
+
+
+    // allocate the memory bank
+    // the memory bank will store the item banks
+    // an item bank is a solid collection of min(10, max_items_per_node) items 
+    tree->memory_bank = (CGL_void*)CGL_malloc((sizeof(CGL_sizei) + item_size) * max_items);
+    tree->mem_bank_allocation_count = 0;
+    if (tree->memory_bank == NULL)
+    {
+        if (tree->positions_bank) CGL_free(tree->positions_bank);
+        CGL_free(tree->aabb_out_max_tmp);
+        CGL_free(tree->aabb_out_min_tmp);
+        CGL_free(tree->nodes_bank);
+        CGL_free(tree->children_node_pointers);
+        CGL_free(tree->children_node_aabbs);
+        CGL_free(tree);
+    }
+
+    // calculate the size of the banks
+    tree->bank_size_per_node = CGL_utils_min(CGL_ND_TREE_MAX_ITEMS_PER_MEMORY_BANK, max_items_per_node);
+    tree->max_items_per_node = max_items_per_node;
+
+
+    return tree;
+}
+
+CGL_nd_tree* CGL_quad_tree_create(CGL_sizei item_size, CGL_int max_items_per_node, CGL_sizei max_nodes, CGL_sizei max_items, CGL_bool store_positions)
+{
+    return CGL_nd_tree_create(2, item_size, max_items_per_node, max_nodes, max_items, store_positions);
+}
+
+CGL_nd_tree* CGL_oct_tree_create(CGL_sizei item_size, CGL_int max_items_per_node, CGL_sizei max_nodes, CGL_sizei max_items, CGL_bool store_positions)
+{
+    return CGL_nd_tree_create(3, item_size, max_items_per_node, max_nodes, max_items, store_positions);
+}
+
+CGL_void CGL_nd_tree_destroy(CGL_nd_tree* tree)
+{
+	if (tree == NULL) return;
+	// free the positions bank
+	if (tree->positions_bank) CGL_free(tree->positions_bank);
+    // free tmp aabb_min and aabb_max 
+    CGL_free(tree->aabb_out_min_tmp);
+    CGL_free(tree->aabb_out_max_tmp);
+	// free the nodes bank
+	CGL_free(tree->nodes_bank);
+	// free the children node pointers
+    CGL_free(tree->children_node_pointers);
+    // free the children node aabbs
+    CGL_free(tree->children_node_aabbs);
+	// free the memory bank
+	CGL_free(tree->memory_bank);
+	// free the tree
+	CGL_free(tree);
+}
+
+CGL_sizei __CGL_nd_tree_add_node(CGL_nd_tree* tree, CGL_int parent_depth, CGL_float* aabb_min, CGL_float* aabb_max)
+{
+    // NOTE: we do not check here if the nodes bank is full
+    //       as we assume that the user will do this sanely
+    //       thus by that we can avoid a lot of checks per frame
+    //       and make the code faster   
+    CGL_nd_tree_node* node = &tree->nodes_bank[tree->nodes_bank_size++];
+    node->max_capacity = 0;
+    node->items_count = 0;
+    node->depth = parent_depth + 1;
+    node->has_been_subdivided = CGL_FALSE;
+
+    if (aabb_min && aabb_max)
+    {
+        // copy the aabbs
+        for (CGL_int i = 0; i < tree->dimension; i++)
+        {
+            node->aabb_min[i] = aabb_min[i];
+            node->aabb_max[i] = aabb_max[i];
+	    }
+    }
+
+    return tree->nodes_bank_size - 1;
+}
+
+CGL_bool CGL_nd_tree_reset(CGL_nd_tree* tree, CGL_float* aabb_min, CGL_float* aabb_max, CGL_int items_per_node, CGL_int max_depth, CGL_bool fast_approx_mode)
+{
+    // reset the tree
+    tree->positions_bank_size = 0;
+    tree->nodes_bank_size = 0;
+    tree->mem_bank_allocation_count = 0;
+    tree->fast_approx_check = fast_approx_mode;
+    tree->max_depth = max_depth;
+    tree->items_per_node = items_per_node;
+    tree->bank_size_per_node = CGL_utils_min(CGL_ND_TREE_MAX_ITEMS_PER_MEMORY_BANK, tree->max_items_per_node);
+
+    // add the root node
+    // parent depth is -1 as the root node has no parent
+    __CGL_nd_tree_add_node(tree, -1, aabb_min, aabb_max);
+
+	return CGL_TRUE;
+}
+
+CGL_bool CGL_quad_tree_reset(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float x_max, CGL_float y_max, CGL_int items_per_node, CGL_int max_depth, CGL_bool fast_approx_mode)
+{
+	CGL_float aabb_min[2] = { x_min, y_min };
+	CGL_float aabb_max[2] = { x_max, y_max };
+	return CGL_nd_tree_reset(tree, aabb_min, aabb_max, items_per_node, max_depth, fast_approx_mode);
+}
+
+CGL_bool CGL_oct_tree_reset(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float z_min, CGL_float x_max, CGL_float y_max, CGL_float z_max, CGL_int items_per_node, CGL_int max_depth, CGL_bool fast_approx_mode)
+{
+	CGL_float aabb_min[3] = { x_min, y_min, z_min };
+	CGL_float aabb_max[3] = { x_max, y_max, z_max };
+	return CGL_nd_tree_reset(tree, aabb_min, aabb_max, items_per_node, max_depth, fast_approx_mode);
+}
+
+CGL_bool __CGL_nd_tree_node_add_item(CGL_nd_tree* tree, CGL_nd_tree_node* node, CGL_sizei position_bank_index, CGL_void* item)
+{
+    // calculate some common values
+    CGL_sizei current_bank_index = (node->items_count) / tree->bank_size_per_node;
+    CGL_sizei current_bank_item_index = (node->items_count) % tree->bank_size_per_node;
+
+    // check if the node has enough capacity
+    if (node->items_count >= node->max_capacity)
+    {
+        // if new memory bank is not allowed then return false
+        if( current_bank_index >= CGL_ND_TREE_MAX_MEMORY_BANKS_PER_NODE ) return CGL_FALSE;
+        // we need to allocate another memory bank for this node
+        node->banks[current_bank_index] = (tree->mem_bank_allocation_count++) * (sizeof(CGL_sizei) + tree->item_size) * tree->bank_size_per_node;
+        node->max_capacity += tree->bank_size_per_node;
+    }
+
+    // get the memory pointers
+    CGL_ubyte* memory_bank = (CGL_ubyte*)tree->memory_bank + node->banks[current_bank_index];
+    CGL_ubyte* item_memory = memory_bank + current_bank_item_index * (sizeof(CGL_sizei) + tree->item_size);
+
+    //  copy the values
+    //((CGL_sizei*)item_memory)[0] = position_bank_index;
+    memcpy(item_memory, &position_bank_index, sizeof(CGL_sizei));
+    if (tree->item_size == 4) *(CGL_int*)((CGL_ubyte*)item_memory + sizeof(CGL_sizei)) = *(CGL_int*)item;
+    else if (tree->item_size == 8) ((CGL_sizei*)item_memory)[1] = *(CGL_sizei*)item;
+    else memcpy((CGL_ubyte*)item_memory + sizeof(CGL_sizei), item, tree->item_size);
+
+    // update count
+    node->items_count += 1;
+
+    return CGL_TRUE;
+}
+
+CGL_bool __CGL_nd_tree_node_add(CGL_nd_tree* tree, CGL_sizei node_id, CGL_float* position, CGL_void* item, CGL_sizei position_bank_index, CGL_int depth)
+{
+    CGL_nd_tree_node* node = &tree->nodes_bank[node_id];
+    // check if the item is inside the node or not
+    if (!tree->aabb_contains_point_function(tree->dimension, node->aabb_min, node->aabb_max, position)) return CGL_FALSE;
+
+    // check if we are at the max depth
+    if (depth == tree->max_depth)
+    {
+        // if we are at the max depth then we add the item to the node
+        // no matter the node is full or not
+        __CGL_nd_tree_node_add_item(tree, node, position_bank_index, item);
+        return CGL_TRUE;
+    }
+
+    // check if the node is already full
+    if (node->items_count >= tree->items_per_node)
+    {
+        // here we need to subdivide current node creating children nodes if it has not already been divided
+        if (!node->has_been_subdivided)
+        {
+            // first calculate the aabb of children nodes of this node
+            if (!tree->aabb_subdivide_function(tree->dimension, node->aabb_min, node->aabb_max, tree->aabb_out_min_tmp, tree->aabb_out_max_tmp)) return CGL_FALSE;
+
+            // initialize the appropiate nodes
+            for (CGL_int i = 0; i < (1 << tree->dimension); i++)
+            {
+                CGL_float* nd_aabb_min = tree->aabb_out_min_tmp + i * tree->dimension;
+                CGL_float* nd_aabb_max = tree->aabb_out_max_tmp + i * tree->dimension;
+                node->children_nodes[i] = __CGL_nd_tree_add_node(tree, node->depth, nd_aabb_min, nd_aabb_max);
+            }
+
+            node->has_been_subdivided = CGL_TRUE;
+        }
+        // add the point to the appropiate child node
+        for (CGL_int i = 0; i < (1 << tree->dimension); i++)
+        {
+			CGL_nd_tree_node* child_node = &tree->nodes_bank[node->children_nodes[i]];
+			if (__CGL_nd_tree_node_add(tree, node->children_nodes[i], position, item, position_bank_index, depth + 1)) return CGL_TRUE;
+		}
+    }
+    else
+    {
+        // the node is not full so we add the item to the node
+        return __CGL_nd_tree_node_add_item(tree, node, position_bank_index, item);
+    }
+
+    // this should never happen
+    return CGL_FALSE;
+}
+
+CGL_bool CGL_nd_tree_add(CGL_nd_tree* tree, CGL_float* position, CGL_void* item)
+{
+    // this is allocated only if positions are to be stored
+    if (tree->positions_bank)
+    {
+        memcpy(tree->positions_bank + tree->positions_bank_size, position, sizeof(CGL_float) * tree->dimension);
+        tree->positions_bank_size += tree->dimension;
+    }
+    return __CGL_nd_tree_node_add(tree, 0, position, item, tree->positions_bank_size - tree->dimension, 0);
+}
+
+CGL_bool CGL_quad_tree_add(CGL_nd_tree* tree, CGL_float px, CGL_float py, CGL_void* item)
+{
+    CGL_float position[2] = { px, py };
+	return CGL_nd_tree_add(tree, position, item);
+}
+
+CGL_bool CGL_oct_tree_add(CGL_nd_tree* tree, CGL_float px, CGL_float py, CGL_float pz, CGL_void* item)
+{
+    CGL_float position[3] = { px, py, pz };
+	return CGL_nd_tree_add(tree, position, item);
+}
+
+
+
+CGL_int __CGL_nd_tree_node_get_items_in_range(CGL_nd_tree* tree, CGL_nd_tree_node* node, CGL_float* p_min, CGL_float* p_max, CGL_void* items_out, CGL_int max_items, CGL_int items_size)
+{
+    if (items_size > max_items) return 0;
+
+    if (!tree->aabb_intersects_aabb_function(tree->dimension, node->aabb_min, node->aabb_max, p_min, p_max)) return items_size;
+
+    static CGL_sizei current_bank_index = 0;
+    static CGL_sizei current_bank_item_index = 0;
+    static CGL_sizei position_index = 0;
+    static CGL_bool point_include_condition = 0;
+    static CGL_ubyte* item = NULL;
+
+
+    // first iterate through over the items in this node
+    for (CGL_sizei i = 0; i < node->items_count; i++)
+    {
+        current_bank_index = i / tree->bank_size_per_node;
+        current_bank_item_index = i % tree->bank_size_per_node;
+        item = (CGL_ubyte*)tree->memory_bank + node->banks[current_bank_index] + current_bank_item_index * (sizeof(CGL_sizei) + tree->item_size);
+        position_index = *(CGL_sizei*)item;
+        point_include_condition = CGL_TRUE;
+        if (tree->positions_bank != NULL && !tree->fast_approx_check) point_include_condition = tree->aabb_contains_point_function(tree->dimension, p_min, p_max, tree->positions_bank + position_index);
+        if (point_include_condition) memcpy((CGL_ubyte*)items_out + (items_size++) * tree->item_size, item + sizeof(CGL_sizei), tree->item_size);
+    }
+
+    // if the node is not a leaf we iterate over its children
+    if (node->has_been_subdivided)
+    {
+        for (CGL_int i = 0; i < (1 << tree->dimension); i++)
+        {
+			CGL_nd_tree_node* child_node = &tree->nodes_bank[node->children_nodes[i]];
+			items_size = __CGL_nd_tree_node_get_items_in_range(tree, child_node, p_min, p_max, items_out, max_items, items_size);
+		}
+    }
+
+    return items_size;
+}
+
+CGL_int CGL_nd_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float* p_min, CGL_float* p_max, CGL_void* items_out, CGL_int max_items)
+{
+    return __CGL_nd_tree_node_get_items_in_range(tree, &tree->nodes_bank[0], p_min, p_max, items_out, max_items, 0);
+}
+
+CGL_int CGL_quad_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float x_max, CGL_float y_max, CGL_void* items_out, CGL_int max_items)
+{
+    CGL_float p_min[2] = { x_min, y_min };
+    CGL_float p_max[2] = { x_max, y_max };
+    return CGL_nd_tree_get_items_in_range(tree, p_min, p_max, items_out, max_items);
+}
+
+CGL_int CGL_oct_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float z_min, CGL_float x_max, CGL_float y_max, CGL_float z_max, CGL_void* items_out, CGL_int max_items)
+{
+    CGL_float p_min[3] = { x_min, y_min, z_min };
+	CGL_float p_max[3] = { x_max, y_max, z_max };
+	return CGL_nd_tree_get_items_in_range(tree, p_min, p_max, items_out, max_items);
+}
+
 
 
 #endif
