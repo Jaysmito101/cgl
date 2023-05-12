@@ -44,6 +44,9 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 ## What does CGL Provide? 
 
+* cgl-py
+  - A python port ( https://pypi.org/project/cgl-py )
+
 * Windowing library (Optional)
   - You can completely disable it by `#define CGL_EXCLUDE_WINDOW_API`
   - This windowing library is primarily a wrapper GLFW along with a few extra functionalities. **Example** : In case you are using some library like `nuklear` for GUI it will mess up all `glfw` callbacks so with CGL you can restore the CGL callbacks with a call to `CGL_window_resecure_callbacks`
@@ -56,7 +59,10 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - General Purpose Hashing Functions [refer here]( http://www.azillionmonkeys.com/qed/hash.html)
   - Colored printf (red, green, blue, gray/yellow)
   - Point/Triangle intersection check
+  - 3D transform API (matrix calculation, etc)
   - TODO: [ MD5 / SHA 256 / SHA 128 / AES ]
+ 
+ 
 
 * Noise API
   - Multiple faster Alternatives to libc's rand
@@ -79,6 +85,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 * Graph Algorithms
   - A* Path Finding (general purpose)
+  - N Dimensional Spatial Partition and Localization (n dimensional version of a quad tree)
 
 * Data structures
   - List(dynamic array) + Stack (implemented together)
@@ -154,7 +161,12 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 * CGL Audio API
   - Cross Platform (OpenAL backend)
   - Simple API
-  - WAV File Loader/Sampler  
+  - WAV File Loader/Sampler 
+
+* CSV API
+  - CSV parser
+  - CSV serializer
+  - CSV document data structure
 
 * CGL Widgets (Optional)
   - You can disable it by `#define CGL_EXCLUDE_WIDGETS`
@@ -174,6 +186,9 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
     - Bar Graph (vertical/horizontal)
     - Pie Chart
     - Plot a function
+  - font based text widgets (load custom font for high quality text rendering with widgets api)
+  - Surrport for rendering 3D meshes with widgets API
+  - Support for Textures to Widgtes API (efficient)
   - Advanced Bezier Curve( lines or dotted) widget
   - Add individual vertices
   - Adjust stroke color/thickness
@@ -181,6 +196,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 * Math library
   - Advanced Matrix Library (this is seperate from matrix lib for graphics)
+    - Linear Algebra for matrixx math
   - vec2/vec3/vec4
   - mat3/mat4 (for graphics)
   - add/sub/mul/div/scale/length/normalize/lerp/min/max/equal for vec2/vec3/vec4
@@ -291,27 +307,9 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
  
  ## Showreels
  
+ Checkout out: [here](https://www.youtube.com/@jaysmito101/shorts)
 
 
-https://user-images.githubusercontent.com/73700725/211901867-8d2ddf87-13fa-4115-827a-3b43ed29b92d.mp4
-
-https://user-images.githubusercontent.com/73700725/211902216-5fee0cff-f7db-4a3e-a16b-c4962d275d90.mp4
-
-https://user-images.githubusercontent.com/73700725/211901919-d32778b1-7967-4749-b22d-ab95bab8d88e.mp4
- 
-https://user-images.githubusercontent.com/73700725/205131064-2ea36253-7976-4b02-bfdf-290b5a8e2171.mp4
- 
-https://user-images.githubusercontent.com/73700725/205130311-87cdddbb-e96f-412a-a9b5-96b2f474f6d1.mp4
-
-https://user-images.githubusercontent.com/73700725/205130454-017992a5-f786-4b7e-b330-9046edbec25c.mp4
-
-https://user-images.githubusercontent.com/73700725/205130582-8f6a4ce8-d932-402e-ad88-24a2e7d090b7.mp4
-
-https://user-images.githubusercontent.com/73700725/208747347-6f0c0d49-c11c-4bf0-8497-82806e53974f.mp4
-
-
-
-
-**For more see [Examples](./examples) and [Showreel](./showreels)**
+**For more see [Examples](./examples)
 
 <br>
