@@ -15620,6 +15620,8 @@ struct CGL_nd_tree
 
     CGL_void* memory_bank;
     CGL_sizei mem_bank_allocation_count;
+    CGL_sizei max_mem_banks;
+    CGL_sizei max_items_total;
 
     CGL_float* aabb_out_min_tmp;
     CGL_float* aabb_out_max_tmp;
@@ -15654,6 +15656,7 @@ CGL_nd_tree* CGL_nd_tree_create(CGL_int dimensions, CGL_sizei item_size, CGL_int
     // copy the simple values
     tree->dimension = dimensions;
     tree->item_size = item_size;
+    tree->max_items_total = max_items;
 
     tree->aabb_out_max_tmp = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (1 << dimensions) * dimensions);
     if (tree->aabb_out_max_tmp == NULL)
@@ -15835,6 +15838,7 @@ CGL_bool CGL_nd_tree_reset(CGL_nd_tree* tree, CGL_float* aabb_min, CGL_float* aa
     tree->max_depth = max_depth;
     tree->items_per_node = items_per_node;
     tree->bank_size_per_node = CGL_utils_min(CGL_ND_TREE_MAX_ITEMS_PER_MEMORY_BANK, tree->max_items_per_node);
+    tree->max_mem_banks = tree->max_items_total / tree->bank_size_per_node;
 
     // add the root node
     // parent depth is -1 as the root node has no parent
@@ -15869,17 +15873,21 @@ CGL_bool __CGL_nd_tree_node_add_item(CGL_nd_tree* tree, CGL_nd_tree_node* node, 
         // if new memory bank is not allowed then return false
         if( current_bank_index >= CGL_ND_TREE_MAX_MEMORY_BANKS_PER_NODE ) return CGL_FALSE;
         // we need to allocate another memory bank for this node
+        if (tree->mem_bank_allocation_count > tree->max_mem_banks) return CGL_FALSE;
         node->banks[current_bank_index] = (tree->mem_bank_allocation_count++) * (sizeof(CGL_sizei) + tree->item_size) * tree->bank_size_per_node;
         node->max_capacity += tree->bank_size_per_node;
     }
+
+    if (current_bank_index >= CGL_ND_TREE_MAX_MEMORY_BANKS_PER_NODE) return CGL_FALSE;
 
     // get the memory pointers
     CGL_ubyte* memory_bank = (CGL_ubyte*)tree->memory_bank + node->banks[current_bank_index];
     CGL_ubyte* item_memory = memory_bank + current_bank_item_index * (sizeof(CGL_sizei) + tree->item_size);
 
+
     //  copy the values
     //((CGL_sizei*)item_memory)[0] = position_bank_index;
-    memcpy(item_memory, &position_bank_index, sizeof(CGL_sizei));
+    *(CGL_sizei*)item_memory = position_bank_index;
     if (tree->item_size == 4) *(CGL_int*)((CGL_ubyte*)item_memory + sizeof(CGL_sizei)) = *(CGL_int*)item;
     else if (tree->item_size == 8) ((CGL_sizei*)item_memory)[1] = *(CGL_sizei*)item;
     else memcpy((CGL_ubyte*)item_memory + sizeof(CGL_sizei), item, tree->item_size);
@@ -15894,7 +15902,7 @@ CGL_bool __CGL_nd_tree_node_add(CGL_nd_tree* tree, CGL_sizei node_id, CGL_float*
 {
     CGL_nd_tree_node* node = &tree->nodes_bank[node_id];
     // check if the item is inside the node or not
-    if (!tree->aabb_contains_point_function(tree->dimension, node->aabb_min, node->aabb_max, position)) return CGL_FALSE;
+    // if (!tree->aabb_contains_point_function(tree->dimension, node->aabb_min, node->aabb_max, position)) return CGL_FALSE;
 
     // check if we are at the max depth
     if (depth == tree->max_depth)
@@ -15928,7 +15936,9 @@ CGL_bool __CGL_nd_tree_node_add(CGL_nd_tree* tree, CGL_sizei node_id, CGL_float*
         for (CGL_int i = 0; i < (1 << tree->dimension); i++)
         {
 			CGL_nd_tree_node* child_node = &tree->nodes_bank[node->children_nodes[i]];
-			if (__CGL_nd_tree_node_add(tree, node->children_nodes[i], position, item, position_bank_index, depth + 1)) return CGL_TRUE;
+            if (tree->aabb_contains_point_function(tree->dimension, child_node->aabb_min, child_node->aabb_max, position))
+                if (__CGL_nd_tree_node_add(tree, node->children_nodes[i], position, item, position_bank_index, depth + 1))
+                    return CGL_TRUE;
 		}
     }
     else
@@ -15946,10 +15956,13 @@ CGL_bool CGL_nd_tree_add(CGL_nd_tree* tree, CGL_float* position, CGL_void* item)
     // this is allocated only if positions are to be stored
     if (tree->positions_bank)
     {
+        if (tree->positions_bank_size >= tree->max_items_total) return CGL_FALSE;
         memcpy(tree->positions_bank + tree->positions_bank_size, position, sizeof(CGL_float) * tree->dimension);
         tree->positions_bank_size += tree->dimension;
     }
-    return __CGL_nd_tree_node_add(tree, 0, position, item, tree->positions_bank_size - tree->dimension, 0);
+    if (tree->aabb_contains_point_function(tree->dimension, tree->nodes_bank[0].aabb_min, tree->nodes_bank[0].aabb_max, position))
+        return __CGL_nd_tree_node_add(tree, 0, position, item, tree->positions_bank_size - tree->dimension, 0);
+   return CGL_FALSE;
 }
 
 CGL_bool CGL_quad_tree_add(CGL_nd_tree* tree, CGL_float px, CGL_float py, CGL_void* item)
@@ -15968,9 +15981,9 @@ CGL_bool CGL_oct_tree_add(CGL_nd_tree* tree, CGL_float px, CGL_float py, CGL_flo
 
 CGL_int __CGL_nd_tree_node_get_items_in_range(CGL_nd_tree* tree, CGL_nd_tree_node* node, CGL_float* p_min, CGL_float* p_max, CGL_void* items_out, CGL_int max_items, CGL_int items_size)
 {
-    if (items_size > max_items) return 0;
+    if (items_size >= max_items) return items_size;
 
-    if (!tree->aabb_intersects_aabb_function(tree->dimension, node->aabb_min, node->aabb_max, p_min, p_max)) return items_size;
+    // if (!tree->aabb_intersects_aabb_function(tree->dimension, node->aabb_min, node->aabb_max, p_min, p_max)) return items_size;
 
     static CGL_sizei current_bank_index = 0;
     static CGL_sizei current_bank_item_index = 0;
@@ -15990,14 +16003,15 @@ CGL_int __CGL_nd_tree_node_get_items_in_range(CGL_nd_tree* tree, CGL_nd_tree_nod
         if (tree->positions_bank != NULL && !tree->fast_approx_check) point_include_condition = tree->aabb_contains_point_function(tree->dimension, p_min, p_max, tree->positions_bank + position_index);
         if (point_include_condition) memcpy((CGL_ubyte*)items_out + (items_size++) * tree->item_size, item + sizeof(CGL_sizei), tree->item_size);
     }
+    
 
     // if the node is not a leaf we iterate over its children
     if (node->has_been_subdivided)
     {
         for (CGL_int i = 0; i < (1 << tree->dimension); i++)
         {
-			CGL_nd_tree_node* child_node = &tree->nodes_bank[node->children_nodes[i]];
-			items_size = __CGL_nd_tree_node_get_items_in_range(tree, child_node, p_min, p_max, items_out, max_items, items_size);
+            if (tree->aabb_intersects_aabb_function(tree->dimension, tree->nodes_bank[node->children_nodes[i]].aabb_min, tree->nodes_bank[node->children_nodes[i]].aabb_max, p_min, p_max))
+			    items_size = __CGL_nd_tree_node_get_items_in_range(tree, &tree->nodes_bank[node->children_nodes[i]], p_min, p_max, items_out, max_items, items_size);
 		}
     }
 
