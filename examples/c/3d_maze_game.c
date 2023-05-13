@@ -28,6 +28,7 @@ SOFTWARE.
 #define CGL_EXCLUDE_RAY_CASTER
 #define CGL_EXCLUDE_NODE_EDITOR
 #define CGL_EXCLUDE_WIDGETS
+#define CGL_EXCLUDE_AUDIO
 #include "cgl.h"
 
 #define MAX_LIGHTS 64
@@ -283,7 +284,7 @@ static const char* PRIMARY_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "    vec3 color = ray_march(ray_origin, ray_dir);\n"
 "\n"
 "    FragColor = vec4(color, 1.0);\n"
-"}"
+"}";
 
 typedef struct
 {
@@ -308,23 +309,23 @@ light create_light(CGL_vec3 position, CGL_vec3 color, CGL_float radius, CGL_floa
     return l;
 }
 
-static CGL_byte board[BOARD_SIZE][BOARD_SIZE] = {0};
-static CGL_byte ke_sets[BOARD_SIZE][BOARD_SIZE] = {0};
-static CGL_int walls[BOARD_SIZE * BOARD_SIZE] = {0};
+static CGL_byte board[BOARD_SIZE][BOARD_SIZE] = { 0 };
+static CGL_byte ke_sets[BOARD_SIZE][BOARD_SIZE] = { 0 };
+static CGL_int walls[BOARD_SIZE * BOARD_SIZE] = { 0 };
 static CGL_int num_walls = 0;
 static CGL_vec2 player_pos;
 static CGL_ivec4 player_cell;
 
-static void shuffle(void *array, size_t n, size_t size)
+static void shuffle(void* array, size_t n, size_t size)
 {
     char tmp[256];
-    char *arr = array;
+    char* arr = array;
     size_t stride = size * sizeof(char);
 
     if (n > 1) {
         size_t i;
         for (i = 0; i < n - 1; ++i) {
-            size_t rnd = (size_t) rand();
+            size_t rnd = (size_t)rand();
             size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
 
             memcpy(tmp, arr + j * stride, size);
@@ -336,25 +337,25 @@ static void shuffle(void *array, size_t n, size_t size)
 
 void propagate_set(CGL_int src, CGL_int dst)
 {
-    for(CGL_int i = 0; i < 16; i++)
-        for(CGL_int j = 0; j < 16; j++)
-            if(ke_sets[i][j] == src) ke_sets[i][j] = dst;
+    for (CGL_int i = 0; i < 16; i++)
+        for (CGL_int j = 0; j < 16; j++)
+            if (ke_sets[i][j] == src) ke_sets[i][j] = dst;
 }
 
 void get_partitioning_sets(CGL_int index, CGL_int* a, CGL_int* b)
 {
     CGL_int i = index / BOARD_SIZE;
     CGL_int j = index % BOARD_SIZE;
-    if(i%2 != 0)
+    if (i % 2 != 0)
     {
 
-        *a = ke_sets[i-1][j];
-        *b = ke_sets[i+1][j];
+        *a = ke_sets[i - 1][j];
+        *b = ke_sets[i + 1][j];
     }
-    else if(j%2 != 0)
+    else if (j % 2 != 0)
     {
-        *a = ke_sets[i][j-1];
-        *b = ke_sets[i][j+1];
+        *a = ke_sets[i][j - 1];
+        *b = ke_sets[i][j + 1];
     }
     else
     {
@@ -367,21 +368,21 @@ void generate_maze()
 {
     num_walls = 0;
     CGL_int counter = 1;
-    for(CGL_int i = 0; i < 16; i++)
+    for (CGL_int i = 0; i < 16; i++)
     {
-        for(CGL_int j = 0; j < 16; j++)
+        for (CGL_int j = 0; j < 16; j++)
         {
             ke_sets[i][j] = 0;
-            if(i%2 == 0 && j%2 == 0) { board[i][j] = 1; ke_sets[i][j] = counter++; }
-            else { board[i][j] = 0; walls[num_walls++] = i*16 + j;}
+            if (i % 2 == 0 && j % 2 == 0) { board[i][j] = 1; ke_sets[i][j] = counter++; }
+            else { board[i][j] = 0; walls[num_walls++] = i * 16 + j; }
         }
     }
     shuffle(walls, num_walls, sizeof(CGL_int));
-    for(CGL_int i = 0 ; i < num_walls ; i++ )
+    for (CGL_int i = 0; i < num_walls; i++)
     {
         CGL_int a = 0, b = 0;
         get_partitioning_sets(walls[i], &a, &b);
-        if(a != b)
+        if (a != b)
         {
             propagate_set(a, b);
             CGL_int i1 = walls[i] / BOARD_SIZE;
@@ -392,14 +393,14 @@ void generate_maze()
     }
     // place the balls
     CGL_int lamps_left = 5;
-    while(lamps_left > 0)
+    while (lamps_left > 0)
     {
         CGL_int i = rand() % 16;
         CGL_int j = rand() % 16;
-        if(board[i][j] == 1)
+        if (board[i][j] == 1)
         {
             CGL_float tmpi = (CGL_float)i / BOARD_SIZE * 2.0f - 1.0f;
-            tmpi = (tmpi + 1.0f / BOARD_SIZE ) * 2.0f;
+            tmpi = (tmpi + 1.0f / BOARD_SIZE) * 2.0f;
 
             CGL_float tmpj = (CGL_float)j / BOARD_SIZE * 2.0f - 1.0f;
             tmpj = (tmpj + 1.0f / BOARD_SIZE) * 2.0f;
@@ -416,12 +417,12 @@ void generate_maze()
     num_lights = 9;
 
     player_pos = CGL_vec2_init(1.0f, 1.0f);
-    for(int i = 0 ; i < 16 ; i++)
-        for(int j = 0 ; j < 16 ; j++)
-            if(board[i][j] == 1)
+    for (int i = 0; i < 16; i++)
+        for (int j = 0; j < 16; j++)
+            if (board[i][j] == 1)
             {
                 player_pos.x = (CGL_float)i / BOARD_SIZE * 2.0f - 1.0f;
-                player_pos.x = (player_pos.x + 1.0f / BOARD_SIZE ) * 2.0f;
+                player_pos.x = (player_pos.x + 1.0f / BOARD_SIZE) * 2.0f;
                 player_pos.y = (CGL_float)j / BOARD_SIZE * 2.0f - 1.0f;
                 player_pos.y = (player_pos.y + 1.0f / BOARD_SIZE) * 2.0f;
                 return;
@@ -433,8 +434,8 @@ int main()
 {
     srand((uint32_t)time(NULL));
     CGL_init();
-    CGL_window* window = CGL_window_create(600, 600, "Maze - Jaysmito Mukherjee");
-    if(!window) return 1;
+    CGL_window* window = CGL_window_create(600, 600, "3D Maze - Jaysmito Mukherjee");
+    if (!window) return 1;
     CGL_window_make_context_current(window);
     CGL_gl_init();
     CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(window);
@@ -466,9 +467,9 @@ int main()
     );
 
     generate_maze();
- 
+
     CGL_shader* present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
-    CGL_shader* primary_shader = CGL_shader_create_from_files("vert.glsl", "frag.glsl", NULL);
+    CGL_shader* primary_shader = CGL_shader_create(PRIMARY_VERTEX_SHADER_SOURCE, PRIMARY_FRAGMENT_SHADER_SOURCE, NULL);
 
     CGL_bloom* bloom = CGL_bloom_create(600, 600, 3);
 
@@ -481,47 +482,47 @@ int main()
 
     CGL_float angle = 0.0f;
 
-    while(!CGL_window_should_close(window))
+    while (!CGL_window_should_close(window))
     {
         curr_time = CGL_utils_get_time();
         CGL_float delta_time = curr_time - prev_time;
         prev_time = curr_time;
-     
+
         time += CGL_utils_clamp(delta_time, 0.0f, 0.05f); // to avoid sudden jumps in time due to lag or things like window resizing
-     
+
         CGL_window_set_size(window, 600, 600); // force window size to be 600x600
 
         CGL_vec2 player_pos_c = player_pos;
 
-        if(CGL_window_get_key(window, CGL_KEY_RIGHT) == CGL_PRESS) player_pos_c.y += 0.05f;
-        if(CGL_window_get_key(window, CGL_KEY_LEFT) == CGL_PRESS) player_pos_c.y -= 0.05f;
-        if(CGL_window_get_key(window, CGL_KEY_UP) == CGL_PRESS) player_pos_c.x -= 0.05f;
-        if(CGL_window_get_key(window, CGL_KEY_DOWN) == CGL_PRESS) player_pos_c.x += 0.05f;
-        if(CGL_window_get_key(window, CGL_KEY_Q) == CGL_PRESS) angle -= 0.1f;
-        if(CGL_window_get_key(window, CGL_KEY_E) == CGL_PRESS) angle += 0.1f;
-        
-        CGL_ivec4 player_cell_c;
-        player_cell_c.x = (CGL_int)(( (player_pos_c.x + 2.0f)*0.5f/2.0f) * BOARD_SIZE);
-        player_cell_c.y = (CGL_int)(( (player_pos_c.y + 2.0f)*0.5f/2.0f) * BOARD_SIZE);
+        if (CGL_window_get_key(window, CGL_KEY_RIGHT) == CGL_PRESS) player_pos_c.y += 0.05f;
+        if (CGL_window_get_key(window, CGL_KEY_LEFT) == CGL_PRESS) player_pos_c.y -= 0.05f;
+        if (CGL_window_get_key(window, CGL_KEY_UP) == CGL_PRESS) player_pos_c.x -= 0.05f;
+        if (CGL_window_get_key(window, CGL_KEY_DOWN) == CGL_PRESS) player_pos_c.x += 0.05f;
+        if (CGL_window_get_key(window, CGL_KEY_Q) == CGL_PRESS) angle -= 0.1f;
+        if (CGL_window_get_key(window, CGL_KEY_E) == CGL_PRESS) angle += 0.1f;
 
-        if(player_cell_c.x >= 0 && player_cell_c.x < BOARD_SIZE && player_cell_c.y >= 0 && player_cell_c.y < BOARD_SIZE)
+        CGL_ivec4 player_cell_c;
+        player_cell_c.x = (CGL_int)(((player_pos_c.x + 2.0f) * 0.5f / 2.0f) * BOARD_SIZE);
+        player_cell_c.y = (CGL_int)(((player_pos_c.y + 2.0f) * 0.5f / 2.0f) * BOARD_SIZE);
+
+        if (player_cell_c.x >= 0 && player_cell_c.x < BOARD_SIZE && player_cell_c.y >= 0 && player_cell_c.y < BOARD_SIZE)
         {
-            if(board[player_cell_c.x][player_cell_c.y] != 0)
+            if (board[player_cell_c.x][player_cell_c.y] != 0)
             {
                 player_pos = player_pos_c;
                 player_cell = player_cell_c;
             }
         }
         CGL_byte vl = board[player_cell.x][player_cell.y];
-        if(vl > 3)
+        if (vl > 3)
         {
             lights[vl].claimed = true;
             lights[vl].color = CGL_vec3_init(0.0f, 1.0f, 0.0f);
         }
-        
-        
-        
-        
+
+
+
+
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         CGL_framebuffer_bind(bloom_framebuffer);
@@ -529,15 +530,15 @@ int main()
         CGL_shader_bind(primary_shader);
         // bind lights
         CGL_shader_set_uniform_int(primary_shader, CGL_shader_get_uniform_location(primary_shader, "light_count"), num_lights);
-        for(CGL_int i = 0 ; i < num_lights ; i++)
+        for (CGL_int i = 0; i < num_lights; i++)
         {
             static CGL_byte uniform_name[64];
             sprintf(uniform_name, "light_positions[%d]", i);
             CGL_shader_set_uniform_vec4v(primary_shader, CGL_shader_get_uniform_location(primary_shader, uniform_name), lights[i].position.x, lights[i].position.y, lights[i].position.z, lights[i].intensity);
             sprintf(uniform_name, "light_colors[%d]", i);
-            CGL_shader_set_uniform_vec4v(primary_shader, CGL_shader_get_uniform_location(primary_shader, uniform_name), lights[i].color.x, lights[i].color.y, lights[i].color.z, lights[i].radius);            
+            CGL_shader_set_uniform_vec4v(primary_shader, CGL_shader_get_uniform_location(primary_shader, uniform_name), lights[i].color.x, lights[i].color.y, lights[i].color.z, lights[i].radius);
         }
-        for(int i = 0 ; i < BOARD_SIZE ; i++) for(int j = 0 ; j < BOARD_SIZE ; j++)
+        for (int i = 0; i < BOARD_SIZE; i++) for (int j = 0; j < BOARD_SIZE; j++)
         {
             static char uniform_name[64];
             sprintf(uniform_name, "board_piece_pos[%d][%d]", i, j);
@@ -547,7 +548,7 @@ int main()
         CGL_shader_set_uniform_float(primary_shader, CGL_shader_get_uniform_location(primary_shader, "time"), angle);
         CGL_shader_set_uniform_vec2v(primary_shader, CGL_shader_get_uniform_location(primary_shader, "player_pos"), player_pos.x, player_pos.y);
         CGL_gl_render_screen_quad();
-      
+
         CGL_bloom_apply(bloom, CGL_framebuffer_get_color_texture(bloom_framebuffer));
 
         CGL_framebuffer_bind(default_framebuffer);
@@ -560,7 +561,7 @@ int main()
         CGL_window_poll_events(window);
         CGL_window_swap_buffers(window);
 
-        if(CGL_window_get_key(window, CGL_KEY_R) == CGL_PRESS)
+        if (CGL_window_get_key(window, CGL_KEY_R) == CGL_PRESS)
         {
             generate_maze();
             CGL_utils_sleep(200);
@@ -569,14 +570,14 @@ int main()
     }
 
 
-    
+
     CGL_shader_destroy(primary_shader);
     CGL_shader_destroy(present_shader);
     CGL_framebuffer_destroy(default_framebuffer);
     CGL_framebuffer_destroy(bloom_framebuffer);
     CGL_bloom_destroy(bloom);
     CGL_gl_shutdown();
-    CGL_window_destroy(window);    
+    CGL_window_destroy(window);
     CGL_shutdown();
     return 0;
 }
