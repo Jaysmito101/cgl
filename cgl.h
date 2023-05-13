@@ -16020,7 +16020,9 @@ CGL_int __CGL_nd_tree_node_get_items_in_range(CGL_nd_tree* tree, CGL_nd_tree_nod
 
 CGL_int CGL_nd_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float* p_min, CGL_float* p_max, CGL_void* items_out, CGL_int max_items)
 {
-    return __CGL_nd_tree_node_get_items_in_range(tree, &tree->nodes_bank[0], p_min, p_max, items_out, max_items, 0);
+    if (tree->aabb_intersects_aabb_function(tree->dimension, tree->nodes_bank[0].aabb_min, tree->nodes_bank[0].aabb_max, p_min, p_max))
+        return __CGL_nd_tree_node_get_items_in_range(tree, &tree->nodes_bank[0], p_min, p_max, items_out, max_items, 0);
+    return 0;
 }
 
 CGL_int CGL_quad_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float x_min, CGL_float y_min, CGL_float x_max, CGL_float y_max, CGL_void* items_out, CGL_int max_items)
