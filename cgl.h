@@ -185,7 +185,7 @@ bool CGL_init(); // initialize CGL
  * 
  * @return returns nothing
 */
-void CGL_shutdown(); // shutdown CGL
+CGL_void CGL_shutdown(); // shutdown CGL
 
 #endif
 
@@ -224,7 +224,7 @@ bool CGL_net_init();
  * 
  * @return returns nothing 
  */
-void CGL_net_shutdown();
+CGL_void CGL_net_shutdown();
 
 /** @brief Query system for addrinfo
  * 
@@ -246,7 +246,7 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
  * 
  * @param infos the addrinfo to destroy * 
 */
-void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
+CGL_void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos);
 
 /** @brief Creates a socket
  * 
@@ -317,7 +317,7 @@ CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* socket, CGL_net_addrinfo* 
  * @param socket The socket to destroy
  * @return returns nothing
 */
-void CGL_net_socket_close(CGL_net_socket* socket);
+CGL_void CGL_net_socket_close(CGL_net_socket* socket);
 
 /** @brief Sends data over a socket
  * 
@@ -544,22 +544,22 @@ CGL_void CGL_net_ssl_log_errors();
 
 #define CGL_UTILS_FAST_RAND_MAX 32767
 
-void CGL_utils_sleep(const CGL_sizei milis);
+CGL_void CGL_utils_sleep(const CGL_sizei milis);
 CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
 CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);
 CGL_bool CGL_utils_append_file(const CGL_byte* path, const CGL_byte* data, size_t size);
 CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); // write data to file
 CGL_float CGL_utils_get_time();
-void CGL_utils_get_timestamp(char* buffer);
+CGL_void CGL_utils_get_timestamp(char* buffer);
 CGL_bool CGL_utils_is_little_endian();
 CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_sizei count);
-void CGL_utils_reverse_bytes(void* data, size_t size);
-void CGL_utils_little_endian_to_current(void* data, size_t size);
-void CGL_utils_big_endian_to_current(void* data, size_t size);
-void CGL_utils_fast_srand(CGL_int seed);
+CGL_void CGL_utils_reverse_bytes(void* data, size_t size);
+CGL_void CGL_utils_little_endian_to_current(void* data, size_t size);
+CGL_void CGL_utils_big_endian_to_current(void* data, size_t size);
+CGL_void CGL_utils_fast_srand(CGL_int seed);
 CGL_int CGL_utils_fast_rand();
 CGL_ulong CGL_utils_xorshf96();
-void CGL_utils_srand31(CGL_uint seed);
+CGL_void CGL_utils_srand31(CGL_uint seed);
 CGL_uint CGL_utils_rand31();
 
 #define CGL_utils_is_point_in_rect(px, py, x, y, sx, sy, scx, scy) (bool)((px) >= (x) * (scx) && (px) <= ((x) + (sx)) * (scx) && (py) >= (y) * (scy) && (py) <= ((y) + (sy)) * (scy))
@@ -605,13 +605,13 @@ CGL_float CGL_utils_relu_smooth_derivative(CGL_float x);
 #define CGL_CONSOLE_COLOR_GRAY   3
 #define CGL_CONSOLE_COLOR_BLUE   4
 
-void CGL_console_set_color(uint8_t color);
+CGL_void CGL_console_set_color(uint8_t color);
 
-void CGL_printf_red(const char* format, ...);
-void CGL_printf_green(const char* format, ...);
-void CGL_printf_gray(const char* format, ...);
-void CGL_printf_blue(const char* format, ...);
-void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char);
+CGL_void CGL_printf_red(const char* format, ...);
+CGL_void CGL_printf_green(const char* format, ...);
+CGL_void CGL_printf_gray(const char* format, ...);
+CGL_void CGL_printf_blue(const char* format, ...);
+CGL_void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char);
 
 #endif
 
@@ -633,16 +633,16 @@ void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefi
 struct CGL_logger_context;
 typedef struct CGL_logger_context CGL_logger_context;
 
-void CGL_logger_init(bool enable_console_logging);
-void CGL_logger_shutdown();
+CGL_void CGL_logger_init(bool enable_console_logging);
+CGL_void CGL_logger_shutdown();
 CGL_logger_context* CGL_logger_get_context();
-void CGL_logger_set_context(CGL_logger_context* context);
+CGL_void CGL_logger_set_context(CGL_logger_context* context);
 bool CGL_logger_attach_log_file(const char* path);
 bool CGL_logger_detach_log_file(const char* path);
-void CGL_logger_flush();
-void CGL_logger_disable_console_logging();
-void CGL_logger_enable_console_logging();
-void CGL_logger_log(CGL_int level, const char* log_format, ...);
+CGL_void CGL_logger_flush();
+CGL_void CGL_logger_disable_console_logging();
+CGL_void CGL_logger_enable_console_logging();
+CGL_void CGL_logger_log(CGL_int level, const char* log_format, ...);
 
 #define CGL_trace(...)        CGL_logger_log(CGL_LOG_LEVEL_TRACE, __VA_ARGS__)
 #define CGL_info(...)         CGL_logger_log(CGL_LOG_LEVEL_INFO, __VA_ARGS__)
@@ -717,21 +717,21 @@ typedef uint32_t(*CGL_hash_function)(const void*, size_t);
 
 // set key size to 0 if it is a string (it will be auto calculated using strlen)
 CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t initial_capacity);
-void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate);
+CGL_void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate);
 size_t CGL_hashtable_get_size(CGL_hashtable* table);
-void CGL_hashtable_destroy(CGL_hashtable* table);
-void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size);
+CGL_void CGL_hashtable_destroy(CGL_hashtable* table);
+CGL_void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size);
 size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value);
-void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value);
+CGL_void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value);
 bool CGL_hashtable_exists(CGL_hashtable* table, const void* key);
 bool CGL_hashtable_remove(CGL_hashtable* table, const void* key);
-void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function);
+CGL_void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function);
 CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table);
-void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator);
-void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator);
+CGL_void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator);
+CGL_void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator);
 bool CGL_hashtable_iterator_next(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size);
 bool CGL_hashtable_iterator_curr(CGL_hashtable_iterator* iterator, void* key, void* data, size_t* size);
-void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator);
+CGL_void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator);
 
 // getter setters for data types
 #define CGL_DECLARE_HASHTABLE_GETTER_SETTER(type) \
@@ -778,7 +778,7 @@ CGL_DECLARE_HASHTABLE_GETTER_SETTER(uintptr_t);
 // algorithms
 uint32_t CGL_utils_crc32(const void* data, size_t size);
 uint64_t CGL_utils_crc64(const void* data, size_t size);
-void CGL_utils_rot13(const char* data_in, char* data_out);
+CGL_void CGL_utils_rot13(const char* data_in, char* data_out);
 uint32_t CGL_utils_super_fast_hash(const void* data, size_t size);
 
 // threads
@@ -793,7 +793,7 @@ typedef struct CGL_mutex CGL_mutex;
 
 CGL_thread* CGL_thread_create();
 bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* argument);
-void CGL_thread_destroy(CGL_thread* thread);
+CGL_void CGL_thread_destroy(CGL_thread* thread);
 bool CGL_thread_join(CGL_thread* thread);
 bool CGL_thread_joinable(CGL_thread* thread);
 bool CGL_thread_is_running(CGL_thread* thread);
@@ -801,9 +801,9 @@ bool CGL_thread_is_running(CGL_thread* thread);
 uintptr_t CGL_thread_get_id(CGL_thread* thread);
 
 CGL_mutex* CGL_mutex_create(bool set);
-void CGL_mutex_destroy(CGL_mutex* mutex);
+CGL_void CGL_mutex_destroy(CGL_mutex* mutex);
 int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout);
-void CGL_mutex_release(CGL_mutex* mutex);
+CGL_void CGL_mutex_release(CGL_mutex* mutex);
 #endif
 
 // math
@@ -991,7 +991,7 @@ CGL_vec2 CGL_vec2_triple_product(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 CGL_vec3 CGL_vec3_reflect(CGL_vec3 a, CGL_vec3 n);
 CGL_vec3 CGL_vec3_rotate_about_axis(CGL_vec3 v, CGL_vec3 axis, CGL_float theta);
 CGL_vec3 CGL_vec3_triple_product(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
-void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc);
+CGL_void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc);
 
 #ifdef __cplusplus
 #define CGL_vec4_init(x, y, z, w) CGL_vec4(x, y, z, w)
@@ -1129,7 +1129,7 @@ CGL_mat4 CGL_mat4_from_mat3(CGL_mat3 m);
 CGL_mat4 CGL_mat4_rotate_about_axis(CGL_vec3 axis, CGL_float angle);
 CGL_mat4 CGL_mat4_look_at(CGL_vec3 eye, CGL_vec3 target, CGL_vec3 up);
 CGL_mat4 CGL_mat4_lerp(CGL_mat4 a, CGL_mat4 b, CGL_float t);
-void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
+CGL_void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u);
 
 #define CGL_mat4_is_invertible(m) (CGL_mat4_det(m) != 0.0f)
 
@@ -1254,13 +1254,13 @@ typedef CGL_vec3(*CGL_parametric_function)(CGL_float, CGL_float);
 #define CGL_quat_sub(a, b) CGL_quat_init(a.vec.x - b.vec.x, a.vec.y - b.vec.y, a.vec.z - b.vec.z, a.w - b.w)
 #define CGL_quat_conjugate(q) CGL_quat_init(-q.vec.x, -q.vec.y, -q.vec.z, q.w)
 #define CGL_quat_mul_scalar(q, s) CGL_quat_init(q.vec.x * (s), q.vec.y * (s), q.vec.z * (s), q.w * (s))
-void CGL_quat_to_euler_zyx(CGL_quat quat, CGL_float* z, CGL_float* y, CGL_float* x);
+CGL_void CGL_quat_to_euler_zyx(CGL_quat quat, CGL_float* z, CGL_float* y, CGL_float* x);
 CGL_quat CGL_quat_slerp(CGL_quat a, CGL_quat b, CGL_float t);
 CGL_quat CGL_quat_squad(CGL_quat a, CGL_quat b, CGL_quat c, CGL_quat d, CGL_float t);
 CGL_float CGL_quat_to_axis_angle(CGL_quat quat, CGL_float* x, CGL_float* y, CGL_float* z);
 CGL_quat CGL_quat_inverse(CGL_quat quat);
 CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b);
-void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, CGL_float* ox, CGL_float* oy, CGL_float* oz);
+CGL_void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, CGL_float* ox, CGL_float* oy, CGL_float* oz);
 CGL_mat4 CGL_quat_to_mat4(CGL_quat quat);
 CGL_vec3 CGL_vec3_apply_transformations(CGL_vec3 original, const CGL_vec3* translation, const CGL_vec3* rotation, const CGL_vec3* scale);
 CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* translation, const CGL_float* rotation, const CGL_vec2* scale);
@@ -1440,8 +1440,8 @@ struct CGL_shape
 };
 typedef struct CGL_shape CGL_shape;
 
-void CGL_shape_init(CGL_shape* shape, size_t vertices_count);
-void CGL_shape_destroy(CGL_shape* shape);
+CGL_void CGL_shape_init(CGL_shape* shape, size_t vertices_count);
+CGL_void CGL_shape_destroy(CGL_shape* shape);
 
 #ifndef CGL_SAT_COLLISION_MAX_COLLISIONS
 #define CGL_SAT_COLLISION_MAX_COLLISIONS 4096
@@ -1449,7 +1449,7 @@ void CGL_shape_destroy(CGL_shape* shape);
 
 bool CGL_sat_collision_overlap_on_axis(CGL_shape* a, CGL_shape* b, CGL_vec2 axis, float* overlap_amount);
 bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector);
-void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count);
+CGL_void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count);
 CGL_bool CGL_utils_is_point_in_triangle(CGL_vec2 p, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c);
 CGL_bool CGL_utils_is_point_in_circle(CGL_vec2 p, CGL_float r);
 CGL_bool CGL_utils_calculate_circumcircle(CGL_vec2 a, CGL_vec2 b, CGL_vec2 c, CGL_vec2* center, CGL_float* radius);
@@ -1669,35 +1669,35 @@ typedef void(*CGL_window_drag_n_drop_callback)(CGL_window* window, const CGL_byt
 
 CGL_window* CGL_window_create(CGL_int width, CGL_int height, const char* title); // create window and initialize GLFW
 CGL_window* CGL_window_create_undecorated(CGL_int width, CGL_int height, const char* title);
-void CGL_window_destroy(CGL_window* window); // destroy window and terminate GLFW
-void CGL_window_poll_events(CGL_window* window); // poll events from GLFW
-void CGL_window_swap_buffers(CGL_window* window); // swap buffers
+CGL_void CGL_window_destroy(CGL_window* window); // destroy window and terminate GLFW
+CGL_void CGL_window_poll_events(CGL_window* window); // poll events from GLFW
+CGL_void CGL_window_swap_buffers(CGL_window* window); // swap buffers
 bool CGL_window_should_close(CGL_window* window); // check if window should close
-void CGL_window_set_title(CGL_window* window, const char* title); // set window title
-void CGL_window_set_size(CGL_window* window, CGL_int width, CGL_int height); // set window size
-void CGL_window_set_position(CGL_window* window, CGL_int x, CGL_int y); // set window position
-void CGL_window_set_hidden(CGL_window* window, bool hidden); // set window hidden
-void CGL_window_set_user_data(CGL_window* window, void* user_data); // set window user data
-void* CGL_window_get_user_data(CGL_window* window); // get window user data
-void CGL_window_get_size(CGL_window* window, CGL_int* width, CGL_int* height); // get window size
-void CGL_window_get_position(CGL_window* window, CGL_int* x, CGL_int* y); // get window position
-void CGL_window_get_framebuffer_size(CGL_window* window, CGL_int* width, CGL_int* height); // get window framebuffer size
-void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback callback); // set key callback
-void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_button_callback callback); // set mouse button callback
-void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse_position_callback callback); // set mouse position callback
-void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback); // set mouse scroll callback
-void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback); // set framebuffer size callback
-void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback); // set close callback
-void CGL_window_set_drag_n_drop_callback(CGL_window* window, CGL_window_drag_n_drop_callback callback); // set drag and drop callback
-void CGL_window_resecure_callbacks(CGL_window* window);
-void CGL_window_make_context_current(CGL_window* window); // make opengl context current
+CGL_void CGL_window_set_title(CGL_window* window, const char* title); // set window title
+CGL_void CGL_window_set_size(CGL_window* window, CGL_int width, CGL_int height); // set window size
+CGL_void CGL_window_set_position(CGL_window* window, CGL_int x, CGL_int y); // set window position
+CGL_void CGL_window_set_hidden(CGL_window* window, bool hidden); // set window hidden
+CGL_void CGL_window_set_user_data(CGL_window* window, void* user_data); // set window user data
+CGL_void* CGL_window_get_user_data(CGL_window* window); // get window user data
+CGL_void CGL_window_get_size(CGL_window* window, CGL_int* width, CGL_int* height); // get window size
+CGL_void CGL_window_get_position(CGL_window* window, CGL_int* x, CGL_int* y); // get window position
+CGL_void CGL_window_get_framebuffer_size(CGL_window* window, CGL_int* width, CGL_int* height); // get window framebuffer size
+CGL_void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback callback); // set key callback
+CGL_void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_button_callback callback); // set mouse button callback
+CGL_void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse_position_callback callback); // set mouse position callback
+CGL_void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback); // set mouse scroll callback
+CGL_void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback); // set framebuffer size callback
+CGL_void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback); // set close callback
+CGL_void CGL_window_set_drag_n_drop_callback(CGL_window* window, CGL_window_drag_n_drop_callback callback); // set drag and drop callback
+CGL_void CGL_window_resecure_callbacks(CGL_window* window);
+CGL_void CGL_window_make_context_current(CGL_window* window); // make opengl context current
 GLFWwindow* CGL_window_get_glfw_handle(CGL_window* window);
 
 // inputs
 CGL_int CGL_window_get_key(CGL_window* window, CGL_int key); // get key state
 CGL_bool CGL_window_is_key_pressed(CGL_window* window, CGL_int key); // check if key is pressed
 CGL_int CGL_window_get_mouse_button(CGL_window* window, CGL_int button); // get mouse button state
-void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypos); // get mouse position
+CGL_void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypos); // get mouse position
 
 #endif
 
@@ -1790,19 +1790,19 @@ CGL_texture* CGL_texture_create_blank(CGL_int width, CGL_int height, GLenum form
 CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int layers, GLenum format, GLenum internal_format, GLenum type);
 CGL_texture* CGL_texture_create_3d(CGL_int width, CGL_int height, CGL_int depth, GLenum format, GLenum internal_format, GLenum type);
 CGL_texture* CGL_texture_create_cubemap();
-void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image);
-void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data);
-void CGL_texture_destroy(CGL_texture* texture); // destroy texture
+CGL_void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image);
+CGL_void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data);
+CGL_void CGL_texture_destroy(CGL_texture* texture); // destroy texture
 CGL_int CGL_texture_bind(CGL_texture* texture, CGL_int unit); // bind texture to unit
-void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
-void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data); // set texture data
-void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data); // set texture data at pixel
-void CGL_texture_set_user_data(CGL_texture* texture, void* user_data); // set texture user data
-void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
+CGL_void CGL_texture_set_data(CGL_texture* texture, void* data); // set texture data
+CGL_void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data); // set texture data
+CGL_void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data); // set texture data at pixel
+CGL_void CGL_texture_set_user_data(CGL_texture* texture, void* user_data); // set texture user data
+CGL_void* CGL_texture_get_user_data(CGL_texture* texture); // get texture user data
 CGL_uint CGL_texture_get_internal_handle(CGL_texture* texture); // get texture user data
-void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height); // get texture size
-void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method);
-void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
+CGL_void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height); // get texture size
+CGL_void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method);
+CGL_void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method);
 
 // framebuffer
 #ifndef CGL_EXCLUDE_WINDOW_API
@@ -1810,34 +1810,34 @@ CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window); // cre
 #endif
 CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height); // create framebuffer (32 bit)
 CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height);
-void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture); // add color attachment to framebuffer
-void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer); // destroy framebuffer
+CGL_void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture); // add color attachment to framebuffer
+CGL_void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer); // destroy framebuffer
 CGL_texture* CGL_framebuffer_get_color_attachment(CGL_framebuffer* framebuffer, CGL_int index); // get color attachment from framebuffer
-void CGL_framebuffer_bind(CGL_framebuffer* framebuffer); // bind framebuffer
-void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height); // get framebuffer size
-void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data); // set framebuffer user data
-void* CGL_framebuffer_get_user_data(CGL_framebuffer* framebuffer); // get framebuffer user data
-void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int width, CGL_int height, void* pixels); // read pixels from framebuffer
+CGL_void CGL_framebuffer_bind(CGL_framebuffer* framebuffer); // bind framebuffer
+CGL_void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height); // get framebuffer size
+CGL_void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data); // set framebuffer user data
+CGL_void* CGL_framebuffer_get_user_data(CGL_framebuffer* framebuffer); // get framebuffer user data
+CGL_void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int width, CGL_int height, void* pixels); // read pixels from framebuffer
 CGL_int CGL_framebuffer_get_mouse_pick_id(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int index); // get mouse pick id
 CGL_texture* CGL_framebuffer_get_color_texture(CGL_framebuffer* framebuffer); // get color texture
 CGL_texture* CGL_framebuffer_get_depth_texture(CGL_framebuffer* framebuffer); // get depth texture
 
 // gl
 
-void CGL_gl_clear(CGL_float r, CGL_float g, CGL_float b, CGL_float a); // clear framebuffer
+CGL_void CGL_gl_clear(CGL_float r, CGL_float g, CGL_float b, CGL_float a); // clear framebuffer
 bool CGL_gl_init(); // load opengl functions
-void CGL_gl_shutdown(); // clean up
-void CGL_gl_render_screen_quad();
+CGL_void CGL_gl_shutdown(); // clean up
+CGL_void CGL_gl_render_screen_quad();
 
 // mesh
 
 CGL_mesh_gpu* CGL_mesh_gpu_create(); // create mesh (gpu)
-void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh); // destroy mesh (gpu)
-void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh); // render mesh (gpu)
-void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count); // render mesh instanfced (gpu)
-void CGL_mesh_gpu_set_user_data(CGL_mesh_gpu* mesh, void* user_data); // set mesh user data
-void* CGL_mesh_gpu_get_user_data(CGL_mesh_gpu* mesh); // get mesh user data
-void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw); // upload mesh from (cpu) to (gpu)
+CGL_void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh); // destroy mesh (gpu)
+CGL_void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh); // render mesh (gpu)
+CGL_void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count); // render mesh instanfced (gpu)
+CGL_void CGL_mesh_gpu_set_user_data(CGL_mesh_gpu* mesh, void* user_data); // set mesh user data
+CGL_void* CGL_mesh_gpu_get_user_data(CGL_mesh_gpu* mesh); // get mesh user data
+CGL_void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw); // upload mesh from (cpu) to (gpu)
 
 // mesh generation
 
@@ -1870,8 +1870,8 @@ CGL_mesh_cpu* CGL_mesh_cpu_transform_vertices(CGL_mesh_cpu* mesh, CGL_mat4 trans
 
 
 
-void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name);
-void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
+CGL_void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name);
+CGL_void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh); // destroy mesh (cpu)
 
 // shader
 
@@ -1879,50 +1879,50 @@ CGL_shader* CGL_shader_create(const char* vertex_shader_source, const char* frag
 CGL_shader* CGL_shader_compute_create(const char* compute_shader_source, char** error); // create compute shader
 CGL_shader* CGL_shader_create_from_files(const char* vertex_shader_file, const char* fragment_shader_file, char** error); // create shader from files
 CGL_shader* CGL_shader_compute_create_from_files(const char* compute_shader_file, char** error); // create compute shader from files
-void CGL_shader_destroy(CGL_shader* shader); // destroy shader
-void CGL_shader_bind(CGL_shader* shader); // bind shader
+CGL_void CGL_shader_destroy(CGL_shader* shader); // destroy shader
+CGL_void CGL_shader_bind(CGL_shader* shader); // bind shader
 int CGL_shader_get_uniform_location(CGL_shader* shader, const char* name); // get uniform location
-void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix); // set uniform matrix
-void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector); // set uniform vector
-void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector); // set uniform vector
-void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector); // set uniform vector
-void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value); // set uniform int
-void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value); // set uniform bool
-void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value); // set uniform float
-void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value); // set uniform double
-void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y); // set uniform vector
-void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z); // set uniform vector
-void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w); // set uniform vector
-void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y); // set uniform vector
-void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z); // set uniform vector
-void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w); // set uniform vector
-void CGL_shader_set_user_data(CGL_shader* shader, void* user_data); // set shader user data
-void* CGL_shader_get_user_data(CGL_shader* shader); // get shader user data
-void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_int z); // dispatch compute shader
+CGL_void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix); // set uniform matrix
+CGL_void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector); // set uniform vector
+CGL_void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector); // set uniform vector
+CGL_void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector); // set uniform vector
+CGL_void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value); // set uniform int
+CGL_void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value); // set uniform bool
+CGL_void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value); // set uniform float
+CGL_void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value); // set uniform double
+CGL_void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y); // set uniform vector
+CGL_void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z); // set uniform vector
+CGL_void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w); // set uniform vector
+CGL_void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y); // set uniform vector
+CGL_void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z); // set uniform vector
+CGL_void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w); // set uniform vector
+CGL_void CGL_shader_set_user_data(CGL_shader* shader, void* user_data); // set shader user data
+CGL_void* CGL_shader_get_user_data(CGL_shader* shader); // get shader user data
+CGL_void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_int z); // dispatch compute shader
 
 // ssbo
 CGL_ssbo* CGL_ssbo_create(uint32_t binding); // create ssbo
-void CGL_ssbo_destroy(CGL_ssbo* ssbo); // destroy ssbo
-void CGL_ssbo_bind(CGL_ssbo* ssbo); // bind ssbo
-void CGL_ssbo_bind2(CGL_ssbo* ssbo, uint32_t binding); // bind ssbo to binding
-void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_draw); // set ssbo data
-void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data, bool static_draw); // set ssbo sub data
-void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data); // get ssbo data
-void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data); // get ssbo sub data
-void CGL_ssbo_set_user_data(CGL_ssbo* ssbo, void* user_data); // set ssbo user data
-void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo); // get ssbo user data
+CGL_void CGL_ssbo_destroy(CGL_ssbo* ssbo); // destroy ssbo
+CGL_void CGL_ssbo_bind(CGL_ssbo* ssbo); // bind ssbo
+CGL_void CGL_ssbo_bind2(CGL_ssbo* ssbo, uint32_t binding); // bind ssbo to binding
+CGL_void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_draw); // set ssbo data
+CGL_void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data, bool static_draw); // set ssbo sub data
+CGL_void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data); // get ssbo data
+CGL_void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data); // get ssbo sub data
+CGL_void CGL_ssbo_set_user_data(CGL_ssbo* ssbo, void* user_data); // set ssbo user data
+CGL_void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo); // get ssbo user data
 size_t CGL_ssbo_get_size(CGL_ssbo* ssbo); // get ssbo size
-void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size); // copy ssbo
+CGL_void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size); // copy ssbo
 
 CGL_ubo* CGL_ubo_create(); // create ubo
-void CGL_ubo_destroy(CGL_ubo* ubo); // destroy ubo
-void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32_t binding); // bind ubo
-void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw); // set ubo data
-void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw); // set ubo sub data
-void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data); // get ubo data
-void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data); // get ubo sub data
-void CGL_ubo_set_user_data(CGL_ubo* ubo, void* user_data); // set ubo user data
-void* CGL_ubo_get_user_data(CGL_ubo* ubo); // get ubo user data
+CGL_void CGL_ubo_destroy(CGL_ubo* ubo); // destroy ubo
+CGL_void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32_t binding); // bind ubo
+CGL_void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw); // set ubo data
+CGL_void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw); // set ubo sub data
+CGL_void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data); // get ubo data
+CGL_void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data); // get ubo sub data
+CGL_void CGL_ubo_set_user_data(CGL_ubo* ubo, void* user_data); // set ubo user data
+CGL_void* CGL_ubo_get_user_data(CGL_ubo* ubo); // get ubo user data
 size_t CGL_ubo_get_size(CGL_ubo* ubo); // get ubo size
 
 
@@ -1947,14 +1947,14 @@ struct CGL_bloom;
 typedef struct CGL_bloom CGL_bloom;
 
 CGL_bloom* CGL_bloom_create(CGL_int width, CGL_int height, CGL_int iterations);
-void CGL_bloom_destroy(CGL_bloom* bloom);
-void CGL_bloom_set_threshold(CGL_bloom* bloom, CGL_float val);
+CGL_void CGL_bloom_destroy(CGL_bloom* bloom);
+CGL_void CGL_bloom_set_threshold(CGL_bloom* bloom, CGL_float val);
 float CGL_bloom_get_threshold(CGL_bloom* bloom);
-void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val);
+CGL_void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val);
 float CGL_bloom_get_knee(CGL_bloom* bloom);
-void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y);
-void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex);
-void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_dst);
+CGL_void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y);
+CGL_void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex);
+CGL_void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_dst);
 int CGL_bloom_get_iterations(CGL_bloom* bloom);
 CGL_texture* CGL_bloom_get_lod_texture(CGL_bloom* bloom, CGL_int index);
 CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom);
@@ -1969,7 +1969,7 @@ struct CGL_camera;
 typedef struct CGL_camera CGL_camera;
 
 CGL_camera* CGL_camera_create();
-void CGL_camera_destroy(CGL_camera* camera);
+CGL_void CGL_camera_destroy(CGL_camera* camera);
 bool CGL_camera_is_perspective(CGL_camera* camera);
 bool CGL_camera_is_orthographic(CGL_camera* camera);
 float CGL_camera_get_fov(CGL_camera* camera);
@@ -1977,21 +1977,21 @@ float CGL_camera_get_aspect_ratio(CGL_camera* camera);
 float CGL_camera_get_z_near(CGL_camera* camera);
 float CGL_camera_get_z_far(CGL_camera* camera);
 CGL_vec4 CGL_camera_get_orthographic_limits(CGL_camera* camera);
-void CGL_camera_set_fov(CGL_camera* camera, CGL_float fov);
-void CGL_camera_set_aspect_ratio(CGL_camera* camera, CGL_float aspect_ratio);
-void CGL_camera_set_z_near(CGL_camera* camera, CGL_float z_near);
-void CGL_camera_set_z_far(CGL_camera* camera, CGL_float z_far);
-void CGL_camera_set_orthographic_limits(CGL_camera* camera, CGL_vec4 ortho_limits);
-void CGL_camera_set_perspective(CGL_camera* camera);
-void CGL_camera_set_orthographic(CGL_camera* camera);
+CGL_void CGL_camera_set_fov(CGL_camera* camera, CGL_float fov);
+CGL_void CGL_camera_set_aspect_ratio(CGL_camera* camera, CGL_float aspect_ratio);
+CGL_void CGL_camera_set_z_near(CGL_camera* camera, CGL_float z_near);
+CGL_void CGL_camera_set_z_far(CGL_camera* camera, CGL_float z_far);
+CGL_void CGL_camera_set_orthographic_limits(CGL_camera* camera, CGL_vec4 ortho_limits);
+CGL_void CGL_camera_set_perspective(CGL_camera* camera);
+CGL_void CGL_camera_set_orthographic(CGL_camera* camera);
 CGL_mat4 CGL_camera_get_projection_mat(CGL_camera* camera);
 CGL_mat4* CGL_camera_get_projection_mat_ptr(CGL_camera* camera);
 CGL_mat4 CGL_camera_get_view_mat(CGL_camera* camera);
 CGL_mat4* CGL_camera_get_view_mat_ptr(CGL_camera* camera);
 CGL_mat4 CGL_camera_get_pv_mat(CGL_camera* camera);
 CGL_mat4* CGL_camera_get_pv_mat_ptr(CGL_camera* camera);
-void CGL_camera_set_position(CGL_camera* camera, CGL_vec3 position);
-void CGL_camera_set_rotation(CGL_camera* camera, CGL_vec3 ratation);
+CGL_void CGL_camera_set_position(CGL_camera* camera, CGL_vec3 position);
+CGL_void CGL_camera_set_rotation(CGL_camera* camera, CGL_vec3 ratation);
 CGL_vec3 CGL_camera_get_position(CGL_camera* camera);
 CGL_vec3 CGL_camera_get_rotation(CGL_camera* camera);
 CGL_vec3* CGL_camera_get_position_ptr(CGL_camera* camera);
@@ -1999,7 +1999,7 @@ CGL_vec3* CGL_camera_get_rotation_ptr(CGL_camera* camera);
 CGL_vec3 CGL_camera_get_front(CGL_camera* camera);
 CGL_vec3 CGL_camera_get_right(CGL_camera* camera);
 CGL_vec3 CGL_camera_get_up(CGL_camera* camera);
-void CGL_camera_recalculate_mat(CGL_camera* camera);
+CGL_void CGL_camera_recalculate_mat(CGL_camera* camera);
 
 #endif
 
@@ -2026,48 +2026,48 @@ struct CGL_phong_light;
 typedef struct CGL_phong_light CGL_phong_light;
 
 CGL_phong_pipeline* CGL_phong_pipeline_create();
-void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_set_user_data(CGL_phong_pipeline* pipeline, void* data);
-void* CGL_phong_pipeline_get_user_data(CGL_phong_pipeline* pipeline);
+CGL_void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline);
+CGL_void CGL_phong_pipeline_set_user_data(CGL_phong_pipeline* pipeline, void* data);
+CGL_void* CGL_phong_pipeline_get_user_data(CGL_phong_pipeline* pipeline);
 bool CGL_phong_pipeline_is_using_blinn(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_enable_blinn(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_enable_gamma_correction(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_set_ambient_light_color(CGL_phong_pipeline* pipeline, CGL_vec3 color);
+CGL_void CGL_phong_pipeline_enable_blinn(CGL_phong_pipeline* pipeline);
+CGL_void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline);
+CGL_void CGL_phong_pipeline_enable_gamma_correction(CGL_phong_pipeline* pipeline);
+CGL_void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline);
+CGL_void CGL_phong_pipeline_set_ambient_light_color(CGL_phong_pipeline* pipeline, CGL_vec3 color);
 CGL_vec3 CGL_phong_pipeline_get_ambient_light_color(CGL_phong_pipeline* pipeline);
-void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, CGL_float strength);
+CGL_void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, CGL_float strength);
 float CGL_phong_pipeline_get_ambient_light_strength(CGL_phong_pipeline* pipeline);
 uint32_t CGL_phong_pipeline_add_light(CGL_phong_pipeline* pipeline, CGL_phong_light* light);
 CGL_phong_light* CGL_phong_pipeline_remove_light(CGL_phong_pipeline* pipeline, uint32_t light_id);
 
 CGL_phong_mat* CGL_phong_mat_create();
-void CGL_phong_mat_destroy(CGL_phong_mat* mat);
-void CGL_phong_mat_set_diffuse_color(CGL_phong_mat* mat, CGL_vec3 color);
-void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image);
-void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color);
-void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image);
-void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image);
-void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, CGL_float shininess);
-void CGL_phong_mat_set_user_data(CGL_phong_mat* mat, void* data);
-void* CGL_phong_mat_get_user_data(CGL_phong_mat* mat);
-void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat);
-void CGL_phong_mat_enable_wireframe(CGL_phong_mat* mat);
-void CGL_phong_mat_disable_wireframe(CGL_phong_mat* mat);
+CGL_void CGL_phong_mat_destroy(CGL_phong_mat* mat);
+CGL_void CGL_phong_mat_set_diffuse_color(CGL_phong_mat* mat, CGL_vec3 color);
+CGL_void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image);
+CGL_void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color);
+CGL_void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image);
+CGL_void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image);
+CGL_void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, CGL_float shininess);
+CGL_void CGL_phong_mat_set_user_data(CGL_phong_mat* mat, void* data);
+CGL_void* CGL_phong_mat_get_user_data(CGL_phong_mat* mat);
+CGL_void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat);
+CGL_void CGL_phong_mat_enable_wireframe(CGL_phong_mat* mat);
+CGL_void CGL_phong_mat_disable_wireframe(CGL_phong_mat* mat);
 float CGL_phong_mat_get_shininess(CGL_phong_mat* mat);
 
 CGL_phong_light* CGL_phong_light_directional(CGL_vec3 direction, CGL_vec3 color, CGL_float itensity);
 CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, CGL_float itensity, CGL_float constant, CGL_float linear, CGL_float quadratic);
-void CGL_phong_light_destroy(CGL_phong_light* light);
-void CGL_phong_light_set_intensity(CGL_phong_light* light, CGL_float intensity);
-void CGL_phong_light_set_color(CGL_phong_light* light, CGL_vec3 color);
+CGL_void CGL_phong_light_destroy(CGL_phong_light* light);
+CGL_void CGL_phong_light_set_intensity(CGL_phong_light* light, CGL_float intensity);
+CGL_void CGL_phong_light_set_color(CGL_phong_light* light, CGL_vec3 color);
 float CGL_phong_light_get_intensity(CGL_phong_light* light);
 CGL_vec3 CGL_phong_light_get_color(CGL_phong_light* light);
 uint32_t CGL_phong_light_get_type(CGL_phong_light* light);
 
-void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera);
-void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat* material, CGL_phong_pipeline* pipeline, CGL_camera* camera);
-void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
+CGL_void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera);
+CGL_void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat* material, CGL_phong_pipeline* pipeline, CGL_camera* camera);
+CGL_void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera);
 
 #endif
 
@@ -2090,20 +2090,20 @@ struct CGL_tile;
 typedef struct CGL_tile CGL_tile;
 
 CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, uint32_t tile_size_x, uint32_t tile_size_y, uint32_t ssbo_binding);
-void CGL_tilemap_destroy(CGL_tilemap* tilemap);
-void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value);
+CGL_void CGL_tilemap_destroy(CGL_tilemap* tilemap);
+CGL_void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value);
 bool CGL_tilemap_get_auto_upload(CGL_tilemap* tilemap);
 bool CGL_tilemap_upload(CGL_tilemap* tilemap);
-void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b);
-void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index);
-void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max);
-void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float g, CGL_float b);
-void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t texture_index);
-void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max);
-void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y);
-void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap);
-void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture);
-void CGL_tilemap_reset(CGL_tilemap* tilemap);
+CGL_void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b);
+CGL_void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index);
+CGL_void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max);
+CGL_void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float g, CGL_float b);
+CGL_void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t texture_index);
+CGL_void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max);
+CGL_void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y);
+CGL_void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap);
+CGL_void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture);
+CGL_void CGL_tilemap_reset(CGL_tilemap* tilemap);
 
 #endif
 
@@ -2119,16 +2119,16 @@ struct CGL_sky;
 typedef struct CGL_sky CGL_sky;
 
 CGL_sky* CGL_sky_create();
-void CGL_sky_destroy(CGL_sky* sky);
-void CGL_sky_use_skybox(CGL_sky* sky);
-void CGL_sky_use_skysphere(CGL_sky* sky);
-void CGL_sky_use_cubemap(CGL_sky* sky);
-void CGL_sky_use_procedural(CGL_sky* sky);
-void CGL_sky_cubemap_set_face(CGL_sky* sky, CGL_int face, CGL_image* image);
-void CGL_sky_procedural_set_options(CGL_sky* sky, CGL_float cirrus, CGL_float cumulus, CGL_float upf);
-void CGL_sky_procedural_set_time(CGL_sky* sky, CGL_float time);
-void CGL_sky_procedural_set_sun_position(CGL_sky* sky, CGL_vec3 position);
-void CGL_sky_render(CGL_sky* sky, CGL_camera* camera);
+CGL_void CGL_sky_destroy(CGL_sky* sky);
+CGL_void CGL_sky_use_skybox(CGL_sky* sky);
+CGL_void CGL_sky_use_skysphere(CGL_sky* sky);
+CGL_void CGL_sky_use_cubemap(CGL_sky* sky);
+CGL_void CGL_sky_use_procedural(CGL_sky* sky);
+CGL_void CGL_sky_cubemap_set_face(CGL_sky* sky, CGL_int face, CGL_image* image);
+CGL_void CGL_sky_procedural_set_options(CGL_sky* sky, CGL_float cirrus, CGL_float cumulus, CGL_float upf);
+CGL_void CGL_sky_procedural_set_time(CGL_sky* sky, CGL_float time);
+CGL_void CGL_sky_procedural_set_sun_position(CGL_sky* sky, CGL_vec3 position);
+CGL_void CGL_sky_render(CGL_sky* sky, CGL_camera* camera);
 
 #endif // CGL_EXCLUDE_SKY_RENDERER
 #endif // CGL_EXCLUDE_GRAPHICS_API
@@ -2145,13 +2145,13 @@ struct CGL_markov_token_function_ngram_text_context;
 typedef struct CGL_markov_token_function_ngram_text_context CGL_markov_token_function_ngram_text_context;
 
 CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_text_context_create(size_t n);
-void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_function_ngram_text_context* context);
+CGL_void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_function_ngram_text_context* context);
 bool CGL_markov_token_function_ngram_text(void* context, const void* data, const size_t data_size, void* key, void* value);
 
 CGL_markov* CGL_markov_create(const size_t key_size, const size_t value_size);
 bool CGL_markov_train(CGL_markov* markov, void* context, const void* data, const size_t data_size, const CGL_markov_token_function function);
 bool CGL_markov_generate(const CGL_markov* markov, const void* key, void* value);
-void CGL_markov_destroy(CGL_markov* markov);
+CGL_void CGL_markov_destroy(CGL_markov* markov);
 
 #endif
 
@@ -2212,76 +2212,77 @@ struct CGL_widgets_context;
 typedef struct CGL_widgets_context CGL_widgets_context;
 
 CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_indices);
-void CGL_widgets_context_destroy(CGL_widgets_context* context);
+CGL_void CGL_widgets_context_destroy(CGL_widgets_context* context);
 CGL_widgets_context* CGL_window_get_current_context();
 CGL_bool CGL_widgets_init();
-void CGL_widgets_shutdown();
-void CGL_window_set_current_context(CGL_widgets_context* context);
+CGL_void CGL_widgets_shutdown();
+CGL_void CGL_window_set_current_context(CGL_widgets_context* context);
 CGL_bool CGL_widgets_begin();
 CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
 CGL_bool CGL_widgets_end();
 CGL_bool CGL_widgets_flush();
 CGL_bool CGL_widgets_flush_if_required();
 // bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, uint32_t* indices, size_t index_count); // DEPRECATED
-void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex);
-void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh);
-void CGL_widgets_add_vertex_p(CGL_vec3 position);
-void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z);
-void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord);
-void CGL_widgets_add_vertex_p3ft(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_vec2 tex_coord);
-void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float tex_y);
-void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y);
-void CGL_widgets_set_stroke_color(CGL_color color);
-void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
-void CGL_widgets_set_mask(CGL_vec4 mask);
-void CGL_widgets_set_maskf(CGL_float min_x, CGL_float min_y, CGL_float max_x, CGL_float max_y);
+CGL_void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex);
+CGL_void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh);
+CGL_void CGL_widgets_add_vertex_p(CGL_vec3 position);
+CGL_void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z);
+CGL_void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord);
+CGL_void CGL_widgets_add_vertex_p3ft(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_vec2 tex_coord);
+CGL_void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float tex_y);
+CGL_void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y);
+CGL_void CGL_widgets_set_stroke_color(CGL_color color);
+CGL_void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
+CGL_void CGL_widgets_set_mask(CGL_vec4 mask);
+CGL_void CGL_widgets_set_maskf(CGL_float min_x, CGL_float min_y, CGL_float max_x, CGL_float max_y);
 // for backwards compatibility
 #define CGL_widgets_set_stroke_thickness CGL_widgets_set_stroke_thicnkess 
-void CGL_widgets_set_stroke_thicnkess(CGL_float thickness);
-void CGL_widgets_set_fill_color(CGL_color color);
-void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
-void CGL_widgets_set_fill_mode(CGL_bool is_enabled);
-void CGL_widgets_set_projection_matrix(CGL_mat4* matrix);
-void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color);
-void CGL_widgets_disable_diffuse_shading();
-void CGL_widgets_set_view_matrix(CGL_mat4* matrix);
-void CGL_widgets_set_model_matrix(CGL_mat4* matrix);
-void CGL_widgets_set_texture(CGL_texture* texture);
-void CGL_widgets_set_font_texture(CGL_texture* texture);
-void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
-void CGL_widgets_apply_transformations_on_cpu();
-void CGL_widgets_apply_transformations_on_gpu();
-void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
-void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
-void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy);
-void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end);
-void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y);
-void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size);
-void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y);
-void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius);
-void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius);
-void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res);
-void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res);
-void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
-void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y);
-void CGL_widgets_add_oval2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution);
-void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution);
+CGL_void CGL_widgets_set_stroke_thicnkess(CGL_float thickness);
+CGL_void CGL_widgets_set_fill_color(CGL_color color);
+CGL_void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
+CGL_void CGL_widgets_set_fill_mode(CGL_bool is_enabled);
+CGL_void CGL_widgets_set_projection_matrix(CGL_mat4* matrix);
+CGL_void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color);
+CGL_void CGL_widgets_disable_diffuse_shading();
+CGL_void CGL_widgets_set_view_matrix(CGL_mat4* matrix);
+CGL_void CGL_widgets_set_model_matrix(CGL_mat4* matrix);
+CGL_void CGL_widgets_set_texture(CGL_texture* texture);
+CGL_void CGL_widgets_set_font_texture(CGL_texture* texture);
+CGL_void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y);
+CGL_void CGL_widgets_apply_transformations_on_cpu();
+CGL_void CGL_widgets_apply_transformations_on_gpu();
+CGL_void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c);
+CGL_void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d);
+CGL_void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy);
+CGL_void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end);
+CGL_void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y);
+CGL_void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size);
+CGL_void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y);
+CGL_void CGL_widgets_add_rounded_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float radius, CGL_int res);
+CGL_void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius);
+CGL_void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius);
+CGL_void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res);
+CGL_void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res);
+CGL_void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius);
+CGL_void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y);
+CGL_void CGL_widgets_add_oval2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution);
+CGL_void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution);
 CGL_bool CGL_widgets_add_character(char c, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_float sx, CGL_float sy);
 #ifndef CGL_EXCLUDE_TEXT_RENDER
 CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_float x, CGL_float y, CGL_float sx, CGL_float scale_y);
 #endif
-void CGL_widgets_add_shape_out_line(CGL_shape* shape);
-void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
-void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
-void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
-void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
-void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
-void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
-void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
-void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
-void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution);
-void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color, CGL_bool vertical);
+CGL_void CGL_widgets_add_shape_out_line(CGL_shape* shape);
+CGL_void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
+CGL_void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
+CGL_void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
+CGL_void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution);
+CGL_void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution);
+CGL_void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution);
+CGL_void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
+CGL_void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color);
+CGL_void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution);
+CGL_void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color, CGL_bool vertical);
 
 #endif
 #endif
@@ -2346,26 +2347,26 @@ struct CGL_node_editor_input
 typedef struct CGL_node_editor_input CGL_node_editor_input;
 
 CGL_node_editor* CGL_node_editor_create();
-void CGL_node_editor_destroy(CGL_node_editor* editor);
-void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* input);
-void CGL_node_editor_set_on_connect(CGL_node_editor* editor, void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*));
-void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(CGL_float, CGL_float, CGL_node_editor_pin*));
-void CGL_node_editor_render_begin(CGL_node_editor* editor);
-void CGL_node_editor_clear_focused_pins(CGL_node_editor* editor);
-void CGL_node_editor_render_end(CGL_node_editor* editor);
-void CGL_node_editor_set_offset(CGL_node_editor* editor, CGL_float x, CGL_float y);
-void CGL_node_editor_get_offset(CGL_node_editor* editor, CGL_float* x, CGL_float* y);
-void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pin** x, CGL_node_editor_pin** y);
-void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float midper);
-void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float midper);
-void CGL_node_editor_render_link_curved(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float x_dist, CGL_float y_dist, CGL_int resolution);
-void CGL_node_editor_render_link_curvedf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float x_dist, CGL_float y_dist, CGL_int resolution);
+CGL_void CGL_node_editor_destroy(CGL_node_editor* editor);
+CGL_void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* input);
+CGL_void CGL_node_editor_set_on_connect(CGL_node_editor* editor, void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*));
+CGL_void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(CGL_float, CGL_float, CGL_node_editor_pin*));
+CGL_void CGL_node_editor_render_begin(CGL_node_editor* editor);
+CGL_void CGL_node_editor_clear_focused_pins(CGL_node_editor* editor);
+CGL_void CGL_node_editor_render_end(CGL_node_editor* editor);
+CGL_void CGL_node_editor_set_offset(CGL_node_editor* editor, CGL_float x, CGL_float y);
+CGL_void CGL_node_editor_get_offset(CGL_node_editor* editor, CGL_float* x, CGL_float* y);
+CGL_void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pin** x, CGL_node_editor_pin** y);
+CGL_void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float midper);
+CGL_void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float midper);
+CGL_void CGL_node_editor_render_link_curved(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float x_dist, CGL_float y_dist, CGL_int resolution);
+CGL_void CGL_node_editor_render_link_curvedf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float x_dist, CGL_float y_dist, CGL_int resolution);
 
-void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node);
-void CGL_node_editor_node_update(CGL_node_editor_node* node);
-void CGL_node_editor_node_render(CGL_node_editor_node* node);
-void CGL_node_editor_node_set_position(CGL_node_editor_node* node, CGL_float x, CGL_float y);
-void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const CGL_byte* title);
+CGL_void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node);
+CGL_void CGL_node_editor_node_update(CGL_node_editor_node* node);
+CGL_void CGL_node_editor_node_render(CGL_node_editor_node* node);
+CGL_void CGL_node_editor_node_set_position(CGL_node_editor_node* node, CGL_float x, CGL_float y);
+CGL_void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const CGL_byte* title);
 CGL_node_editor_pin* CGL_node_editor_node_get_pin(CGL_node_editor_node* node, bool left, CGL_int index);
 
 #endif
@@ -2380,16 +2381,16 @@ struct CGL_ray_caster;
 typedef struct CGL_ray_caster CGL_ray_caster;
 
 CGL_ray_caster* CGL_ray_caster_create();
-void CGL_ray_caster_destroy(CGL_ray_caster* caster);
-void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, CGL_int walls_count);
-void CGL_ray_caster_add_wall(CGL_ray_caster* caster, CGL_vec4 wall);
-void CGL_ray_caster_clear_walls(CGL_ray_caster* caster);
+CGL_void CGL_ray_caster_destroy(CGL_ray_caster* caster);
+CGL_void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, CGL_int walls_count);
+CGL_void CGL_ray_caster_add_wall(CGL_ray_caster* caster, CGL_vec4 wall);
+CGL_void CGL_ray_caster_clear_walls(CGL_ray_caster* caster);
 float CGL_ray_caster_get_intersection_point_for_wall(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4 wall, CGL_vec2* intersection_point, float* angle, CGL_float max_dist);
 float CGL_ray_caster_get_intersection_point_for_walls(CGL_vec2 pos, CGL_vec2 dir, CGL_vec4* walls, CGL_int wall_count, CGL_vec2* intersection_point, float* angle, CGL_float max_dist);
-void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, CGL_float rotation, bool visualise_rays);
+CGL_void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, CGL_float rotation, bool visualise_rays);
 bool CGL_ray_caster_is_in_view(CGL_ray_caster* caster, CGL_vec2 point);
-void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, CGL_float min_angle, CGL_float max_angle);
-void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, CGL_float val);
+CGL_void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, CGL_float min_angle, CGL_float max_angle);
+CGL_void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, CGL_float val);
 CGL_shape_triangle* CGL_ray_caster_get_triangles(CGL_ray_caster* caster, CGL_int* count);
 
 #endif
@@ -2403,10 +2404,10 @@ typedef struct CGL_square_marcher CGL_square_marcher;
 typedef bool(*CGL_square_marcher_distance_function)(CGL_vec2, float*, void*);
 
 CGL_square_marcher* CGL_square_marcher_create();
-void CGL_square_marcher_destroy(CGL_square_marcher* marcher);
-void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data);
-void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher);
-void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, CGL_bool enable);
+CGL_void CGL_square_marcher_destroy(CGL_square_marcher* marcher);
+CGL_void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data);
+CGL_void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher);
+CGL_void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, CGL_bool enable);
 CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, CGL_int resolution_x, CGL_int resolution_y);
 
 #endif
@@ -2417,11 +2418,11 @@ CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_
 struct CGL_post_processor;
 typedef struct CGL_post_processor CGL_post_processor;
 
-void CGL_post_processor_init();
-void CGL_post_processor_shutdown();
-void CGL_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades);
-void CGL_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width);
-void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene, CGL_texture* uv, CGL_texture** hatch_tex, CGL_int hatch_tex_count);
+CGL_void CGL_post_processor_init();
+CGL_void CGL_post_processor_shutdown();
+CGL_void CGL_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades);
+CGL_void CGL_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width);
+CGL_void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene, CGL_texture* uv, CGL_texture** hatch_tex, CGL_int hatch_tex_count);
 
 // for legacy code
 #define  CGL_toon_post_processor_init CGL_post_processor_init
@@ -2445,7 +2446,7 @@ struct CGL_wav_file
 typedef struct CGL_wav_file CGL_wav_file;
 
 CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename);
-void CGL_wav_file_destroy(CGL_wav_file* file);
+CGL_void CGL_wav_file_destroy(CGL_wav_file* file);
 CGL_int CGL_wav_file_sample(CGL_wav_file* file, CGL_int channel, CGL_int sample_id);
 CGL_int CGL_wav_file_sample_at_time(CGL_wav_file* file, CGL_int channel, CGL_float time);
 
@@ -2472,37 +2473,37 @@ const CGL_byte* CGL_audio_get_error_string(CGL_int error);
 const CGL_byte* CGL_audio_get_device_list();
 const CGL_byte* CGL_audio_get_default_device();
 CGL_audio_context* CGL_audio_context_create(const CGL_byte* device_name);
-void CGL_audio_context_destroy(CGL_audio_context* context);
-void CGL_audio_make_context_current(CGL_audio_context* context);
+CGL_void CGL_audio_context_destroy(CGL_audio_context* context);
+CGL_void CGL_audio_make_context_current(CGL_audio_context* context);
 CGL_audio_source* CGL_audio_source_create();
-void CGL_audio_source_destroy(CGL_audio_source* source);
-void CGL_audio_source_reset_to_defaults(CGL_audio_source* source);
-void CGL_audio_source_set_buffer(CGL_audio_source* source, CGL_audio_buffer* buffer);
-void CGL_audio_source_set_looping(CGL_audio_source* source, CGL_bool looping);
-void CGL_audio_source_set_pitch(CGL_audio_source* source, CGL_float pitch);
-void CGL_audio_source_set_gain(CGL_audio_source* source, CGL_float gain);
-void CGL_audio_source_set_position(CGL_audio_source* source, CGL_vec3 position);
-void CGL_audio_source_set_velocity(CGL_audio_source* source, CGL_vec3 velocity);
-void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction);
+CGL_void CGL_audio_source_destroy(CGL_audio_source* source);
+CGL_void CGL_audio_source_reset_to_defaults(CGL_audio_source* source);
+CGL_void CGL_audio_source_set_buffer(CGL_audio_source* source, CGL_audio_buffer* buffer);
+CGL_void CGL_audio_source_set_looping(CGL_audio_source* source, CGL_bool looping);
+CGL_void CGL_audio_source_set_pitch(CGL_audio_source* source, CGL_float pitch);
+CGL_void CGL_audio_source_set_gain(CGL_audio_source* source, CGL_float gain);
+CGL_void CGL_audio_source_set_position(CGL_audio_source* source, CGL_vec3 position);
+CGL_void CGL_audio_source_set_velocity(CGL_audio_source* source, CGL_vec3 velocity);
+CGL_void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction);
 CGL_float CGL_audio_source_get_seconds_offset(CGL_audio_source* source);
-void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds);
+CGL_void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds);
 CGL_sizei CGL_audio_source_get_samples_offset(CGL_audio_source* source);
-void CGL_audio_source_set_samples_offset(CGL_audio_source* source, CGL_sizei samples);
+CGL_void CGL_audio_source_set_samples_offset(CGL_audio_source* source, CGL_sizei samples);
 CGL_sizei CGL_audio_source_get_bytes_offset(CGL_audio_source* source);
-void CGL_audio_source_set_bytes_offset(CGL_audio_source* source, CGL_sizei bytes);
-void CGL_audio_source_play(CGL_audio_source* source);
-void CGL_audio_source_pause(CGL_audio_source* source);
-void CGL_audio_source_stop(CGL_audio_source* source);
+CGL_void CGL_audio_source_set_bytes_offset(CGL_audio_source* source, CGL_sizei bytes);
+CGL_void CGL_audio_source_play(CGL_audio_source* source);
+CGL_void CGL_audio_source_pause(CGL_audio_source* source);
+CGL_void CGL_audio_source_stop(CGL_audio_source* source);
 CGL_bool CGL_audio_source_is_playing(CGL_audio_source* source);
 CGL_bool CGL_audio_source_is_paused(CGL_audio_source* source);
 CGL_bool CGL_audio_source_is_stopped(CGL_audio_source* source);
 CGL_audio_buffer* CGL_audio_buffer_create();
-void CGL_audio_buffer_destroy(CGL_audio_buffer* buffer);
-void CGL_audio_buffer_set_data_from_wav_file(CGL_audio_buffer* buffer, CGL_wav_file* file);
-void CGL_audio_buffer_set_data(CGL_audio_buffer* buffer, void* data, ALenum format, ALsizei size, ALsizei freq);
-void CGL_audio_listener_set_position(CGL_vec3 position);
-void CGL_audio_listener_set_velocity(CGL_vec3 velocity);
-void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up);
+CGL_void CGL_audio_buffer_destroy(CGL_audio_buffer* buffer);
+CGL_void CGL_audio_buffer_set_data_from_wav_file(CGL_audio_buffer* buffer, CGL_wav_file* file);
+CGL_void CGL_audio_buffer_set_data(CGL_audio_buffer* buffer, void* data, ALenum format, ALsizei size, ALsizei freq);
+CGL_void CGL_audio_listener_set_position(CGL_vec3 position);
+CGL_void CGL_audio_listener_set_velocity(CGL_vec3 velocity);
+CGL_void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up);
 
 
 #endif
@@ -2528,22 +2529,22 @@ typedef struct CGL_trail CGL_trail;
 typedef CGL_bool(*CGL_trail_point_update_function)(CGL_trail*, CGL_trail_point*);
 
 CGL_trail* CGL_trail_create();
-void CGL_trail_destroy(CGL_trail* trail);
-void CGL_trail_render(CGL_trail* trail, CGL_mat4* view, CGL_mat4* projection, CGL_shader* shader);
-void CGL_trail_add_point(CGL_trail* trail, CGL_vec3 point, CGL_float lifespan, CGL_float thickness);
-void CGL_trail_set_resolution(CGL_trail* trail, CGL_int resolution);
-void CGL_trail_update(CGL_trail* trail, CGL_float delta_time);
-void CGL_trail_bake_mesh(CGL_trail* trail);
-void CGL_trail_clear(CGL_trail* trail);
-void CGL_trail_calculate_distances(CGL_trail* trail);
-void CGL_trail_set_point_update_function(CGL_trail* trail, CGL_trail_point_update_function function);
-void CGL_trail_set_user_data(CGL_trail* trail, void* user_data);
-void* CGL_trail_get_user_data(CGL_trail* trail);
+CGL_void CGL_trail_destroy(CGL_trail* trail);
+CGL_void CGL_trail_render(CGL_trail* trail, CGL_mat4* view, CGL_mat4* projection, CGL_shader* shader);
+CGL_void CGL_trail_add_point(CGL_trail* trail, CGL_vec3 point, CGL_float lifespan, CGL_float thickness);
+CGL_void CGL_trail_set_resolution(CGL_trail* trail, CGL_int resolution);
+CGL_void CGL_trail_update(CGL_trail* trail, CGL_float delta_time);
+CGL_void CGL_trail_bake_mesh(CGL_trail* trail);
+CGL_void CGL_trail_clear(CGL_trail* trail);
+CGL_void CGL_trail_calculate_distances(CGL_trail* trail);
+CGL_void CGL_trail_set_point_update_function(CGL_trail* trail, CGL_trail_point_update_function function);
+CGL_void CGL_trail_set_user_data(CGL_trail* trail, void* user_data);
+CGL_void* CGL_trail_get_user_data(CGL_trail* trail);
 CGL_mesh_gpu* CGL_trail_get_mesh_gpu(CGL_trail* trail);
 CGL_trail_point* CGL_trail_get_first_point(CGL_trail* trail);
 CGL_float CGL_trail_get_length(CGL_trail* trail);
-void CGL_trail_set_max_length(CGL_trail* trail, CGL_float length);
-void CGL_trail_set_min_points_distance(CGL_trail* trail, CGL_float min_points_distance);
+CGL_void CGL_trail_set_max_length(CGL_trail* trail, CGL_float length);
+CGL_void CGL_trail_set_min_points_distance(CGL_trail* trail, CGL_float min_points_distance);
 
 #endif
 
@@ -2601,15 +2602,15 @@ struct CGL_noise_params
 };
 typedef struct CGL_noise_params CGL_noise_params;
 
-void CGL_noise_init();
-void CGL_noise_shutdown();
+CGL_void CGL_noise_init();
+CGL_void CGL_noise_shutdown();
 CGL_noise_data_type CGL_noise_perlin(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
 CGL_noise_data_type CGL_noise_opensimplex(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
 CGL_noise_data_type CGL_noise_opensimplex2s(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
 CGL_noise_data_type CGL_noise_value(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
 CGL_noise_data_type CGL_noise_valuecubic(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
 CGL_noise_data_type CGL_noise_worley(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
-void CGL_noise_params_default(CGL_noise_params* params);
+CGL_void CGL_noise_params_default(CGL_noise_params* params);
 CGL_noise_data_type CGL_noise_get(CGL_noise_params* params, CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z);
 
 
@@ -2630,12 +2631,12 @@ typedef CGL_float(*CGL_simple_neural_network_activation_function)(CGL_float x);
 CGL_simple_neural_network* CGL_simple_neural_network_create(CGL_int* layer_sizes, CGL_int layer_count);
 CGL_byte* CGL_simple_neural_network_serialize_weights(CGL_simple_neural_network* network, CGL_sizei* size_out);
 CGL_bool CGL_simple_neural_network_deserialize_weights(CGL_simple_neural_network* network, CGL_byte* data);
-void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative);
-void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network);
-void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output);
-void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v);
-void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b);
-void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio);
+CGL_void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative);
+CGL_void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network);
+CGL_void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output);
+CGL_void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v);
+CGL_void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b);
+CGL_void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio);
 
 // multi variable linear regression
 
@@ -2682,7 +2683,7 @@ typedef CGL_float(*CGL_path_finding_cost_function)(void*, CGL_path_finding_node*
 typedef CGL_int(*CGL_path_finding_get_neighbors_function)(void*, CGL_path_finding_node* a, CGL_int* neighbors_out);
 typedef CGL_bool(*CGL_path_finding_node_equals_function)(void*, CGL_path_finding_node* a, CGL_path_finding_node* b);
 
-void CGL_path_finding_node_init(CGL_path_finding_node* node, void* data_ptr);
+CGL_void CGL_path_finding_node_init(CGL_path_finding_node* node, void* data_ptr);
 
 CGL_path_finding_a_star_context* CGL_path_finding_a_star_context_create(CGL_int max_nodes_count, CGL_bool copy_data, CGL_int data_size);
 CGL_int CGL_path_finding_a_star_add_node(CGL_path_finding_a_star_context* context, CGL_path_finding_node node, CGL_path_finding_node_equals_function node_equals_function);
@@ -2976,7 +2977,7 @@ bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* ar
 
 // This function is called when the thread is destroyed
 // It frees the thread structure from memory
-void CGL_thread_destroy(CGL_thread* thread)
+CGL_void CGL_thread_destroy(CGL_thread* thread)
 {
     if(thread->running) CGL_thread_join(thread);
     if(thread->handle) CloseHandle(thread->handle);
@@ -3049,7 +3050,7 @@ CGL_mutex* CGL_mutex_create(bool set)
 }
 
 /* Destroy a mutex. */
-void CGL_mutex_destroy(CGL_mutex* mutex)
+CGL_void CGL_mutex_destroy(CGL_mutex* mutex)
 {
     if(mutex->handle) CloseHandle(mutex->handle);
     CGL_free(mutex);
@@ -3066,7 +3067,7 @@ int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout)
 
 // CGL_mutex_release: Releases a mutex.
 //    mutex: The mutex to release.
-void CGL_mutex_release(CGL_mutex* mutex)
+CGL_void CGL_mutex_release(CGL_mutex* mutex)
 {
     ReleaseMutex(mutex->handle);
 }
@@ -3109,7 +3110,7 @@ bool CGL_thread_start(CGL_thread* thread, CGL_thread_function function, void* ar
     return success;
 }
 
-void CGL_thread_destroy(CGL_thread* thread)
+CGL_void CGL_thread_destroy(CGL_thread* thread)
 {
     if(thread->running) CGL_thread_join(thread);
     CGL_free(thread);
@@ -3151,7 +3152,7 @@ CGL_mutex* CGL_mutex_create(bool set)
     return mutex;
 }
 
-void CGL_mutex_destroy(CGL_mutex* mutex)
+CGL_void CGL_mutex_destroy(CGL_mutex* mutex)
 {
     pthread_mutex_destroy(&mutex->handle);
     CGL_free(mutex);
@@ -3162,7 +3163,7 @@ int CGL_mutex_lock(CGL_mutex* mutex, uint64_t timeout)
     return pthread_mutex_lock(&mutex->handle);
 }
 
-void CGL_mutex_release(CGL_mutex* mutex)
+CGL_void CGL_mutex_release(CGL_mutex* mutex)
 {
     pthread_mutex_unlock(&mutex->handle);  
 }
@@ -3297,7 +3298,7 @@ CGL_hashtable* CGL_hashtable_create(size_t table_size, size_t key_size, size_t i
     return table;
 }
 
-void CGL_hashtable_destroy(CGL_hashtable* table)
+CGL_void CGL_hashtable_destroy(CGL_hashtable* table)
 {
     for(size_t i = 0 ; i < table->capacity ; i ++)
         if(table->storage[i].set && table->storage[i].value_size > CGL_HASHTABLE_ENTRY_STATIC_VALUE_SIZE)
@@ -3307,7 +3308,7 @@ void CGL_hashtable_destroy(CGL_hashtable* table)
     CGL_free(table);
 }
 
-void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size)
+CGL_void CGL_hashtable_set(CGL_hashtable* table, const void* key, const void* value, size_t value_size)
 {
     size_t key_size, hashtable_index;
     __CGL_hashtable_calculate_hashtable_index_key_size(table, &key_size, &hashtable_index, key);
@@ -3354,7 +3355,7 @@ size_t CGL_hashtable_get(CGL_hashtable* table, const void* key, void* value)
     return entry->value_size;
 }
 
-void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value)
+CGL_void* CGL_hashtable_get_ptr(CGL_hashtable* table, const void* key, size_t* value)
 {
     CGL_hashtable_entry* entry = __CGL_hashtable_get_entry_ptr(table, key, NULL);
     if(!entry) return NULL;
@@ -3392,7 +3393,7 @@ bool CGL_hashtable_remove(CGL_hashtable* table, const void* key)
     return true;
 }
 
-void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate)
+CGL_void CGL_hashtable_set_growth_rate(CGL_hashtable* table, CGL_float rate)
 {
     table->growth_rate = rate;
 }
@@ -3402,7 +3403,7 @@ size_t CGL_hashtable_get_size(CGL_hashtable* table)
     return table->count;
 }
 
-void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function)
+CGL_void CGL_hashtable_set_hash_function(CGL_hashtable* table, CGL_hash_function hash_function)
 {
     table->hash_function = hash_function;
 }
@@ -3416,12 +3417,12 @@ CGL_hashtable_iterator* CGL_hashtable_iterator_create(CGL_hashtable* table)
     return iterator;
 }
 
-void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator)
+CGL_void CGL_hashtable_iterator_destroy(CGL_hashtable_iterator* iterator)
 {
     CGL_free(iterator);
 }
 
-void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator)
+CGL_void CGL_hashtable_iterator_reset(CGL_hashtable_iterator* iterator)
 {
     iterator->index = 1;
 }
@@ -3453,7 +3454,7 @@ bool CGL_hashtable_iterator_curr(CGL_hashtable_iterator* iterator, void* key, vo
     return iterator->current_entry != NULL;;
 }
 
-void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
+CGL_void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
 {
     if(!iterator->current_entry) return NULL;
     return iterator->current_entry->key;
@@ -3517,7 +3518,7 @@ bool CGL_net_init()
     return result;
 }
 
-void CGL_net_shutdown()
+CGL_void CGL_net_shutdown()
 {
 #ifndef CGL_EXCLUDE_SSL_SOCKET
     ERR_free_strings();
@@ -3556,7 +3557,7 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
     return infos;
 }
 
-void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos)
+CGL_void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos)
 {
     CGL_free(infos);
 }
@@ -3611,7 +3612,7 @@ CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* add
     return cli_soc;
 }
 
-void CGL_net_socket_close(CGL_net_socket* soc)
+CGL_void CGL_net_socket_close(CGL_net_socket* soc)
 {
     closesocket(soc->socket);
     CGL_free(soc);
@@ -3674,7 +3675,7 @@ bool CGL_net_init()
     return true;
 }
 
-void CGL_net_shutdown()
+CGL_void CGL_net_shutdown()
 {
 #ifndef CGL_EXCLUDE_SSL_SOCKET
     ERR_free_strings();
@@ -3698,7 +3699,7 @@ CGL_net_addrinfo* CGL_net_addrinfo_query(const char* name, const char* port, siz
     return addr_info;
 }
 
-void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos)
+CGL_void CGL_net_addrinfo_destroy(CGL_net_addrinfo* infos)
 {
     CGL_free(infos);
 }
@@ -3749,7 +3750,7 @@ CGL_net_socket* CGL_net_socket_accept(CGL_net_socket* soc, CGL_net_addrinfo* add
     return cli_soc;
 }
 
-void CGL_net_socket_close(CGL_net_socket* soc)
+CGL_void CGL_net_socket_close(CGL_net_socket* soc)
 {
     close(soc->socket);
 }
@@ -3784,7 +3785,7 @@ bool CGL_net_socket_shutdown_recv(CGL_net_socket* soc)
 
 #endif // _WIN32
 
-void __CGL_net_http_prepare_request(char* buffer, const char* method, const char* host, const char* path, const char* accept, const char* user_agent, const char* body)
+CGL_void __CGL_net_http_prepare_request(char* buffer, const char* method, const char* host, const char* path, const char* accept, const char* user_agent, const char* body)
 {
     const char* path_ = path == NULL ? "/" : path;
     const char* accept_ = accept == NULL ? "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" : accept;
@@ -3930,7 +3931,7 @@ bool CGL_net_ssl_socket_recv(CGL_net_ssl_socket* soc, void* buffer, size_t size,
     return true;
 }
 
-void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc)
+CGL_void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc)
 {
     SSL_free(soc->ssl);
     SSL_CTX_free(soc->ctx);
@@ -3938,7 +3939,7 @@ void CGL_net_ssl_socket_destroy(CGL_net_ssl_socket* soc)
     CGL_free(soc);
 }
 
-void CGL_net_ssl_log_errors()
+CGL_void CGL_net_ssl_log_errors()
 {
     CGL_int err = 0;
     while(err = ERR_get_error())
@@ -3973,7 +3974,7 @@ struct CGL_logger_context
 
 static CGL_logger_context* __CGL_CURRENT_LOGGER_CONTEXT = NULL;
 
-void CGL_logger_init(bool enable_console_logging)
+CGL_void CGL_logger_init(bool enable_console_logging)
 {
     __CGL_CURRENT_LOGGER_CONTEXT = (CGL_logger_context*)CGL_malloc(sizeof(CGL_logger_context));
     __CGL_CURRENT_LOGGER_CONTEXT->log_buffer_length = 0;
@@ -3984,7 +3985,7 @@ void CGL_logger_init(bool enable_console_logging)
     CGL_log_internal("Started Logger Session");
 }
 
-void CGL_logger_shutdown()
+CGL_void CGL_logger_shutdown()
 {
     CGL_log_internal("Ending Logger Session");
     CGL_logger_flush();
@@ -3996,7 +3997,7 @@ CGL_logger_context* CGL_logger_get_context()
     return __CGL_CURRENT_LOGGER_CONTEXT;
 }
 
-void CGL_logger_set_context(CGL_logger_context* context)
+CGL_void CGL_logger_set_context(CGL_logger_context* context)
 {
     __CGL_CURRENT_LOGGER_CONTEXT = context;
 }
@@ -4023,7 +4024,7 @@ bool CGL_logger_detach_log_file(const char* path)
     return false;
 }
 
-void CGL_logger_flush()
+CGL_void CGL_logger_flush()
 {
     for(CGL_int i = 0 ; i < CGL_LOGGER_MAX_LOG_FILES ; i++)
         if(__CGL_CURRENT_LOGGER_CONTEXT->log_file_paths[i][0] != '\0')
@@ -4033,17 +4034,17 @@ void CGL_logger_flush()
     if(!__CGL_CURRENT_LOGGER_CONTEXT->flush_on_log) { CGL_log_internal("Flushed Log Buffer"); }
 }
 
-void CGL_logger_disable_console_logging()
+CGL_void CGL_logger_disable_console_logging()
 {
     __CGL_CURRENT_LOGGER_CONTEXT->console_logging_enabled = false;
 }
 
-void CGL_logger_enable_console_logging()
+CGL_void CGL_logger_enable_console_logging()
 {
     __CGL_CURRENT_LOGGER_CONTEXT->console_logging_enabled = true;
 }
 
-void CGL_logger_log(CGL_int level, const char* log_format, ...)
+CGL_void CGL_logger_log(CGL_int level, const char* log_format, ...)
 {
     static char buffer1[1024 * 4];
     static char buffer2[256];
@@ -4082,7 +4083,7 @@ void CGL_logger_log(CGL_int level, const char* log_format, ...)
 #if 1
 
 
-void CGL_console_set_color(uint8_t color)
+CGL_void CGL_console_set_color(uint8_t color)
 {
 #ifdef CGL_WINDOWS
     static WORD saved_attributes;
@@ -4115,7 +4116,7 @@ void CGL_console_set_color(uint8_t color)
 #endif   
 }
 
-void CGL_printf_red(const char* format, ...)
+CGL_void CGL_printf_red(const char* format, ...)
 {
     CGL_console_set_color(CGL_CONSOLE_COLOR_RED);
     va_list args;
@@ -4125,7 +4126,7 @@ void CGL_printf_red(const char* format, ...)
     CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
 }
 
-void CGL_printf_green(const char* format, ...)
+CGL_void CGL_printf_green(const char* format, ...)
 {
     CGL_console_set_color(CGL_CONSOLE_COLOR_GREEN);
     va_list args;
@@ -4135,7 +4136,7 @@ void CGL_printf_green(const char* format, ...)
     CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
 }
 
-void CGL_printf_gray(const char* format, ...)
+CGL_void CGL_printf_gray(const char* format, ...)
 {
     CGL_console_set_color(CGL_CONSOLE_COLOR_GRAY);
     va_list args;
@@ -4145,7 +4146,7 @@ void CGL_printf_gray(const char* format, ...)
     CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
 }
 
-void CGL_printf_blue(const char* format, ...)
+CGL_void CGL_printf_blue(const char* format, ...)
 {
     CGL_console_set_color(CGL_CONSOLE_COLOR_BLUE);
     va_list args;
@@ -4155,7 +4156,7 @@ void CGL_printf_blue(const char* format, ...)
     CGL_console_set_color(CGL_CONSOLE_COLOR_RESET);
 }
 
-void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char)
+CGL_void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* prefix, CGL_byte* suffix, CGL_byte complete_char, CGL_byte incomplete_char)
 {
     static CGL_byte buffer[1024], buffer2[1024]; // 1024 is enough for a progress bar
     if(prefix) sprintf(buffer2, "%s", prefix); else buffer2[0] = 0; // prefix
@@ -4275,7 +4276,7 @@ CGL_sizei CGL_utils_get_random_with_probability(CGL_float* probabilities, CGL_si
     return count - 1;
 }
 
-void CGL_utils_get_timestamp(char* buffer)
+CGL_void CGL_utils_get_timestamp(char* buffer)
 {
     time_t ltime = time(NULL);
     sprintf(buffer, "%s", asctime( localtime(&ltime)));
@@ -4289,7 +4290,7 @@ CGL_bool CGL_utils_is_little_endian()
     return (*((CGL_ubyte*)(&i))) == 0x67;
 }
 
-void CGL_utils_reverse_bytes(void* vdata, size_t size)
+CGL_void CGL_utils_reverse_bytes(void* vdata, size_t size)
 {
     CGL_byte* data = (CGL_byte*)vdata;
     for(size_t i = 0; i < size / 2; i++)
@@ -4300,13 +4301,13 @@ void CGL_utils_reverse_bytes(void* vdata, size_t size)
     }
 }
 
-void CGL_utils_little_endian_to_current(void* data, size_t size)
+CGL_void CGL_utils_little_endian_to_current(void* data, size_t size)
 {
     if(CGL_utils_is_little_endian()) return;
     CGL_utils_reverse_bytes(data, size);
 }
 
-void CGL_utils_big_endian_to_current(void* data, size_t size)
+CGL_void CGL_utils_big_endian_to_current(void* data, size_t size)
 {
     if(!CGL_utils_is_little_endian()) return;
     CGL_utils_reverse_bytes(data, size);
@@ -4315,7 +4316,7 @@ void CGL_utils_big_endian_to_current(void* data, size_t size)
 // From: https://stackoverflow.com/a/3747462/14911094
 static CGL_int __CGL_UTILS_FAST_RAND_SEED = 42;
 
-void CGL_utils_fast_srand(CGL_int seed)
+CGL_void CGL_utils_fast_srand(CGL_int seed)
 {
     __CGL_UTILS_FAST_RAND_SEED = seed;
 }
@@ -4338,7 +4339,7 @@ CGL_ulong CGL_utils_xorshf96()
 
 static CGL_uint __CGL_UTILS_RAND31_SEED = 42;
 
-void CGL_utils_srand31(CGL_uint seed)
+CGL_void CGL_utils_srand31(CGL_uint seed)
 {
     __CGL_UTILS_RAND31_SEED = seed;
 }
@@ -4361,7 +4362,7 @@ CGL_uint CGL_utils_rand31()
     return (__CGL_UTILS_RAND31_SEED = lo);
 }
 
-void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
+CGL_void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
 {
     shape->vertices_count = vertices_count;
     shape->vertices = (CGL_vec3*)CGL_malloc(sizeof(CGL_vec3) * vertices_count);
@@ -4371,7 +4372,7 @@ void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
     if(shape->vertices == NULL) return;
 }
 
-void CGL_shape_destroy(CGL_shape* shape)
+CGL_void CGL_shape_destroy(CGL_shape* shape)
 {
     CGL_free(shape->vertices);
 }
@@ -4546,7 +4547,7 @@ bool CGL_sat_collision_detect(CGL_shape* a, CGL_shape* b, CGL_vec2* n_vector)
     return true;
 }
 
-void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count)
+CGL_void CGL_sat_collision_calculate_axes(CGL_shape* shape, CGL_vec2* axes, CGL_int* axes_count)
 {
     for(size_t i = 0; i < shape->vertices_count; i++)
     {
@@ -5232,7 +5233,7 @@ uint64_t CGL_utils_crc64(const void* data, size_t size)
 
 
 // From : https://github.com/B-Con/crypto-algorithms/blob/master/rot-13.c
-void CGL_utils_rot13(const char* data_in, char* str)
+CGL_void CGL_utils_rot13(const char* data_in, char* str)
 {
    CGL_int case_type, idx, len;
    len = (int)strlen(data_in);
@@ -5376,7 +5377,7 @@ CGL_vec4 CGL_vec4_triple_product(CGL_vec4 a, CGL_vec4 b, CGL_vec4 c)
 }
 
 
-void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc)
+CGL_void CGL_vec3_calculate_orthonormal_basis_from_one_vector(CGL_vec3 a, CGL_vec3* pb, CGL_vec3* pc)
 {
     CGL_vec3_normalize(a);
     CGL_vec3 b = CGL_vec3_init(0.0f, 0.0f, 0.0f);
@@ -5411,7 +5412,7 @@ CGL_mat4 CGL_mat4_mul(CGL_mat4 b, CGL_mat4 a)
 }
 
 // LU decomposition using Kraut's algorithm
-void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u)
+CGL_void CGL_mat4_decompose_lu(CGL_mat4 m, CGL_mat4* l, CGL_mat4* u)
 {
     CGL_mat4 L = CGL_mat4_identity();
     CGL_mat4 U = CGL_mat4_identity();    
@@ -5616,7 +5617,7 @@ float CGL_quat_to_axis_angle(CGL_quat quat, float* x, float* y, float* z)
     return angle;
 }
 
-void CGL_quat_to_euler_zyx(CGL_quat q, float* z, float* y, float* x)
+CGL_void CGL_quat_to_euler_zyx(CGL_quat q, float* z, float* y, float* x)
 {
     // roll (x-axis rotation)
     if(z)
@@ -5654,7 +5655,7 @@ CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b)
     return result;
 }
 
-void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, float* ox, float* oy, float* oz)
+CGL_void CGL_quat_rotate(CGL_quat q, CGL_float x, CGL_float y, CGL_float z, float* ox, float* oy, float* oz)
 {
     CGL_float ww = q.w * q.w;
     CGL_float xx = q.vec.x * q.vec.x;
@@ -6584,7 +6585,7 @@ bool CGL_init()
     return true;
 }
 
-void CGL_shutdown()
+CGL_void CGL_shutdown()
 {
     if(__CGL_context == NULL) return;
     free(__CGL_context);
@@ -6620,7 +6621,7 @@ CGL_sizei CGL_utils_get_file_size(const CGL_byte* path)
 #endif
 }
 
-void CGL_utils_sleep(const CGL_sizei milis)
+CGL_void CGL_utils_sleep(const CGL_sizei milis)
 {
 #if defined(_WIN32) || defined(_WIN64)
     Sleep((DWORD)milis);
@@ -6712,7 +6713,7 @@ struct CGL_window
 };
 
 // callbacks
-void __CGL_window_key_callback(GLFWwindow* window, CGL_int key, CGL_int scancode, CGL_int action, CGL_int mods)
+CGL_void __CGL_window_key_callback(GLFWwindow* window, CGL_int key, CGL_int scancode, CGL_int action, CGL_int mods)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -6722,7 +6723,7 @@ void __CGL_window_key_callback(GLFWwindow* window, CGL_int key, CGL_int scancode
         cgl_window->previous_key_callback(window, key, scancode, action, mods);
 }
 
-void __CGL_window_mouse_button_callback(GLFWwindow* window, CGL_int button, CGL_int action, CGL_int mods)
+CGL_void __CGL_window_mouse_button_callback(GLFWwindow* window, CGL_int button, CGL_int action, CGL_int mods)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -6732,7 +6733,7 @@ void __CGL_window_mouse_button_callback(GLFWwindow* window, CGL_int button, CGL_
         cgl_window->previous_mouse_button_callback(window, button, action, mods);
 }
 
-void __CGL_window_mouse_position_callback(GLFWwindow* window, double xpos, double ypos)
+CGL_void __CGL_window_mouse_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -6742,7 +6743,7 @@ void __CGL_window_mouse_position_callback(GLFWwindow* window, double xpos, doubl
         cgl_window->previous_mouse_position_callback(window, xpos, ypos);
 }
 
-void __CGL_window_mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+CGL_void __CGL_window_mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -6752,7 +6753,7 @@ void __CGL_window_mouse_scroll_callback(GLFWwindow* window, double xoffset, doub
         cgl_window->previous_mouse_scroll_callback(window, xoffset, yoffset);
 }
 
-void __CGL_window_framebuffer_size_callback(GLFWwindow* window, CGL_int width, CGL_int height)
+CGL_void __CGL_window_framebuffer_size_callback(GLFWwindow* window, CGL_int width, CGL_int height)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -6762,7 +6763,7 @@ void __CGL_window_framebuffer_size_callback(GLFWwindow* window, CGL_int width, C
         cgl_window->previous_framebuffer_size_callback(window, width, height);
 }
 
-void __CGL_window_close_callback(GLFWwindow* window)
+CGL_void __CGL_window_close_callback(GLFWwindow* window)
 {
     // CGL_window* cgl_window = (CGL_window*)glfwGetWindowUserPointer(window);
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
@@ -6772,7 +6773,7 @@ void __CGL_window_close_callback(GLFWwindow* window)
         cgl_window->previous_close_callback(window);
 }
 
-void  __CGL_window_drag_n_drop_callback(GLFWwindow* window, CGL_int count, const char** paths)
+CGL_void  __CGL_window_drag_n_drop_callback(GLFWwindow* window, CGL_int count, const char** paths)
 {
     CGL_window* cgl_window = __CGL_context->window_table[(uintptr_t)window % CGL_WINDOW_TABLE_SIZE];
     if(cgl_window->drag_n_drop_callback)
@@ -6856,7 +6857,7 @@ CGL_window* CGL_window_create_undecorated(CGL_int width, CGL_int height, const c
 
 
 // destroy window
-void CGL_window_destroy(CGL_window* window)
+CGL_void CGL_window_destroy(CGL_window* window)
 {
     glfwDestroyWindow(window->handle);
     free(window);
@@ -6868,13 +6869,13 @@ void CGL_window_destroy(CGL_window* window)
 }
 
 // poll events
-void CGL_window_poll_events(CGL_window* window)
+CGL_void CGL_window_poll_events(CGL_window* window)
 {
     glfwPollEvents();
 }
 
 // swap buffers
-void CGL_window_swap_buffers(CGL_window* window)
+CGL_void CGL_window_swap_buffers(CGL_window* window)
 {
     glfwSwapBuffers(window->handle);
 }
@@ -6886,25 +6887,25 @@ bool CGL_window_should_close(CGL_window* window)
 }
 
 // set window title
-void CGL_window_set_title(CGL_window* window, const char* title)
+CGL_void CGL_window_set_title(CGL_window* window, const char* title)
 {
     glfwSetWindowTitle(window->handle, title);
 }
 
 // set window size
-void CGL_window_set_size(CGL_window* window, CGL_int width, CGL_int height)
+CGL_void CGL_window_set_size(CGL_window* window, CGL_int width, CGL_int height)
 {
     glfwSetWindowSize(window->handle, width, height);
 }
 
 // set window position
-void CGL_window_set_position(CGL_window* window, CGL_int x, CGL_int y)
+CGL_void CGL_window_set_position(CGL_window* window, CGL_int x, CGL_int y)
 {
     glfwSetWindowPos(window->handle, x, y);
 }
 
 // set window hidden
-void CGL_window_set_hidden(CGL_window* window, bool hidden)
+CGL_void CGL_window_set_hidden(CGL_window* window, bool hidden)
 {
     if (hidden)
         glfwHideWindow(window->handle);
@@ -6914,37 +6915,37 @@ void CGL_window_set_hidden(CGL_window* window, bool hidden)
 }
 
 // set window user data
-void CGL_window_set_user_data(CGL_window* window, void* user_data)
+CGL_void CGL_window_set_user_data(CGL_window* window, void* user_data)
 {
     window->user_data = user_data;
 }
 
 // get window user data
-void* CGL_window_get_user_data(CGL_window* window)
+CGL_void* CGL_window_get_user_data(CGL_window* window)
 {
     return window->user_data;
 }
 
 // get window size
-void CGL_window_get_size(CGL_window* window, CGL_int* width, CGL_int* height)
+CGL_void CGL_window_get_size(CGL_window* window, CGL_int* width, CGL_int* height)
 {
     glfwGetWindowSize(window->handle, width, height);
 }
 
 // get window position
-void CGL_window_get_position(CGL_window* window, CGL_int* x, CGL_int* y)
+CGL_void CGL_window_get_position(CGL_window* window, CGL_int* x, CGL_int* y)
 {
     glfwGetWindowPos(window->handle, x, y);
 }
 
 // get window framebuffer size
-void CGL_window_get_framebuffer_size(CGL_window* window, CGL_int* width, CGL_int* height)
+CGL_void CGL_window_get_framebuffer_size(CGL_window* window, CGL_int* width, CGL_int* height)
 {
     glfwGetFramebufferSize(window->handle, width, height);
 }
 
 // set key callback
-void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback callback)
+CGL_void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback callback)
 {
     if(window->key_callback == NULL)
         window->previous_key_callback = glfwSetKeyCallback(window->handle, __CGL_window_key_callback);
@@ -6952,7 +6953,7 @@ void CGL_window_set_key_callback(CGL_window* window, CGL_window_key_callback cal
 }
 
 // set mouse button callback
-void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_button_callback callback)
+CGL_void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_button_callback callback)
 {
     if(window->mouse_button_callback == NULL)
         window->previous_mouse_button_callback = glfwSetMouseButtonCallback(window->handle, __CGL_window_mouse_button_callback);
@@ -6960,7 +6961,7 @@ void CGL_window_set_mouse_button_callback(CGL_window* window, CGL_window_mouse_b
 }
 
 // set mouse position callback
-void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse_position_callback callback)
+CGL_void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse_position_callback callback)
 {
     if(window->mouse_position_callback == NULL)
         window->previous_mouse_position_callback = glfwSetCursorPosCallback(window->handle, __CGL_window_mouse_position_callback);
@@ -6968,7 +6969,7 @@ void CGL_window_set_mouse_position_callback(CGL_window* window, CGL_window_mouse
 }
 
 // set mouse scroll callback
-void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback)
+CGL_void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_scroll_callback callback)
 {
     if(window->mouse_scroll_callback == NULL)
         window->previous_mouse_scroll_callback = glfwSetScrollCallback(window->handle, __CGL_window_mouse_scroll_callback);
@@ -6976,7 +6977,7 @@ void CGL_window_set_mouse_scroll_callback(CGL_window* window, CGL_window_mouse_s
 }
 
 // set framebuffer size callback
-void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback)
+CGL_void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_framebuffer_size_callback callback)
 {
     if(window->framebuffer_size_callback == NULL)
         window->previous_framebuffer_size_callback = glfwSetFramebufferSizeCallback(window->handle, __CGL_window_framebuffer_size_callback);
@@ -6984,14 +6985,14 @@ void CGL_window_set_framebuffer_size_callback(CGL_window* window, CGL_window_fra
 }
 
 // set close callback
-void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback)
+CGL_void CGL_window_set_close_callback(CGL_window* window, CGL_window_close_callback callback)
 {
     if(window->close_callback == NULL)
         window->previous_close_callback = glfwSetWindowCloseCallback(window->handle, __CGL_window_close_callback);
     window->close_callback = callback;
 }
 
-void CGL_window_set_drag_n_drop_callback(CGL_window* window, CGL_window_drag_n_drop_callback callback) // set drag and drop callback
+CGL_void CGL_window_set_drag_n_drop_callback(CGL_window* window, CGL_window_drag_n_drop_callback callback) // set drag and drop callback
 {
     if(window->drag_n_drop_callback == NULL)
         window->previous_drag_n_drop_callback = glfwSetDropCallback(window->handle, __CGL_window_drag_n_drop_callback);
@@ -6999,7 +7000,7 @@ void CGL_window_set_drag_n_drop_callback(CGL_window* window, CGL_window_drag_n_d
 }
 
 
-void CGL_window_resecure_callbacks(CGL_window* window)
+CGL_void CGL_window_resecure_callbacks(CGL_window* window)
 {
     if(window->key_callback != NULL)
     {
@@ -7063,13 +7064,13 @@ CGL_int CGL_window_get_mouse_button(CGL_window* window, CGL_int button)
 }
 
 // get mouse position
-void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypos)
+CGL_void CGL_window_get_mouse_position(CGL_window* window, double* xpos, double* ypos)
 {
     glfwGetCursorPos(window->handle, xpos, ypos);
 }
 
 // make opengl context current
-void CGL_window_make_context_current(CGL_window* window)
+CGL_void CGL_window_make_context_current(CGL_window* window)
 {
     glfwMakeContextCurrent(window->handle);
 }
@@ -7247,7 +7248,7 @@ CGL_texture* CGL_texture_create_array(CGL_int width, CGL_int height, CGL_int lay
     return texture;
 }
 
-void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image)
+CGL_void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image* image)
 {
     GLenum format, internal_format, type;
     if(image->channels == 3)
@@ -7271,7 +7272,7 @@ void CGL_texture_cubemap_set_face(CGL_texture* texture, CGL_int face, CGL_image*
 	glBindTexture(texture->target, 0);
 }
 
-void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data)
+CGL_void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void* data)
 {
     glBindTexture(texture->target, texture->handle);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -7280,14 +7281,14 @@ void CGL_texture_array_set_layer_data(CGL_texture* texture, CGL_int layer, void*
 	glBindTexture(texture->target, 0);
 }
 
-void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method)
+CGL_void CGL_texture_set_scaling_method(CGL_texture* texture, GLint method)
 {
 	glBindTexture(texture->target, texture->handle);
     glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, method);
     glTexParameteri(texture->target, GL_TEXTURE_MAG_FILTER, method);
 }
 
-void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
+CGL_void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
 {
 	glBindTexture(texture->target, texture->handle);
     glTexParameteri(texture->target, GL_TEXTURE_WRAP_S, method);
@@ -7298,7 +7299,7 @@ void CGL_texture_set_wrapping_method(CGL_texture* texture, GLint method)
 }
 
 // destroy texture
-void CGL_texture_destroy(CGL_texture* texture)
+CGL_void CGL_texture_destroy(CGL_texture* texture)
 {
     glDeleteTextures(1, &texture->handle);
     CGL_free(texture);
@@ -7313,7 +7314,7 @@ CGL_int CGL_texture_bind(CGL_texture* texture, CGL_int unit)
 }
 
 // set texture data
-void CGL_texture_set_data(CGL_texture* texture, void* data)
+CGL_void CGL_texture_set_data(CGL_texture* texture, void* data)
 {
     glBindTexture(texture->target, texture->handle);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -7322,7 +7323,7 @@ void CGL_texture_set_data(CGL_texture* texture, void* data)
     glBindTexture(texture->target, 0);
 }
 
-void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data) // set texture sub data
+CGL_void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offset_y, size_t size_x, size_t size_y,  void* data) // set texture sub data
 {
     glBindTexture(texture->target, texture->handle);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -7331,7 +7332,7 @@ void CGL_texture_set_sub_data(CGL_texture* texture, size_t offset_x, size_t offs
     glBindTexture(texture->target, 0);
 }
 
-void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data)
+CGL_void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data)
 {
     glBindTexture(texture->target, texture->handle);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -7341,13 +7342,13 @@ void CGL_texture_set_pixel_data(CGL_texture* texture, int x, int y, void* data)
 }
 
 // set texture user data
-void CGL_texture_set_user_data(CGL_texture* texture, void* user_data)
+CGL_void CGL_texture_set_user_data(CGL_texture* texture, void* user_data)
 {
     texture->user_data = user_data;
 }
 
 // get texture user data
-void* CGL_texture_get_user_data(CGL_texture* texture)
+CGL_void* CGL_texture_get_user_data(CGL_texture* texture)
 {
     return texture->user_data;
 }
@@ -7358,7 +7359,7 @@ CGL_uint CGL_texture_get_internal_handle(CGL_texture* texture)
 }
 
 // get texture size
-void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height)
+CGL_void CGL_texture_get_size(CGL_texture* texture, CGL_int* width, CGL_int* height)
 {
     if(width)   *width = texture->width;
     if(height)  *height = texture->height;
@@ -7515,7 +7516,7 @@ CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height)
 
 }
 
-void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture)
+CGL_void CGL_framebuffer_add_color_attachment(CGL_framebuffer* framebuffer, CGL_texture* texture)
 {
     if(framebuffer->is_default)
     {
@@ -7586,7 +7587,7 @@ CGL_framebuffer* CGL_framebuffer_create_from_default(CGL_window* window)
 #endif
 
 // destroy framebuffer
-void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer)
+CGL_void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer)
 {
     if(!framebuffer->is_default)
     {
@@ -7603,7 +7604,7 @@ void CGL_framebuffer_destroy(CGL_framebuffer* framebuffer)
 }
 
 // bind framebuffer
-void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
+CGL_void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
 {
     if(framebuffer->is_default)
     {
@@ -7631,7 +7632,7 @@ void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
 }
 
 // get framebuffer size
-void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height)
+CGL_void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_int* height)
 {
     if(framebuffer->is_default)
     {
@@ -7652,20 +7653,20 @@ void CGL_framebuffer_get_size(CGL_framebuffer* framebuffer, CGL_int* width, CGL_
 }
 
 // set framebuffer user data
-void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data)
+CGL_void CGL_framebuffer_set_user_data(CGL_framebuffer* framebuffer, void* user_data)
 {
     if(!framebuffer->is_default) framebuffer->user_data = user_data;
 }
 
 // get framebuffer user data
-void* CGL_framebuffer_get_user_data(CGL_framebuffer* framebuffer)
+CGL_void* CGL_framebuffer_get_user_data(CGL_framebuffer* framebuffer)
 {
     if(!framebuffer->is_default) return framebuffer->user_data;
     return NULL;
 }
 
 // read pixels from framebuffer
-void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int width, CGL_int height, void* pixels)
+CGL_void CGL_framebuffer_read_pixels(CGL_framebuffer* framebuffer, CGL_int x, CGL_int y, CGL_int width, CGL_int height, void* pixels)
 {    
     if(framebuffer->color_attachment_count != 0) return;
     if(framebuffer->is_default) return;
@@ -7729,26 +7730,26 @@ CGL_ssbo* CGL_ssbo_create(uint32_t binding)
 }
 
 // destroy ssbo
-void CGL_ssbo_destroy(CGL_ssbo* ssbo)
+CGL_void CGL_ssbo_destroy(CGL_ssbo* ssbo)
 {
     glDeleteBuffers(1, &ssbo->handle);
     free(ssbo);
 }
 
 // bind ssbo
-void CGL_ssbo_bind(CGL_ssbo* ssbo)
+CGL_void CGL_ssbo_bind(CGL_ssbo* ssbo)
 {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
 }
 
-void CGL_ssbo_bind2(CGL_ssbo* ssbo, uint32_t binding)
+CGL_void CGL_ssbo_bind2(CGL_ssbo* ssbo, uint32_t binding)
 {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo->handle);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
 }
 
 // set ssbo data
-void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_draw)
+CGL_void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_draw)
 {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo->handle);
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, static_draw ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
@@ -7757,7 +7758,7 @@ void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_draw
 }
 
 // set ssbo sub data
-void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data, bool static_draw)
+CGL_void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data, bool static_draw)
 {
     if(offset + size > ssbo->size)
     {
@@ -7770,7 +7771,7 @@ void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* dat
 }
 
 // get ssbo data
-void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data)
+CGL_void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data)
 {
     if(size)
         *size = ssbo->size;
@@ -7780,7 +7781,7 @@ void CGL_ssbo_get_data(CGL_ssbo* ssbo, size_t* size, void* data)
 }
 
 // get ssbo sub data
-void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data)
+CGL_void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data)
 {
     if(offset + size > ssbo->size)
     {
@@ -7793,13 +7794,13 @@ void CGL_ssbo_get_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* dat
 }
 
 // set ssbo user data
-void CGL_ssbo_set_user_data(CGL_ssbo* ssbo, void* user_data)
+CGL_void CGL_ssbo_set_user_data(CGL_ssbo* ssbo, void* user_data)
 {
     ssbo->user_data = user_data;
 }
 
 // get ssbo user data
-void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo)
+CGL_void* CGL_ssbo_get_user_data(CGL_ssbo* ssbo)
 {
     return ssbo->user_data;
 }
@@ -7811,7 +7812,7 @@ size_t CGL_ssbo_get_size(CGL_ssbo* ssbo)
 }
 
 // copy ssbo
-void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size)
+CGL_void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t dst_offset, size_t size)
 {
     if(dst_offset + size > dst->size)
     {
@@ -7853,13 +7854,13 @@ CGL_ubo* CGL_ubo_create()
     return ubo;
 }
 
-void CGL_ubo_destroy(CGL_ubo* ubo)
+CGL_void CGL_ubo_destroy(CGL_ubo* ubo)
 {
     glDeleteBuffers(1, &ubo->handle);
     CGL_free(ubo);
 }
 
-void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32_t binding)
+CGL_void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32_t binding)
 {
     CGL_uint index = glGetUniformBlockIndex(shader->handle, name);
     if(index == GL_INVALID_INDEX) {CGL_log_internal("CGL_ubo_bind: glGetUniformBlockIndex failed");return;}
@@ -7868,7 +7869,7 @@ void CGL_ubo_bind(CGL_ubo* ubo, CGL_shader* shader, const CGL_byte* name, uint32
     ubo->binding = binding;
 }
 
-void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw)
+CGL_void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw)
 {
     glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
     glBufferData(GL_UNIFORM_BUFFER, size, data, static_draw ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
@@ -7876,7 +7877,7 @@ void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_draw)
     ubo->size = size;
 }
 
-void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw)
+CGL_void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw)
 {
     if(offset + size > ubo->size) {CGL_log_internal("CGL_ubo_set_sub_data: offset + size > ubo->size");return;}
     glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
@@ -7885,7 +7886,7 @@ void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, 
     ubo->size = CGL_utils_max(ubo->size, offset + size);
 }
 
-void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data)
+CGL_void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data)
 {
     if(size) *size = ubo->size;
     glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
@@ -7893,7 +7894,7 @@ void CGL_ubo_get_data(CGL_ubo* ubo, size_t* size, void* data)
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data)
+CGL_void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data)
 {
     if(offset + size > ubo->size) {CGL_log_internal("CGL_ubo_get_sub_data: offset + size > ubo->size");return;}
     glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
@@ -7901,12 +7902,12 @@ void CGL_ubo_get_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data)
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void CGL_ubo_set_user_data(CGL_ubo* ubo, void* user_data)
+CGL_void CGL_ubo_set_user_data(CGL_ubo* ubo, void* user_data)
 {
     ubo->user_data = user_data;
 }
 
-void* CGL_ubo_get_user_data(CGL_ubo* ubo)
+CGL_void* CGL_ubo_get_user_data(CGL_ubo* ubo)
 {
     return ubo->user_data;
 }
@@ -7919,7 +7920,7 @@ size_t CGL_ubo_get_size(CGL_ubo* ubo)
 
 // gl
 // clear 
-void CGL_gl_clear(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
+CGL_void CGL_gl_clear(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {    
     glClearColor(r, g, b, a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -7950,12 +7951,12 @@ bool CGL_gl_init()
 }
 
 // clean up
-void CGL_gl_shutdown()
+CGL_void CGL_gl_shutdown()
 {
     CGL_mesh_gpu_destroy(__CGL_GL_SCREEN_QUAD_MESH);
 }
 
-void CGL_gl_render_screen_quad()
+CGL_void CGL_gl_render_screen_quad()
 {
     CGL_mesh_gpu_render(__CGL_GL_SCREEN_QUAD_MESH);
 }
@@ -8000,7 +8001,7 @@ CGL_mesh_gpu* CGL_mesh_gpu_create()
 }
 
 // destroy mesh (gpu)
-void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh)
+CGL_void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh)
 {
     glDeleteBuffers(1, &mesh->index_buffer);
     glDeleteBuffers(1, &mesh->vertex_buffer);
@@ -8009,7 +8010,7 @@ void CGL_mesh_gpu_destroy(CGL_mesh_gpu* mesh)
 }
 
 // bind mesh (gpu)
-void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
+CGL_void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
 {
     if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
@@ -8018,7 +8019,7 @@ void CGL_mesh_gpu_render(CGL_mesh_gpu* mesh)
 }
 
 // render mesh instanfced (gpu)
-void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
+CGL_void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
 {
     if(mesh->index_count <= 0) return;
     glBindVertexArray(mesh->vertex_array);
@@ -8027,7 +8028,7 @@ void CGL_mesh_gpu_render_instanced(CGL_mesh_gpu* mesh, uint32_t count)
 }
 
 // upload mesh from (cpu) to (gpu)
-void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw)
+CGL_void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static_draw)
 {
     if(mesh_cpu->index_count <= 0) return;
     mesh->index_count = mesh_cpu->index_count_used;
@@ -8039,19 +8040,19 @@ void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool static
 }
 
 // set mesh user data
-void CGL_mesh_gpu_set_user_data(CGL_mesh_gpu* mesh, void* user_data)
+CGL_void CGL_mesh_gpu_set_user_data(CGL_mesh_gpu* mesh, void* user_data)
 {
     mesh->user_data = user_data;
 }
 
 // get mesh user data
-void* CGL_mesh_gpu_get_user_data(CGL_mesh_gpu* mesh)
+CGL_void* CGL_mesh_gpu_get_user_data(CGL_mesh_gpu* mesh)
 {
     return mesh->user_data;
 }
 
 // destroy mesh (cpu)
-void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh)
+CGL_void CGL_mesh_cpu_destroy(CGL_mesh_cpu* mesh)
 {
     if(mesh->vertices) CGL_free(mesh->vertices);
     if(mesh->indices) CGL_free(mesh->indices);
@@ -8111,7 +8112,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh)
     return mesh;
 }
 
-void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, CGL_int count)
+CGL_void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, CGL_int count)
 {
     char* begin = line;
     char* end = line + strlen(line);
@@ -8646,7 +8647,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(bool use_3d_tex_coords)
     return CGL_mesh_cpu_add_cube(mesh, use_3d_tex_coords);
 }
 
-void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name)
+CGL_void CGL_mesh_cpu_generate_c_initialization_code(CGL_mesh_cpu* mesh, char* buffer, const char* function_name)
 {
     static char temp_buffer[1024];
     buffer[0] = '\0';
@@ -8847,14 +8848,14 @@ CGL_shader* CGL_shader_create_from_files(const char* vertex_shader_file, const c
 }
 
 // destroy shader
-void CGL_shader_destroy(CGL_shader* shader)
+CGL_void CGL_shader_destroy(CGL_shader* shader)
 {
     glDeleteProgram(shader->handle);
     CGL_free(shader);
 }
 
 // dispatch compute shader
-void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_int z)
+CGL_void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_int z)
 {
     glUseProgram(shader->handle);
     glDispatchCompute(x, y, z);
@@ -8862,7 +8863,7 @@ void CGL_shader_compute_dispatch(CGL_shader* shader, CGL_int x, CGL_int y, CGL_i
 }
 
 // bind shader
-void CGL_shader_bind(CGL_shader* shader)
+CGL_void CGL_shader_bind(CGL_shader* shader)
 {
     glUseProgram(shader->handle);
 }
@@ -8874,97 +8875,97 @@ int CGL_shader_get_uniform_location(CGL_shader* shader, const char* name)
 }
 
 // set uniform bool
-void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value)
+CGL_void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value)
 {
     glUniform1i(location, value);
 }
 
 // set uniform matrix
-void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix)
+CGL_void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix)
 {
     glUniformMatrix4fv(location, 1, GL_FALSE, (GLfloat*)matrix->m);
     //glUniformMatrix4fv(location, 1, GL_TRUE, (GLfloat*)matrix);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector)
+CGL_void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector)
 {
     glUniform4fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector)
+CGL_void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector)
 {
     glUniform3fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector)
+CGL_void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector)
 {
     glUniform2fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform int
-void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value)
+CGL_void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value)
 {
     glUniform1i(location, value);
 }
 
 // set uniform float
-void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value)
+CGL_void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value)
 {
     glUniform1f(location, value);
 }
 
 // set uniform double
-void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value)
+CGL_void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value)
 {
     glUniform1d(location, value);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y)
+CGL_void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y)
 {
     glUniform2f(location, x, y);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z)
+CGL_void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z)
 {
     glUniform3f(location, x, y, z);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w)
+CGL_void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w)
 {
     glUniform4f(location, x, y, z, w);
 }
 
-void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y)
+CGL_void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y)
 {
     glUniform2i(location, x, y);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z)
+CGL_void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z)
 {
     glUniform3i(location, x, y, z);
 }
 
 // set uniform vector
-void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w)
+CGL_void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w)
 {
     glUniform4i(location, x, y, z, w);
 }
 
 // set shader user data
-void CGL_shader_set_user_data(CGL_shader* shader, void* user_data)
+CGL_void CGL_shader_set_user_data(CGL_shader* shader, void* user_data)
 {
     shader->user_data = user_data;
 }
 
 // get shader user data
-void* CGL_shader_get_user_data(CGL_shader* shader)
+CGL_void* CGL_shader_get_user_data(CGL_shader* shader)
 {
     return shader->user_data;
 }
@@ -9164,7 +9165,7 @@ CGL_bloom* CGL_bloom_create(CGL_int width, CGL_int height, CGL_int iterations)
     return bloom;
 }
 
-void CGL_bloom_destroy(CGL_bloom* bloom)
+CGL_void CGL_bloom_destroy(CGL_bloom* bloom)
 {
     CGL_texture_destroy(bloom->prefiltered);
     for(CGL_int i = 0 ; i < bloom->iterations * 2 ; i++)
@@ -9173,7 +9174,7 @@ void CGL_bloom_destroy(CGL_bloom* bloom)
     CGL_free(bloom);
 }
 
-void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_dst)
+CGL_void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_dst)
 {
     CGL_shader_bind(bloom->compute);
 
@@ -9231,7 +9232,7 @@ void CGL_bloom_apply2(CGL_bloom* bloom, CGL_texture* tex_src, CGL_texture* tex_d
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
+CGL_void CGL_bloom_apply(CGL_bloom* bloom, CGL_texture* tex)
 {
     CGL_bloom_apply2(bloom, tex, tex);
 }
@@ -9246,7 +9247,7 @@ CGL_texture* CGL_bloom_get_prefiltered_texture(CGL_bloom* bloom)
     return bloom->prefiltered;
 }
 
-void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val)
+CGL_void CGL_bloom_set_knee(CGL_bloom* bloom, CGL_float val)
 {
     bloom->knee = val;
 }
@@ -9256,7 +9257,7 @@ float CGL_bloom_get_knee(CGL_bloom* bloom)
     return bloom->knee;
 }
 
-void CGL_bloom_set_threshold(CGL_bloom* bloom, CGL_float val)
+CGL_void CGL_bloom_set_threshold(CGL_bloom* bloom, CGL_float val)
 {
     bloom->threshold = val;
 }
@@ -9271,7 +9272,7 @@ int CGL_bloom_get_iterations(CGL_bloom* bloom)
     return bloom->iterations;
 }
 
-void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y)
+CGL_void CGL_bloom_set_offset(CGL_bloom* bloom, CGL_float x, CGL_float y)
 {
     bloom->offset_x = x;
     bloom->offset_y = y;
@@ -9319,7 +9320,7 @@ CGL_camera* CGL_camera_create()
     return camera;
 }
 
-void CGL_camera_destroy(CGL_camera* camera)
+CGL_void CGL_camera_destroy(CGL_camera* camera)
 {
     CGL_free(camera);
 }
@@ -9359,38 +9360,38 @@ CGL_vec4 CGL_camera_get_orthographic_limits(CGL_camera* camera)
     return camera->ortho_limits;
 }
 
-void CGL_camera_set_fov(CGL_camera* camera, CGL_float fov)
+CGL_void CGL_camera_set_fov(CGL_camera* camera, CGL_float fov)
 {
     camera->fov = fov;
 }
 
-void CGL_camera_set_aspect_ratio(CGL_camera* camera, CGL_float aspect_ratio)
+CGL_void CGL_camera_set_aspect_ratio(CGL_camera* camera, CGL_float aspect_ratio)
 {
     if(fabs(aspect_ratio) < 0.001f || fabs(aspect_ratio) > 100.0f )aspect_ratio = 1.0f;
     camera->aspect = aspect_ratio;
 }
 
-void CGL_camera_set_z_near(CGL_camera* camera, CGL_float z_near)
+CGL_void CGL_camera_set_z_near(CGL_camera* camera, CGL_float z_near)
 {
     camera->z_near = z_near;
 }
 
-void CGL_camera_set_z_far(CGL_camera* camera, CGL_float z_far)
+CGL_void CGL_camera_set_z_far(CGL_camera* camera, CGL_float z_far)
 {
     camera->z_far = z_far;
 }
 
-void CGL_camera_set_orthographic_limits(CGL_camera* camera, CGL_vec4 ortho_limits)
+CGL_void CGL_camera_set_orthographic_limits(CGL_camera* camera, CGL_vec4 ortho_limits)
 {
     camera->ortho_limits = ortho_limits;
 }
 
-void CGL_camera_set_perspective(CGL_camera* camera)
+CGL_void CGL_camera_set_perspective(CGL_camera* camera)
 {
     camera->is_perspective = true;
 }
 
-void CGL_camera_set_orthographic(CGL_camera* camera)
+CGL_void CGL_camera_set_orthographic(CGL_camera* camera)
 {
     camera->is_perspective = false;
 }
@@ -9425,12 +9426,12 @@ CGL_mat4* CGL_camera_get_pv_mat_ptr(CGL_camera* camera)
     return &camera->pv;
 }
 
-void CGL_camera_set_position(CGL_camera* camera, CGL_vec3 position)
+CGL_void CGL_camera_set_position(CGL_camera* camera, CGL_vec3 position)
 {
     camera->position = position;
 }
 
-void CGL_camera_set_rotation(CGL_camera* camera, CGL_vec3 rotation)
+CGL_void CGL_camera_set_rotation(CGL_camera* camera, CGL_vec3 rotation)
 {
     camera->rotation = rotation;
 }
@@ -9470,7 +9471,7 @@ CGL_vec3 CGL_camera_get_up(CGL_camera* camera)
     return camera->up;    
 }
 
-void CGL_camera_recalculate_mat(CGL_camera* camera)
+CGL_void CGL_camera_recalculate_mat(CGL_camera* camera)
 {
     if(camera->is_perspective)
         camera->projection = CGL_mat4_perspective(camera->aspect, camera->fov, camera->z_near, camera->z_far);
@@ -9828,7 +9829,7 @@ CGL_phong_pipeline* CGL_phong_pipeline_create()
 }
 
 // pipeline_destroy
-void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline)
+CGL_void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline)
 {
     CGL_shader_destroy(pipeline->shader);
     for(CGL_int i = 0 ; i < CGL_utils_array_size(pipeline->lights); i++)
@@ -9837,7 +9838,7 @@ void CGL_phong_pipeline_destroy(CGL_phong_pipeline* pipeline)
     CGL_free(pipeline);
 }
 
-void CGL_phong_pipeline_set_ambient_light_color(CGL_phong_pipeline* pipeline, CGL_vec3 color)
+CGL_void CGL_phong_pipeline_set_ambient_light_color(CGL_phong_pipeline* pipeline, CGL_vec3 color)
 {
     pipeline->ambient_light_color = color;
 }
@@ -9847,17 +9848,17 @@ CGL_vec3 CGL_phong_pipeline_get_ambient_light_color(CGL_phong_pipeline* pipeline
     return pipeline->ambient_light_color;
 }
 
-void CGL_phong_pipeline_enable_gamma_correction(CGL_phong_pipeline* pipeline)
+CGL_void CGL_phong_pipeline_enable_gamma_correction(CGL_phong_pipeline* pipeline)
 {
     pipeline->use_gamma_correction = true;
 }
 
-void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline)
+CGL_void CGL_phong_pipeline_disable_gamma_correction(CGL_phong_pipeline* pipeline)
 {
     pipeline->use_gamma_correction = false;
 }
 
-void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, CGL_float strength)
+CGL_void CGL_phong_pipeline_set_ambient_light_strength(CGL_phong_pipeline* pipeline, CGL_float strength)
 {
     pipeline->ambient_light_strength = CGL_utils_clamp(strength, 0.0f, 1000.0f);
 }
@@ -9868,13 +9869,13 @@ float CGL_phong_pipeline_get_ambient_light_strength(CGL_phong_pipeline* pipeline
 }
 
 // pipeline_set_user_data
-void CGL_phong_pipeline_set_user_data(CGL_phong_pipeline* pipeline, void* data)
+CGL_void CGL_phong_pipeline_set_user_data(CGL_phong_pipeline* pipeline, void* data)
 {
     pipeline->user_data = data;
 }
 
 // pipeline_get_user_data
-void* CGL_phong_pipeline_get_user_data(CGL_phong_pipeline* pipeline)
+CGL_void* CGL_phong_pipeline_get_user_data(CGL_phong_pipeline* pipeline)
 {
     return pipeline->user_data;
 }
@@ -9886,13 +9887,13 @@ bool CGL_phong_pipeline_is_using_blinn(CGL_phong_pipeline* pipeline)
 }
 
 // pipeline_enable_blinn
-void CGL_phong_pipeline_enable_blinn(CGL_phong_pipeline* pipeline)
+CGL_void CGL_phong_pipeline_enable_blinn(CGL_phong_pipeline* pipeline)
 {
     pipeline->use_blinn = true;
 }
 
 // pipeline_disable_blinn
-void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline)
+CGL_void CGL_phong_pipeline_disable_blinn(CGL_phong_pipeline* pipeline)
 {
     pipeline->use_blinn = false;
 }
@@ -9945,7 +9946,7 @@ CGL_phong_mat* CGL_phong_mat_create()
 }
 
 // mat_destroy
-void CGL_phong_mat_destroy(CGL_phong_mat* mat)
+CGL_void CGL_phong_mat_destroy(CGL_phong_mat* mat)
 {
     if(mat->use_diffuse_texture)
         CGL_texture_destroy(mat->diffuse_texture);
@@ -9957,7 +9958,7 @@ void CGL_phong_mat_destroy(CGL_phong_mat* mat)
 }
 
 // mat_set_diffuse_color
-void CGL_phong_mat_set_diffuse_color(CGL_phong_mat* mat, CGL_vec3 color)
+CGL_void CGL_phong_mat_set_diffuse_color(CGL_phong_mat* mat, CGL_vec3 color)
 {
     if(mat->use_diffuse_texture)
         CGL_texture_destroy(mat->diffuse_texture);
@@ -9968,7 +9969,7 @@ void CGL_phong_mat_set_diffuse_color(CGL_phong_mat* mat, CGL_vec3 color)
 }
 
 // mat_set_diffuse_texture
-void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image)
+CGL_void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image)
 {
     if(mat->use_diffuse_texture)
         CGL_texture_destroy(mat->diffuse_texture);
@@ -9978,7 +9979,7 @@ void CGL_phong_mat_set_diffuse_texture(CGL_phong_mat* mat, CGL_image* image)
 }
 
 // mat_set_specular_color
-void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color)
+CGL_void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color)
 {
     if(mat->use_specular_texture)
         CGL_texture_destroy(mat->specular_texture);
@@ -9989,7 +9990,7 @@ void CGL_phong_mat_set_specular_color(CGL_phong_mat* mat, CGL_vec3 color)
 }
 
 // mat_set_specular_texture
-void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image)
+CGL_void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image)
 {
     if(mat->use_specular_texture)
         CGL_texture_destroy(mat->specular_texture);
@@ -9999,7 +10000,7 @@ void CGL_phong_mat_set_specular_texture(CGL_phong_mat* mat, CGL_image* image)
 }
 
 // mat_set_normal_texture
-void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image)
+CGL_void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image)
 {
     if(mat->use_normal_map)
         CGL_texture_destroy(mat->normal_map_texture);
@@ -10009,25 +10010,25 @@ void CGL_phong_mat_set_normal_texture(CGL_phong_mat* mat, CGL_image* image)
 }
 
 // mat_set_shininess
-void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, CGL_float shininess)
+CGL_void CGL_phong_mat_set_shininess(CGL_phong_mat* mat, CGL_float shininess)
 {
     mat->shininess = shininess;
 }
 
 // mat_set_user_data
-void CGL_phong_mat_set_user_data(CGL_phong_mat* mat, void* data)
+CGL_void CGL_phong_mat_set_user_data(CGL_phong_mat* mat, void* data)
 {
     mat->user_data = data;
 }
 
 // mat_get_user_data
-void* CGL_phong_mat_get_user_data(CGL_phong_mat* mat)
+CGL_void* CGL_phong_mat_get_user_data(CGL_phong_mat* mat)
 {
     return mat->user_data;
 }
 
 // mat_disable_normal_map
-void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat)
+CGL_void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat)
 {
     if(mat->use_normal_map)
         CGL_texture_destroy(mat->normal_map_texture);
@@ -10037,13 +10038,13 @@ void CGL_phong_mat_disable_normal_map(CGL_phong_mat* mat)
 }
 
 // mat_enable_wireframe
-void CGL_phong_mat_enable_wireframe(CGL_phong_mat* mat)
+CGL_void CGL_phong_mat_enable_wireframe(CGL_phong_mat* mat)
 {
     mat->wireframe = true;
 }
 
 // mat_disable_wireframe
-void CGL_phong_mat_disable_wireframe(CGL_phong_mat* mat)
+CGL_void CGL_phong_mat_disable_wireframe(CGL_phong_mat* mat)
 {
     mat->wireframe = false;
 }
@@ -10080,19 +10081,19 @@ CGL_phong_light* CGL_phong_light_point(CGL_vec3 position, CGL_vec3 color, CGL_fl
 }
 
 // light_destroy
-void CGL_phong_light_destroy(CGL_phong_light* light)
+CGL_void CGL_phong_light_destroy(CGL_phong_light* light)
 {
     CGL_free(light);
 }
 
 // light_set_intensity
-void CGL_phong_light_set_intensity(CGL_phong_light* light, CGL_float intensity)
+CGL_void CGL_phong_light_set_intensity(CGL_phong_light* light, CGL_float intensity)
 {
     light->intensity = intensity;
 }
 
 // light_set_color
-void CGL_phong_light_set_color(CGL_phong_light* light, CGL_vec3 color)
+CGL_void CGL_phong_light_set_color(CGL_phong_light* light, CGL_vec3 color)
 {
     light->color = color;
 }
@@ -10116,7 +10117,7 @@ uint32_t CGL_phong_light_get_type(CGL_phong_light* light)
 }
 
 
-void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera)
+CGL_void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
     if(pipeline->depth_testing) glEnable(GL_DEPTH_TEST);
     else glDisable(GL_DEPTH_TEST);
@@ -10149,7 +10150,7 @@ void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera)
     }
 }
 
-void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat* material, CGL_phong_pipeline* pipeline, CGL_camera* camera)
+CGL_void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat* material, CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
     CGL_shader_set_uniform_mat4(pipeline->shader, pipeline->u_model_matrix, model_matrix);
     CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_diffuse_texture, material->use_diffuse_texture);
@@ -10180,7 +10181,7 @@ void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat*
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
+CGL_void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
     
 }
@@ -10381,7 +10382,7 @@ CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, ui
     return tilemap;
 }
 
-void CGL_tilemap_destroy(CGL_tilemap* tilemap)
+CGL_void CGL_tilemap_destroy(CGL_tilemap* tilemap)
 {
     CGL_ssbo_destroy(tilemap->ssbo);
     CGL_shader_destroy(tilemap->shader);
@@ -10390,7 +10391,7 @@ void CGL_tilemap_destroy(CGL_tilemap* tilemap)
     CGL_free(tilemap);
 }
 
-void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value)
+CGL_void CGL_tilemap_set_auto_upload(CGL_tilemap* tilemap, bool value)
 {
     tilemap->auto_update = value;
 }
@@ -10406,28 +10407,28 @@ bool CGL_tilemap_upload(CGL_tilemap* tilemap)
     return true;
 }
 
-void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b)
+CGL_void CGL_tilemap_set_tile_color(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float r, CGL_float g, CGL_float b)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(r, g, b, 2.5f);
     if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
-void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index)
+CGL_void CGL_tilemap_set_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, uint32_t texture_index)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init((float)texture_index, 0.0f, 0.0f, 1.5f);
     if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
-void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
+CGL_void CGL_tilemap_set_tile_texture_from_tileset(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(texture_x_min, texture_y_min, texture_x_max, texture_y_max);
     if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
-void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float g, CGL_float b)
+CGL_void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float g, CGL_float b)
 {
     CGL_bool auto_update = tilemap->auto_update;
     tilemap->auto_update = false;
@@ -10438,7 +10439,7 @@ void CGL_tilemap_set_all_tile_color(CGL_tilemap* tilemap, CGL_float r, CGL_float
     CGL_tilemap_upload(tilemap);
 }
 
-void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t texture_index)
+CGL_void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t texture_index)
 {
     CGL_bool auto_update = tilemap->auto_update;
     tilemap->auto_update = false;
@@ -10449,7 +10450,7 @@ void CGL_tilemap_set_all_tile_texture_from_array(CGL_tilemap* tilemap, uint32_t 
     CGL_tilemap_upload(tilemap);
 }
 
-void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
+CGL_void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_float texture_x_min, CGL_float texture_y_min, CGL_float texture_x_max, CGL_float texture_y_max)
 {
     CGL_bool auto_update = tilemap->auto_update;
     tilemap->auto_update = false;
@@ -10460,7 +10461,7 @@ void CGL_tilemap_set_all_tile_texture_from_tileset(CGL_tilemap* tilemap, CGL_flo
     CGL_tilemap_upload(tilemap);
 }
 
-void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap)
+CGL_void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap)
 {
     CGL_bool auto_update = tilemap->auto_update;
     tilemap->auto_update = false;
@@ -10471,14 +10472,14 @@ void CGL_tilemap_clear_all_tile(CGL_tilemap* tilemap)
     CGL_tilemap_upload(tilemap);
 }
 
-void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y)
+CGL_void CGL_tilemap_clear_tile(CGL_tilemap* tilemap, uint32_t tile_x, uint32_t tile_y)
 {
     CGL_tile* tile = &tilemap->tile_data[tile_y * tilemap->tile_count_x + tile_x];
     tile->color = CGL_vec4_init(0.0f, 0.0f, 0.0f, 3.5f);
     if(tilemap->auto_update) CGL_ssbo_set_sub_data(tilemap->ssbo, (tile_y * tilemap->tile_count_x + tile_x) * sizeof(CGL_tile), sizeof(CGL_tile), tile, false);
 }
 
-void CGL_tilemap_reset(CGL_tilemap* tilemap)
+CGL_void CGL_tilemap_reset(CGL_tilemap* tilemap)
 {
     for(uint32_t tile_x = 0 ; tile_x < tilemap->tile_count_x ; tile_x++)
     {
@@ -10491,7 +10492,7 @@ void CGL_tilemap_reset(CGL_tilemap* tilemap)
     CGL_ssbo_set_data(tilemap->ssbo, (sizeof(CGL_tile) * tilemap->tile_count_x * tilemap->tile_count_y), tilemap->tile_data, false);
 }
 
-void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture)
+CGL_void CGL_tilemap_render(CGL_tilemap* tilemap, CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y, CGL_texture* texture)
 {
     CGL_shader_bind(tilemap->shader);
     if(texture) CGL_texture_bind(texture, 0);
@@ -10704,7 +10705,7 @@ CGL_sky* CGL_sky_create()
     return sky;
 }
 
-void CGL_sky_destroy(CGL_sky* sky)
+CGL_void CGL_sky_destroy(CGL_sky* sky)
 {
     CGL_texture_destroy(sky->cubemap);
     CGL_mesh_gpu_destroy(sky->skybox_mesh);
@@ -10714,49 +10715,49 @@ void CGL_sky_destroy(CGL_sky* sky)
     CGL_free(sky);
 }
 
-void CGL_sky_use_skybox(CGL_sky* sky)
+CGL_void CGL_sky_use_skybox(CGL_sky* sky)
 {
     sky->active_mesh = sky->skybox_mesh;
 }
 
-void CGL_sky_use_skysphere(CGL_sky* sky)
+CGL_void CGL_sky_use_skysphere(CGL_sky* sky)
 {
     sky->active_mesh = sky->skysphere_mesh;
 }
 
-void CGL_sky_use_cubemap(CGL_sky* sky)
+CGL_void CGL_sky_use_cubemap(CGL_sky* sky)
 {
     sky->is_procedural = false;
 }
 
-void CGL_sky_use_procedural(CGL_sky* sky)
+CGL_void CGL_sky_use_procedural(CGL_sky* sky)
 {
     sky->is_procedural = true;
 }
 
-void CGL_sky_cubemap_set_face(CGL_sky* sky, CGL_int face, CGL_image* image)
+CGL_void CGL_sky_cubemap_set_face(CGL_sky* sky, CGL_int face, CGL_image* image)
 {
     CGL_texture_cubemap_set_face(sky->cubemap, face, image);
 }
 
-void CGL_sky_procedural_set_options(CGL_sky* sky, CGL_float cirrus, CGL_float cumulus, CGL_float upf)
+CGL_void CGL_sky_procedural_set_options(CGL_sky* sky, CGL_float cirrus, CGL_float cumulus, CGL_float upf)
 {
     sky->cirrus = cirrus;
     sky->cumulus = cumulus;
     sky->upf = upf;
 }
 
-void CGL_sky_procedural_set_time(CGL_sky* sky, CGL_float time)
+CGL_void CGL_sky_procedural_set_time(CGL_sky* sky, CGL_float time)
 {
     sky->time = time;
 }
 
-void CGL_sky_procedural_set_sun_position(CGL_sky* sky, CGL_vec3 position)
+CGL_void CGL_sky_procedural_set_sun_position(CGL_sky* sky, CGL_vec3 position)
 {
     sky->sun_pos = position;
 }
 
-void CGL_sky_render(CGL_sky* sky, CGL_camera* camera)
+CGL_void CGL_sky_render(CGL_sky* sky, CGL_camera* camera)
 {
     glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -10818,7 +10819,7 @@ CGL_markov_token_function_ngram_text_context* CGL_markov_token_function_ngram_te
     return ctx;
 }
 
-void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_function_ngram_text_context* context)
+CGL_void CGL_markov_token_function_ngram_text_context_destroy(CGL_markov_token_function_ngram_text_context* context)
 {
     CGL_free(context);
 }
@@ -10878,7 +10879,7 @@ bool CGL_markov_generate(const CGL_markov* markov, const void* key, void* value)
     return true;
 }
 
-void CGL_markov_destroy(CGL_markov* markov)
+CGL_void CGL_markov_destroy(CGL_markov* markov)
 {
     CGL_hashtable_iterator* iterator = CGL_hashtable_iterator_create(markov->hashtable);
     CGL_list* lst = NULL;
@@ -11238,7 +11239,7 @@ CGL_widgets_context* CGL_widgets_context_create(size_t max_vertices, size_t max_
     return context;
 }
 
-void CGL_widgets_context_destory(CGL_widgets_context* context)
+CGL_void CGL_widgets_context_destory(CGL_widgets_context* context)
 {
     glDeleteBuffers(1, &context->index_buffer);
     glDeleteBuffers(1, &context->vertex_buffer);
@@ -11249,13 +11250,13 @@ void CGL_widgets_context_destory(CGL_widgets_context* context)
     CGL_free(context);
 }
 
-void CGL_widgets_adjust_for_aspect_ratio(CGL_float aspect_ratio)
+CGL_void CGL_widgets_adjust_for_aspect_ratio(CGL_float aspect_ratio)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->aspect_ratio = aspect_ratio;
     __CGL_WIDGETS_CURRENT_CONTEXT->adjust_for_aspect_ratio = true;
 }
 
-void CGL_widgets_do_not_adjust_for_aspect_ratio()
+CGL_void CGL_widgets_do_not_adjust_for_aspect_ratio()
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->adjust_for_aspect_ratio = false;
 }
@@ -11271,12 +11272,12 @@ CGL_bool CGL_widgets_init()
     return __CGL_WIDGETS_CURRENT_CONTEXT != NULL;
 }
 
-void CGL_widgets_shutdown()
+CGL_void CGL_widgets_shutdown()
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT) CGL_widgets_context_destory(__CGL_WIDGETS_CURRENT_CONTEXT);
 }
 
-void CGL_window_set_current_context(CGL_widgets_context* context)
+CGL_void CGL_window_set_current_context(CGL_widgets_context* context)
 {
     if(context) __CGL_WIDGETS_CURRENT_CONTEXT = context;
 }
@@ -11388,7 +11389,7 @@ bool CGL_widgets_add_vertices(CGL_mesh_vertex* vertices, size_t vertex_count, ui
 }
 */
 
-void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
+CGL_void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
 {
     CGL_widgets_flush_if_required();
     CGL_vec4 scale = __CGL_WIDGETS_CURRENT_CONTEXT->scale;
@@ -11426,7 +11427,7 @@ void CGL_widgets_add_vertex(CGL_mesh_vertex* vertex)
     __CGL_WIDGETS_CURRENT_CONTEXT->vertices[__CGL_WIDGETS_CURRENT_CONTEXT->vertices_count - 1].normal.w = vt_color.w;
 }
 
-void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh)
+CGL_void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh)
 {
     for(size_t i = 0 ; i < mesh->index_count_used / 3 ; i++)
     {
@@ -11437,7 +11438,7 @@ void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh)
     }
 }
 
-void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord)
+CGL_void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord)
 {
     CGL_mesh_vertex vertex;
     vertex.position = CGL_vec4_init(position.x, position.y, position.z, 1.0f);
@@ -11458,76 +11459,76 @@ void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord)
     CGL_widgets_add_vertex(&vertex);
 }
 
-void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y)
+CGL_void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y)
 {
     CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), CGL_vec2_init(tex_x, tex_y));
 }
 
-void CGL_widgets_add_vertex_p(CGL_vec3 position)
+CGL_void CGL_widgets_add_vertex_p(CGL_vec3 position)
 {
     CGL_widgets_add_vertex_pt(position, CGL_vec2_init(0.0f, 0.0f));
 }
 
-void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z)
+CGL_void CGL_widgets_add_vertex_p3f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z)
 {
     CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), CGL_vec2_init(0.0f, 0.0f));
 }
 
-void CGL_widgets_add_vertex_p3ft(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_vec2 tex_coord)
+CGL_void CGL_widgets_add_vertex_p3ft(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_vec2 tex_coord)
 {
     CGL_widgets_add_vertex_pt(CGL_vec3_init(pos_x, pos_y, pos_z), tex_coord);
 }
 
-void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float tex_y)
+CGL_void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float tex_y)
 {
     CGL_widgets_add_vertex_pt(position, CGL_vec2_init(tex_x, tex_y));
 }
 
-void CGL_widgets_set_stroke_color(CGL_color color)
+CGL_void CGL_widgets_set_stroke_color(CGL_color color)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
 }
 
-void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
+CGL_void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(r, g, b, a);
 }
 
-void CGL_widgets_set_mask(CGL_vec4 mask)
+CGL_void CGL_widgets_set_mask(CGL_vec4 mask)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->mask = mask;
 }
 
-void CGL_widgets_set_maskf(CGL_float min_x, CGL_float min_y, CGL_float max_x, CGL_float max_y)
+CGL_void CGL_widgets_set_maskf(CGL_float min_x, CGL_float min_y, CGL_float max_x, CGL_float max_y)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->mask = CGL_vec4_init(min_x, min_y, max_x, max_y);
 }
 
-void CGL_widgets_set_stroke_thicnkess(CGL_float thickness)
+CGL_void CGL_widgets_set_stroke_thicnkess(CGL_float thickness)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = thickness;
 }
 
-void CGL_widgets_set_fill_color(CGL_color color)
+CGL_void CGL_widgets_set_fill_color(CGL_color color)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
 }
 
-void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
+CGL_void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(r, g, b, a);
 }
 
-void CGL_widgets_set_fill_mode(bool is_enabled)
+CGL_void CGL_widgets_set_fill_mode(bool is_enabled)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = is_enabled;
 }
 
-void CGL_widgets_set_projection_matrix(CGL_mat4* matrix)
+CGL_void CGL_widgets_set_projection_matrix(CGL_mat4* matrix)
 {
     if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu) CGL_widgets_flush();
     if(matrix == NULL) 
@@ -11540,7 +11541,7 @@ void CGL_widgets_set_projection_matrix(CGL_mat4* matrix)
     __CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix = CGL_mat4_mul(__CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix, __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix);
 }
 
-void CGL_widgets_set_view_matrix(CGL_mat4* matrix)
+CGL_void CGL_widgets_set_view_matrix(CGL_mat4* matrix)
 {
     if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu) CGL_widgets_flush();
     if(matrix == NULL) 
@@ -11553,7 +11554,7 @@ void CGL_widgets_set_view_matrix(CGL_mat4* matrix)
     __CGL_WIDGETS_CURRENT_CONTEXT->view_proj_matrix = CGL_mat4_mul(__CGL_WIDGETS_CURRENT_CONTEXT->projection_matrix, __CGL_WIDGETS_CURRENT_CONTEXT->view_matrix);
 }
 
-void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
+CGL_void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
 {
     if(!__CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu) CGL_widgets_flush();
     if(matrix == NULL)  { __CGL_WIDGETS_CURRENT_CONTEXT->model_matrix = CGL_mat4_identity(); return; }
@@ -11594,12 +11595,12 @@ CGL_void CGL_widgets_set_font_texture(CGL_texture* texture)
     __CGL_widgets_set_texture(texture, true);
 }
 
-void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
+CGL_void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
 {
     __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(scale_x, scale_y, offset_x, offset_y);
 }
 
-void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color)
+CGL_void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_color)
 {
     CGL_widgets_flush();
     __CGL_WIDGETS_CURRENT_CONTEXT->diffuse_shading_enabled = true;
@@ -11607,44 +11608,44 @@ void CGL_widgets_enable_diffuse_shading(CGL_vec3 light_position, CGL_vec3 light_
     __CGL_WIDGETS_CURRENT_CONTEXT->light_color = light_color;
 }
 
-void CGL_widgets_disable_diffuse_shading()
+CGL_void CGL_widgets_disable_diffuse_shading()
 {
     CGL_widgets_flush();
     __CGL_WIDGETS_CURRENT_CONTEXT->diffuse_shading_enabled = false;
 }
 
-void CGL_widgets_apply_transformations_on_cpu()
+CGL_void CGL_widgets_apply_transformations_on_cpu()
 {
     CGL_widgets_flush();
     __CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu = true;
 }
-void CGL_widgets_apply_transformations_on_gpu()
+CGL_void CGL_widgets_apply_transformations_on_gpu()
 {
     CGL_widgets_flush();
     __CGL_WIDGETS_CURRENT_CONTEXT->transform_points_on_cpu = false;
 }
 
-void __CGL_widgets_add_triangle_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+CGL_void __CGL_widgets_add_triangle_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 {
     CGL_widgets_add_vertex_p(a);
     CGL_widgets_add_vertex_p(b);
     CGL_widgets_add_vertex_p(c);
 }
 
-static void __CGL_widgets_add_triangle_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+static CGL_void __CGL_widgets_add_triangle_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 {
     CGL_widgets_add_line(a, b);
     CGL_widgets_add_line(b, c);
     CGL_widgets_add_line(a, c);
 }
 
-void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
+CGL_void CGL_widgets_add_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_triangle_filled(a, b, c);
     else __CGL_widgets_add_triangle_stroked(a, b, c);
 }
 
-static void __CGL_widgets_add_quad_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+static CGL_void __CGL_widgets_add_quad_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
 {
     CGL_widgets_add_vertex_pt2f(a, 0.0f, 0.0f);
     CGL_widgets_add_vertex_pt2f(c, 1.0f, 1.0f);
@@ -11654,7 +11655,7 @@ static void __CGL_widgets_add_quad_filled(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CG
     CGL_widgets_add_vertex_pt2f(c, 1.0f, 1.0f);
 }
 
-static void __CGL_widgets_add_quad_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+static CGL_void __CGL_widgets_add_quad_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
 {
     CGL_widgets_add_line(a, b);
     CGL_widgets_add_line(b, c);
@@ -11662,13 +11663,13 @@ static void __CGL_widgets_add_quad_stroked(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, C
     CGL_widgets_add_line(a, d);
 }
 
-void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
+CGL_void CGL_widgets_add_quad(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c, CGL_vec3 d)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_quad_filled(a, b, c, d);
     else __CGL_widgets_add_quad_stroked(a, b, c, d);
 }
 
-void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy)
+CGL_void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float by, CGL_float cx, CGL_float cy, CGL_float dx, CGL_float dy)
 {
     CGL_widgets_add_quad(
         CGL_vec3_init(ax, ay, 0.0f),
@@ -11678,7 +11679,7 @@ void CGL_widgets_add_quad_8f(CGL_float ax, CGL_float ay, CGL_float bx, CGL_float
         );
 }
 
-void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
+CGL_void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
 {
     CGL_vec3 a, b, c, d;
 
@@ -11700,7 +11701,7 @@ void CGL_widgets_add_line(CGL_vec3 start, CGL_vec3 end)
     __CGL_WIDGETS_CURRENT_CONTEXT->is_fill = was_fill;
 }
 
-void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y)
+CGL_void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y)
 {
     CGL_widgets_add_line(
         CGL_vec3_init(start_x, start_y, 0.0f),
@@ -11708,7 +11709,7 @@ void CGL_widgets_add_line2f(CGL_float start_x, CGL_float start_y, CGL_float end_
         );
 }
 
-void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size)
+CGL_void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size)
 {
     CGL_widgets_add_quad(
         CGL_vec3_init(start.x, start.y, start.z),
@@ -11718,7 +11719,7 @@ void CGL_widgets_add_rect(CGL_vec3 start, CGL_vec2 size)
     );
 }
 
-void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y)
+CGL_void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y)
 {
     CGL_widgets_add_quad(
         CGL_vec3_init(start_x, start_y, 0.0f),
@@ -11728,7 +11729,34 @@ void CGL_widgets_add_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size
     );
 }
 
-void __CGL_widgets_add_oval_filled(CGL_vec3 position, CGL_vec2 radius)
+CGL_void CGL_widgets_add_rounded_rect2f(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float radius, CGL_int res)
+{
+    radius = CGL_utils_clamp(radius, 0.0f, 1.0f);
+    CGL_float r = radius * CGL_utils_min(size_x, size_y) * 0.5f;
+
+    CGL_widgets_add_arc2f(start_x + r, start_y + r, r, CGL_deg_to_rad(180.0f), CGL_deg_to_rad(270.0f), res);
+    CGL_widgets_add_arc2f(start_x + size_x - r, start_y + r, r, CGL_deg_to_rad(270.0f), CGL_deg_to_rad(360.0f), res);
+    CGL_widgets_add_arc2f(start_x + size_x - r, start_y + size_y - r, r, CGL_deg_to_rad(0.0f), CGL_deg_to_rad(90.0f), res);
+    CGL_widgets_add_arc2f(start_x + r, start_y + size_y - r, r, CGL_deg_to_rad(90.0f), CGL_deg_to_rad(180.0f), res);
+
+    if (__CGL_WIDGETS_CURRENT_CONTEXT->is_fill)
+    {
+        CGL_widgets_add_rect2f(start_x + r, start_y + r, size_x - 2.0f * r, size_y - 2.0f * r);
+        CGL_widgets_add_rect2f(start_x, start_y + r, r, size_y - 2.0f * r);
+        CGL_widgets_add_rect2f(start_x + size_x - r, start_y + r, r, size_y - 2.0f * r);
+        CGL_widgets_add_rect2f(start_x + r, start_y, size_x - 2.0f * r, r);
+        CGL_widgets_add_rect2f(start_x + r, start_y + size_y - r, size_x - 2.0f * r, r);
+    }
+    else
+    {
+        CGL_widgets_add_line2f(start_x + r, start_y, start_x + size_x - r, start_y);
+        CGL_widgets_add_line2f(start_x + r, start_y + size_y, start_x + size_x - r, start_y + size_y);
+        CGL_widgets_add_line2f(start_x, start_y + r, start_x, start_y + size_y - r);
+        CGL_widgets_add_line2f(start_x + size_x, start_y + r, start_x + size_x, start_y + size_y - r);
+    }
+}
+
+CGL_void __CGL_widgets_add_oval_filled(CGL_vec3 position, CGL_vec2 radius)
 {
     CGL_float x = 0.0f, y = 0.0f;
     for(CGL_float i =0; i <= 360;)
@@ -11742,41 +11770,41 @@ void __CGL_widgets_add_oval_filled(CGL_vec3 position, CGL_vec2 radius)
     }
 }
 
-void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius)
+CGL_void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius)
 {
     CGL_LOG("void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius) not implemented\n");
 }
 
-void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius)
+CGL_void CGL_widgets_add_circle2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
     else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius, radius));
 }
 
-void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res)
+CGL_void CGL_widgets_add_circler(CGL_vec3 position, CGL_float radius, CGL_int res)
 {
     // CGL_widgets_add_arc2f(position.x, position.y, radius, 0.0f, CGL_2PI, res);
     CGL_widgets_add_oval2fr(position.x, position.y, radius, radius, res);
 }
 
-void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res)
+CGL_void CGL_widgets_add_circle2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_int res)
 {
     CGL_widgets_add_circler(CGL_vec3_init(pos_x, pos_y, 0.0f), radius, res);
 }
 
-void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius)
+CGL_void CGL_widgets_add_oval(CGL_vec3 position, CGL_vec2 radius)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(position, radius);
     else __CGL_widgets_add_oval_stroked(position, radius);
 }
 
-void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y)
+CGL_void CGL_widgets_add_oval2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius_x, CGL_float radius_y)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius_x, radius_y));
     else __CGL_widgets_add_oval_stroked(CGL_vec3_init(pos_x, pos_y, 0.0f), CGL_vec2_init(radius_x, radius_y));
 }
 
-static void __CGL_widgets_add_arc_filled2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
+static CGL_void __CGL_widgets_add_arc_filled2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
 {
     CGL_float x = 0.0f, y = 0.0f;
     CGL_float angle = start_angle;
@@ -11792,13 +11820,17 @@ static void __CGL_widgets_add_arc_filled2f(CGL_float pos_x, CGL_float pos_y, CGL
     }
 }
 
-static void __CGL_widgets_add_arc_stroked2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
+static CGL_void __CGL_widgets_add_arc_stroked2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
 {
     CGL_float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
     CGL_float angle = start_angle;
     CGL_float angle_step = (end_angle - start_angle) / resolution;
+    
+#ifdef CGL_WIDGETS_DRAW_ARC_WITH_LINES
     CGL_widgets_add_line2f(pos_x, pos_y, pos_x + radius * cosf(start_angle), pos_y + radius * sinf(start_angle));
     CGL_widgets_add_line2f(pos_x, pos_y, pos_x + radius * cosf(end_angle), pos_y + radius * sinf(end_angle));
+#endif
+
     for(CGL_int i = 0; i < resolution; i++)
     {
         x0 = radius * cosf(angle); y0 = radius * sinf(angle);
@@ -11808,7 +11840,7 @@ static void __CGL_widgets_add_arc_stroked2f(CGL_float pos_x, CGL_float pos_y, CG
     }
 }
 
-static void __CGL_widgets_add_oval_filled2f(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
+static CGL_void __CGL_widgets_add_oval_filled2f(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
 {
     CGL_float x = 0.0f, y = 0.0f;
     CGL_float angle = 0.0f;
@@ -11824,7 +11856,7 @@ static void __CGL_widgets_add_oval_filled2f(CGL_float pos_x, CGL_float pos_y, CG
     }
 }
 
-static void __CGL_widgets_add_oval_stroked2f(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
+static CGL_void __CGL_widgets_add_oval_stroked2f(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
 {
     CGL_float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
     CGL_float angle = 0.0f;
@@ -11838,21 +11870,19 @@ static void __CGL_widgets_add_oval_stroked2f(CGL_float pos_x, CGL_float pos_y, C
     }
 }
 
-
-
-void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
+CGL_void CGL_widgets_add_arc2f(CGL_float pos_x, CGL_float pos_y, CGL_float radius, CGL_float start_angle, CGL_float end_angle, CGL_int resolution)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_arc_filled2f(pos_x, pos_y, radius, start_angle, end_angle, resolution);
     else __CGL_widgets_add_arc_stroked2f(pos_x, pos_y, radius, start_angle, end_angle, resolution);
 }
 
-void CGL_widgets_add_oval2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
+CGL_void CGL_widgets_add_oval2fr(CGL_float pos_x, CGL_float pos_y, CGL_float radiusx, CGL_float radiusy, CGL_int resolution)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled2f(pos_x, pos_y, radiusx, radiusy, resolution);
     else __CGL_widgets_add_oval_stroked2f(pos_x, pos_y, radiusx, radiusy, resolution);
 }
 
-void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius)
+CGL_void CGL_widgets_add_circle(CGL_vec3 position, CGL_float radius)
 {
     if(__CGL_WIDGETS_CURRENT_CONTEXT->is_fill) __CGL_widgets_add_oval_filled(position, CGL_vec2_init(radius, radius));
     else __CGL_widgets_add_oval_stroked(position, CGL_vec2_init(radius, radius));    
@@ -12300,7 +12330,7 @@ CGL_float CGL_widgets_add_string_with_font(const char* str, CGL_font* font, CGL_
 }
 #endif
 
-void CGL_widgets_add_shape_out_line(CGL_shape* shape)
+CGL_void CGL_widgets_add_shape_out_line(CGL_shape* shape)
 {
     for(CGL_int i = 0 ; i < shape->vertices_count ; i++)
     {
@@ -12310,7 +12340,7 @@ void CGL_widgets_add_shape_out_line(CGL_shape* shape)
     }
 }
 
-void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
+CGL_void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
 {
     CGL_float step_size = 1.0f / (CGL_float)resolution;
     CGL_float t = 0.0f;
@@ -12326,7 +12356,7 @@ void CGL_widgets_add_cubic_bazier(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control
     }
 }
 
-void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
+CGL_void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
 {
     CGL_widgets_add_cubic_bazier(
         CGL_vec3_init(start.x, start.y, 0.0f),
@@ -12337,7 +12367,7 @@ void CGL_widgets_add_cubic_bazier2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 contr
     );
 }
 
-void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
+CGL_void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
 {
     CGL_widgets_add_cubic_bazier(
         CGL_vec3_init(start_x, start_y, 0.0f),
@@ -12348,7 +12378,7 @@ void CGL_widgets_add_cubic_bazier2f(CGL_float start_x, CGL_float start_y, CGL_fl
     );
 }
 
-void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
+CGL_void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 control_1, CGL_vec3 control_2, CGL_int resolution)
 {
     CGL_float step_size = 1.0f / (CGL_float)resolution;
     CGL_float t = 0.0f;
@@ -12362,7 +12392,7 @@ void CGL_widgets_add_cubic_bazier_points(CGL_vec3 start, CGL_vec3 end, CGL_vec3 
     }
 }
 
-void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
+CGL_void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec2 control_1, CGL_vec2 control_2, CGL_int resolution)
 {
     CGL_widgets_add_cubic_bazier_points(
         CGL_vec3_init(start.x, start.y, 0.0f),
@@ -12373,7 +12403,7 @@ void CGL_widgets_add_cubic_bazier_points2v(CGL_vec2 start, CGL_vec2 end, CGL_vec
     );
 }
 
-void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
+CGL_void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y, CGL_float end_x, CGL_float end_y, CGL_float control_1_x, CGL_float control_1_y, CGL_float control_2_x, CGL_float control_2_y, CGL_int resolution)
 {
     CGL_widgets_add_cubic_bazier_points(
         CGL_vec3_init(start_x, start_y, 0.0f),
@@ -12384,7 +12414,7 @@ void CGL_widgets_add_cubic_bazier_points2f(CGL_float start_x, CGL_float start_y,
     );
 }
 
-void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
+CGL_void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float(*func_to_plot)(CGL_float), CGL_int num_samples, CGL_float x_min, CGL_float x_max, CGL_float y_min, CGL_float y_max, CGL_float plot_thickness, CGL_vec3 plot_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
 {
     CGL_float step_size = (x_max - x_min) / (CGL_float)num_samples;
     CGL_float step_size_plot = size_x / (CGL_float)num_samples;
@@ -12438,7 +12468,7 @@ void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL_flo
     }
 }
 
-void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
+CGL_void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_vec2* values, CGL_sizei count, CGL_float marker_size, CGL_vec3 marker_color, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color)
 {
     CGL_vec2 x_min_max = CGL_vec2_init(values[0].x, values[0].x);
     CGL_vec2 y_min_max = CGL_vec2_init(values[0].y, values[0].y);
@@ -12486,7 +12516,7 @@ void CGL_widgets_add_plot_array(CGL_float start_x, CGL_float start_y, CGL_float 
     
 }
 
-void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution)
+CGL_void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_float radius, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_int resolution)
 {
     CGL_float total = 0.0f;
     for(CGL_sizei i = 0; i < count; i++)
@@ -12505,7 +12535,7 @@ void CGL_widgets_add_plot_pie_chart(CGL_float start_x, CGL_float start_y, CGL_fl
     }
 }
 
-void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color, CGL_bool vertical)
+CGL_void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_float size_x, CGL_float size_y, CGL_float* values, CGL_vec3* colors, CGL_sizei count, CGL_bool draw_axes, CGL_float axes_thickness, CGL_vec3 axes_color, CGL_bool vertical)
 {
     CGL_float max_value = values[0];
     for(CGL_sizei i = 1; i < count; i++) max_value = CGL_utils_max(max_value, values[i]);
@@ -12585,22 +12615,22 @@ CGL_node_editor* CGL_node_editor_create()
     return editor;
 }
 
-void CGL_node_editor_destroy(CGL_node_editor* editor)
+CGL_void CGL_node_editor_destroy(CGL_node_editor* editor)
 {
     CGL_free(editor);
 }
 
-void CGL_node_editor_set_on_connect(CGL_node_editor* editor, void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*))
+CGL_void CGL_node_editor_set_on_connect(CGL_node_editor* editor, void(*onconnect)(CGL_node_editor_pin*, CGL_node_editor_pin*))
 {
     editor->onconnect = onconnect;
 }
 
-void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(float, float, CGL_node_editor_pin*))
+CGL_void CGL_node_editor_set_on_drop(CGL_node_editor* editor, void(*ondrop)(float, float, CGL_node_editor_pin*))
 {
     editor->ondrop = ondrop;
 }
 
-void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* input)
+CGL_void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* input)
 {
     editor->input = input;
     editor->mouse_delta_x = CGL_utils_clamp(input->mouse_pos_x - editor->mouse_pos_x, -0.2f, 0.2f);
@@ -12620,18 +12650,18 @@ void CGL_node_editor_update(CGL_node_editor* editor, CGL_node_editor_input* inpu
     editor->num_selected = 0;
 }
 
-void CGL_node_editor_render_begin(CGL_node_editor* editor)
+CGL_void CGL_node_editor_render_begin(CGL_node_editor* editor)
 {
     CGL_widgets_begin_int(editor->scale, editor->scale, 0.0f, 0.0f);
     CGL_widgets_set_stroke_thicnkess(0.03f);
 }
 
-void CGL_node_editor_clear_focused_pins(CGL_node_editor* editor)
+CGL_void CGL_node_editor_clear_focused_pins(CGL_node_editor* editor)
 {
     editor->start_pin = editor->end_pin = NULL;
 }
 
-void CGL_node_editor_render_end(CGL_node_editor* editor)
+CGL_void CGL_node_editor_render_end(CGL_node_editor* editor)
 {
     if(editor->start_pin && !editor->end_pin)
     {
@@ -12644,25 +12674,25 @@ void CGL_node_editor_render_end(CGL_node_editor* editor)
     CGL_widgets_end();
 }
 
-void CGL_node_editor_set_offset(CGL_node_editor* editor, CGL_float x, CGL_float y)
+CGL_void CGL_node_editor_set_offset(CGL_node_editor* editor, CGL_float x, CGL_float y)
 {
     editor->offset_x = x;
     editor->offset_y = y;
 }
 
-void CGL_node_editor_get_offset(CGL_node_editor* editor, CGL_float* x, CGL_float* y)
+CGL_void CGL_node_editor_get_offset(CGL_node_editor* editor, CGL_float* x, CGL_float* y)
 {
     if(x) *x = editor->offset_x;
     if(y) *y = editor->offset_y;
 }
 
-void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pin** x, CGL_node_editor_pin** y)
+CGL_void CGL_node_editor_get_linked_pins(CGL_node_editor* editor, CGL_node_editor_pin** x, CGL_node_editor_pin** y)
 {
     if(x) *x = editor->start_pin;
     if(y) *y = editor->end_pin;
 }
 
-void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float midper)
+CGL_void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float midper)
 {
     if(!left || !right) return;
     CGL_widgets_set_stroke_color(color);
@@ -12688,12 +12718,12 @@ void CGL_node_editor_render_link(CGL_node_editor_pin* left, CGL_node_editor_pin*
     );
 }
 
-void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float midper)
+CGL_void CGL_node_editor_render_linkf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float midper)
 {
     CGL_node_editor_render_link(left, right, CGL_vec4_init(cr, cg, cb, ca), midper);
 }
 
-void CGL_node_editor_render_link_curved(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float x_dist, CGL_float y_dist, CGL_int resolution)
+CGL_void CGL_node_editor_render_link_curved(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_color color, CGL_float x_dist, CGL_float y_dist, CGL_int resolution)
 {
     if(!left || !right) return;
     
@@ -12720,12 +12750,12 @@ void CGL_node_editor_render_link_curved(CGL_node_editor_pin* left, CGL_node_edit
     CGL_widgets_add_cubic_bazier2v(start, end, control0, control1, resolution);
 }
 
-void CGL_node_editor_render_link_curvedf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float x_dist, CGL_float y_dist, CGL_int resolution)
+CGL_void CGL_node_editor_render_link_curvedf(CGL_node_editor_pin* left, CGL_node_editor_pin* right, CGL_float cr, CGL_float cg, CGL_float cb, CGL_float ca, CGL_float x_dist, CGL_float y_dist, CGL_int resolution)
 {
     CGL_node_editor_render_link_curved(left, right, CGL_vec4_init(cr, cg, cb, ca), x_dist, y_dist, resolution);
 }
 
-void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node)
+CGL_void CGL_node_editor_node_init(CGL_node_editor* editor, CGL_node_editor_node* node)
 {
     node->editor = editor;
     node->color = CGL_utils_random_color();
@@ -12767,7 +12797,7 @@ static bool __CGL_node_editor_pin_update(CGL_node_editor_pin* pin)
     return focused;
 }
 
-void CGL_node_editor_node_update(CGL_node_editor_node* node)
+CGL_void CGL_node_editor_node_update(CGL_node_editor_node* node)
 {
     const CGL_node_editor* editor = node->editor;
     node->pins_count[0] = node->pins_count[1] = 0;
@@ -12809,7 +12839,7 @@ void CGL_node_editor_node_update(CGL_node_editor_node* node)
     }
 }
 
-void CGL_node_editor_node_render(CGL_node_editor_node* node)
+CGL_void CGL_node_editor_node_render(CGL_node_editor_node* node)
 {
     const CGL_node_editor* editor = node->editor;
     CGL_float sx = node->size_x;
@@ -12864,13 +12894,13 @@ void CGL_node_editor_node_render(CGL_node_editor_node* node)
 
 }
 
-void CGL_node_editor_node_set_position(CGL_node_editor_node* node, CGL_float x, CGL_float y)
+CGL_void CGL_node_editor_node_set_position(CGL_node_editor_node* node, CGL_float x, CGL_float y)
 {
     node->pos_x = x;
     node->pos_y = y;
 }
 
-void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const char* title)
+CGL_void CGL_node_editor_node_set_title(CGL_node_editor_node* node, const char* title)
 {
     if(title == NULL) {node->render_title = false; return;}
     node->render_title = true;
@@ -12923,7 +12953,7 @@ CGL_ray_caster* CGL_ray_caster_create()
     return caster;
 }
 
-void CGL_ray_caster_destroy(CGL_ray_caster* caster)
+CGL_void CGL_ray_caster_destroy(CGL_ray_caster* caster)
 {
 #ifndef CGL_EXCLUDE_GRAPHICS_API
     if(caster->mesh) CGL_mesh_gpu_destroy(caster->mesh);
@@ -12931,7 +12961,7 @@ void CGL_ray_caster_destroy(CGL_ray_caster* caster)
     CGL_free(caster);
 }
 
-void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, CGL_int walls_count)
+CGL_void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, CGL_int walls_count)
 {
     if((caster->wall_count + walls_count) >= CGL_RAY_CASTER_MAX_WALLS) CGL_warn("Max Ray Caster walls exceeded");
     walls_count = CGL_utils_min(walls_count, CGL_RAY_CASTER_MAX_WALLS - caster->wall_count - 1);
@@ -12939,12 +12969,12 @@ void CGL_ray_caster_add_walls(CGL_ray_caster* caster, CGL_vec4* walls, CGL_int w
     caster->wall_count += walls_count;
 }
 
-void CGL_ray_caster_add_wall(CGL_ray_caster* caster, CGL_vec4 wall)
+CGL_void CGL_ray_caster_add_wall(CGL_ray_caster* caster, CGL_vec4 wall)
 {
     CGL_ray_caster_add_walls(caster, &wall, 1);
 }
 
-void CGL_ray_caster_clear_walls(CGL_ray_caster* caster)
+CGL_void CGL_ray_caster_clear_walls(CGL_ray_caster* caster)
 {
     caster->wall_count = 0;
 }
@@ -13031,7 +13061,7 @@ float __CGL_ray_caster_calculate_angle_in_range(CGL_float ang)
     return ang;
 }
 
-void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, CGL_float rotation, bool visualise_rays)
+CGL_void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, CGL_float rotation, bool visualise_rays)
 {
     static __CGL_ray_caster_ray rays[CGL_RAY_CASTER_MAX_WALLS * 2];
     CGL_int ray_count = 0;
@@ -13126,13 +13156,13 @@ bool CGL_ray_caster_is_in_view(CGL_ray_caster* caster, CGL_vec2 point)
     return false;
 }
 
-void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, CGL_float min_angle, CGL_float max_angle)
+CGL_void CGL_ray_caster_set_angle_limits(CGL_ray_caster* caster, CGL_float min_angle, CGL_float max_angle)
 {
     caster->theta_min = min_angle;
     caster->theta_max = max_angle;
 }
 
-void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, CGL_float val)
+CGL_void CGL_ray_caster_set_max_distance(CGL_ray_caster* caster, CGL_float val)
 {
     caster->max_dist = val;
 }
@@ -13163,28 +13193,28 @@ CGL_square_marcher* CGL_square_marcher_create()
     return marcher;
 }
 
-void CGL_square_marcher_destroy(CGL_square_marcher* marcher)
+CGL_void CGL_square_marcher_destroy(CGL_square_marcher* marcher)
 {
     CGL_free(marcher);
 }
 
-void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data)
+CGL_void CGL_square_marcher_set_user_data(CGL_square_marcher* marcher, void* user_data)
 {
     marcher->user_data = user_data;
 }
 
-void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher)
+CGL_void* CGL_square_marcher_get_user_data(CGL_square_marcher* marcher)
 {
     return marcher->user_data;
 }   
 
-void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bool enable)
+CGL_void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bool enable)
 {
     marcher->interpolate = enable;
 }
 
 
-void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
+CGL_void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
 {
     CGL_mesh_vertex v;
     v.normal = CGL_vec4_init(0.0f, 0.0f, 1.0f, 1.0f);
@@ -13497,7 +13527,7 @@ static const CGL_byte* __CGL_TOON_HATCHING_SHADER_SOURCE =
 "\n";
 
 
-void CGL_post_processor_init()
+CGL_void CGL_post_processor_init()
 {
     __CGL_POST_PROCESSOR_CONTEXT = (CGL_post_processor*)CGL_malloc(sizeof(CGL_post_processor));
     __CGL_POST_PROCESSOR_CONTEXT->shades_shader = CGL_shader_compute_create(__CGL_TOON_SHADES_SHADER_SOURCE, NULL);
@@ -13506,7 +13536,7 @@ void CGL_post_processor_init()
 }
 
 
-void CGL_post_processor_shutdown()
+CGL_void CGL_post_processor_shutdown()
 {
     CGL_shader_destroy(__CGL_POST_PROCESSOR_CONTEXT->shades_shader);
     CGL_shader_destroy(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader);
@@ -13515,7 +13545,7 @@ void CGL_post_processor_shutdown()
 }
 
 
-void CGL_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades)
+CGL_void CGL_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, CGL_texture* albedo, CGL_int shades)
 {
     CGL_shader_bind(__CGL_POST_PROCESSOR_CONTEXT->shades_shader);
     glBindImageTexture(0, output->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -13529,7 +13559,7 @@ void CGL_post_processor_process_shades(CGL_texture* output, CGL_texture* scene, 
 }
 
 
-void CGL_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width)
+CGL_void CGL_post_processor_process_outline(CGL_texture* output, CGL_texture* scene, CGL_texture* normal, CGL_texture* depth, CGL_float outline_width)
 {
     CGL_shader_bind(__CGL_POST_PROCESSOR_CONTEXT->outlines_shader);
     glBindImageTexture(0, output->handle, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -13546,7 +13576,7 @@ void CGL_post_processor_process_outline(CGL_texture* output, CGL_texture* scene,
 
 
 
-void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene, CGL_texture* uv_tex, CGL_texture** hatch_tex, CGL_int hatch_tex_count)
+CGL_void CGL_post_processor_process_hatching(CGL_texture* output, CGL_texture* scene, CGL_texture* uv_tex, CGL_texture** hatch_tex, CGL_int hatch_tex_count)
 {
     static char buffer[256];
     CGL_shader_bind(__CGL_POST_PROCESSOR_CONTEXT->hatching_shader);
@@ -13656,7 +13686,7 @@ CGL_bool CGL_wav_file_load(CGL_wav_file* file, const char* filename)
     return true;
 }
 
-void CGL_wav_file_destroy(CGL_wav_file* file)
+CGL_void CGL_wav_file_destroy(CGL_wav_file* file)
 {
     CGL_free(file->data);
 }
@@ -13746,7 +13776,7 @@ CGL_audio_context* CGL_audio_context_create(const CGL_byte* device_name)
     return cgl_context;
 }
 
-void CGL_audio_context_destroy(CGL_audio_context* context)
+CGL_void CGL_audio_context_destroy(CGL_audio_context* context)
 {
     alcMakeContextCurrent(NULL);
     alcDestroyContext(context->context);
@@ -13754,7 +13784,7 @@ void CGL_audio_context_destroy(CGL_audio_context* context)
     CGL_free(context);
 }
 
-void CGL_audio_make_context_current(CGL_audio_context* context)
+CGL_void CGL_audio_make_context_current(CGL_audio_context* context)
 {
     if(context) alcMakeContextCurrent(context->context);
     else alcMakeContextCurrent(NULL);
@@ -13775,13 +13805,13 @@ CGL_audio_source* CGL_audio_source_create()
     return source;
 }
 
-void CGL_audio_source_destroy(CGL_audio_source* source)
+CGL_void CGL_audio_source_destroy(CGL_audio_source* source)
 {
     alDeleteSources(1, &source->source);
     CGL_free(source);
 }
 
-void CGL_audio_source_reset_to_defaults(CGL_audio_source* source)
+CGL_void CGL_audio_source_reset_to_defaults(CGL_audio_source* source)
 {
     CGL_audio_source_set_position(source, CGL_vec3_init(0.0f, 0.0f, 0.0f));
     CGL_audio_source_set_velocity(source, CGL_vec3_init(0.0f, 0.0f, 0.0f));
@@ -13791,42 +13821,42 @@ void CGL_audio_source_reset_to_defaults(CGL_audio_source* source)
     CGL_audio_source_set_looping(source, false);
 }
 
-void CGL_audio_source_set_buffer(CGL_audio_source* source, CGL_audio_buffer* buffer)
+CGL_void CGL_audio_source_set_buffer(CGL_audio_source* source, CGL_audio_buffer* buffer)
 {
     alSourcei(source->source, AL_BUFFER, buffer->buffer);
 }
 
-void CGL_audio_source_set_looping(CGL_audio_source* source, CGL_bool looping)
+CGL_void CGL_audio_source_set_looping(CGL_audio_source* source, CGL_bool looping)
 {
     source->loop = looping;
     alSourcei(source->source, AL_LOOPING, looping);
 }
 
-void CGL_audio_source_set_pitch(CGL_audio_source* source, CGL_float pitch)
+CGL_void CGL_audio_source_set_pitch(CGL_audio_source* source, CGL_float pitch)
 {
     source->pitch = pitch;
     alSourcef(source->source, AL_PITCH, pitch);
 }
 
-void CGL_audio_source_set_gain(CGL_audio_source* source, CGL_float gain)
+CGL_void CGL_audio_source_set_gain(CGL_audio_source* source, CGL_float gain)
 {
     source->gain = gain;
     alSourcef(source->source, AL_GAIN, gain);
 }
 
-void CGL_audio_source_set_position(CGL_audio_source* source, CGL_vec3 position)
+CGL_void CGL_audio_source_set_position(CGL_audio_source* source, CGL_vec3 position)
 {
     source->position = position;
     alSource3f(source->source, AL_POSITION, position.x, position.y, position.z);
 }
 
-void CGL_audio_source_set_velocity(CGL_audio_source* source, CGL_vec3 velocity)
+CGL_void CGL_audio_source_set_velocity(CGL_audio_source* source, CGL_vec3 velocity)
 {
     source->velocity = velocity;
     alSource3f(source->source, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
 }
 
-void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction)
+CGL_void CGL_audio_source_set_direction(CGL_audio_source* source, CGL_vec3 direction)
 {
     source->direction = direction;
     alSource3f(source->source, AL_DIRECTION, direction.x, direction.y, direction.z);
@@ -13839,7 +13869,7 @@ CGL_float CGL_audio_source_get_seconds_offset(CGL_audio_source* source)
     return (CGL_float)offset;
 }
 
-void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds)
+CGL_void CGL_audio_source_set_seconds_offset(CGL_audio_source* source, CGL_sizei seconds)
 {
     alSourcei(source->source, AL_SEC_OFFSET, (ALint)seconds);
 }
@@ -13851,7 +13881,7 @@ CGL_sizei CGL_audio_source_get_samples_offset(CGL_audio_source* source)
     return (CGL_sizei)offset;
 }
 
-void CGL_audio_source_set_samples_offset(CGL_audio_source* source, CGL_sizei samples)
+CGL_void CGL_audio_source_set_samples_offset(CGL_audio_source* source, CGL_sizei samples)
 {
     alSourcei(source->source, AL_SAMPLE_OFFSET, (ALint)samples);
 }
@@ -13863,22 +13893,22 @@ CGL_sizei CGL_audio_source_get_bytes_offset(CGL_audio_source* source)
     return (CGL_sizei)offset;
 }
 
-void CGL_audio_source_set_bytes_offset(CGL_audio_source* source, CGL_sizei bytes)
+CGL_void CGL_audio_source_set_bytes_offset(CGL_audio_source* source, CGL_sizei bytes)
 {
     alSourcei(source->source, AL_BYTE_OFFSET, (ALint)bytes);
 }
 
-void CGL_audio_source_play(CGL_audio_source* source)
+CGL_void CGL_audio_source_play(CGL_audio_source* source)
 {
     alSourcePlay(source->source);
 }
 
-void CGL_audio_source_pause(CGL_audio_source* source)
+CGL_void CGL_audio_source_pause(CGL_audio_source* source)
 {
     alSourcePause(source->source);
 }
 
-void CGL_audio_source_stop(CGL_audio_source* source)
+CGL_void CGL_audio_source_stop(CGL_audio_source* source)
 {
     alSourceStop(source->source);
 }
@@ -13913,13 +13943,13 @@ CGL_audio_buffer* CGL_audio_buffer_create()
     return buffer;
 }
 
-void CGL_audio_buffer_destroy(CGL_audio_buffer* buffer)
+CGL_void CGL_audio_buffer_destroy(CGL_audio_buffer* buffer)
 {
     alDeleteBuffers(1, &buffer->buffer);
     CGL_free(buffer);
 }
 
-void CGL_audio_buffer_set_data_from_wav_file(CGL_audio_buffer* buffer, CGL_wav_file* file)
+CGL_void CGL_audio_buffer_set_data_from_wav_file(CGL_audio_buffer* buffer, CGL_wav_file* file)
 {
     ALenum format = AL_FORMAT_MONO16;
     ALsizei size = 0;
@@ -13942,22 +13972,22 @@ void CGL_audio_buffer_set_data_from_wav_file(CGL_audio_buffer* buffer, CGL_wav_f
     alBufferData(buffer->buffer, format, file->data, size, freq);
 }
 
-void CGL_audio_buffer_set_data(CGL_audio_buffer* buffer, void* data, ALenum format, ALsizei size, ALsizei freq)
+CGL_void CGL_audio_buffer_set_data(CGL_audio_buffer* buffer, void* data, ALenum format, ALsizei size, ALsizei freq)
 {
     alBufferData(buffer->buffer, format, data, size, freq);
 }
 
-void CGL_audio_listener_set_position(CGL_vec3 position)
+CGL_void CGL_audio_listener_set_position(CGL_vec3 position)
 {
     alListener3f(AL_POSITION, position.x, position.y, position.z);
 }
 
-void CGL_audio_listener_set_velocity(CGL_vec3 velocity)
+CGL_void CGL_audio_listener_set_velocity(CGL_vec3 velocity)
 {
     alListener3f(AL_VELOCITY, velocity.x, velocity.y, velocity.z);
 }
 
-void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up)
+CGL_void CGL_audio_listener_set_orientation(CGL_vec3 forward, CGL_vec3 up)
 {
     CGL_float orientation[6] = { forward.x, forward.y, forward.z, up.x, up.y, up.z };
     alListenerfv(AL_ORIENTATION, orientation);
@@ -14076,7 +14106,7 @@ CGL_trail* CGL_trail_create()
     return trail;
 }
 
-void CGL_trail_destroy(CGL_trail* trail)
+CGL_void CGL_trail_destroy(CGL_trail* trail)
 {
     CGL_mesh_cpu_destroy(trail->mesh_cpu);
     CGL_mesh_gpu_destroy(trail->mesh);
@@ -14084,7 +14114,7 @@ void CGL_trail_destroy(CGL_trail* trail)
     CGL_free(trail);
 }
 
-void CGL_trail_render(CGL_trail* trail, CGL_mat4* view, CGL_mat4* projection, CGL_shader* shader)
+CGL_void CGL_trail_render(CGL_trail* trail, CGL_mat4* view, CGL_mat4* projection, CGL_shader* shader)
 {
     if(!trail->mesh) return;
     if(!shader) { shader = trail->shader; CGL_shader_bind(shader);}
@@ -14094,7 +14124,7 @@ void CGL_trail_render(CGL_trail* trail, CGL_mat4* view, CGL_mat4* projection, CG
     CGL_mesh_gpu_render(trail->mesh);
 }
 
-void CGL_trail_add_point(CGL_trail* trail, CGL_vec3 point, CGL_float lifespan, CGL_float thickness)
+CGL_void CGL_trail_add_point(CGL_trail* trail, CGL_vec3 point, CGL_float lifespan, CGL_float thickness)
 {
     if(trail->last)
     {
@@ -14117,7 +14147,7 @@ void CGL_trail_add_point(CGL_trail* trail, CGL_vec3 point, CGL_float lifespan, C
     CGL_trail_calculate_distances(trail);
 }
 
-void CGL_trail_calculate_distances(CGL_trail* trail)
+CGL_void CGL_trail_calculate_distances(CGL_trail* trail)
 {
     CGL_trail_point* point = trail->first;
     CGL_trail_point* previous = NULL;
@@ -14132,12 +14162,12 @@ void CGL_trail_calculate_distances(CGL_trail* trail)
     trail->length = distance;
 }
 
-void CGL_trail_set_resolution(CGL_trail* trail, CGL_int resolution)
+CGL_void CGL_trail_set_resolution(CGL_trail* trail, CGL_int resolution)
 {
     trail->resolution = resolution; // to be implemented in the future
 }
 
-void CGL_trail_update(CGL_trail* trail, CGL_float delta_time)
+CGL_void CGL_trail_update(CGL_trail* trail, CGL_float delta_time)
 {
     CGL_trail_point* point = trail->first;
     CGL_trail_point* previous = NULL;
@@ -14161,7 +14191,7 @@ void CGL_trail_update(CGL_trail* trail, CGL_float delta_time)
     }
 }
 
-void CGL_trail_bake_mesh(CGL_trail* trail)
+CGL_void CGL_trail_bake_mesh(CGL_trail* trail)
 {
     if(trail->point_count < 2) return;    
     CGL_mesh_cpu* mesh = trail->mesh_cpu;
@@ -14243,7 +14273,7 @@ void CGL_trail_bake_mesh(CGL_trail* trail)
     CGL_mesh_gpu_upload(trail->mesh, mesh, false);
 }
 
-void CGL_trail_clear(CGL_trail* trail)
+CGL_void CGL_trail_clear(CGL_trail* trail)
 {
     for(CGL_int i = 0; i < CGL_TRAIL_MAX_POINTS; i++) trail->points[i].index = -1;
     trail->first = NULL;
@@ -14251,7 +14281,7 @@ void CGL_trail_clear(CGL_trail* trail)
     trail->point_count = 0;
 }
 
-void CGL_trail_set_point_update_function(CGL_trail* trail, CGL_trail_point_update_function function)
+CGL_void CGL_trail_set_point_update_function(CGL_trail* trail, CGL_trail_point_update_function function)
 {
     trail->trail_point_func = function;
 }
@@ -14266,12 +14296,12 @@ CGL_trail_point* CGL_trail_get_first_point(CGL_trail* trail)
     return trail->first;
 }
 
-void CGL_trail_set_user_data(CGL_trail* trail, void* user_data)
+CGL_void CGL_trail_set_user_data(CGL_trail* trail, void* user_data)
 {
     trail->user_data = user_data;
 }
 
-void* CGL_trail_get_user_data(CGL_trail* trail)
+CGL_void* CGL_trail_get_user_data(CGL_trail* trail)
 {
     return trail->user_data;
 }
@@ -14281,12 +14311,12 @@ CGL_float CGL_trail_get_length(CGL_trail* trail)
     return trail->length;
 }
 
-void CGL_trail_set_max_length(CGL_trail* trail, CGL_float length)
+CGL_void CGL_trail_set_max_length(CGL_trail* trail, CGL_float length)
 {
     trail->max_length = length;
 }
 
-void CGL_trail_set_min_points_distance(CGL_trail* trail, CGL_float min_points_distance)
+CGL_void CGL_trail_set_min_points_distance(CGL_trail* trail, CGL_float min_points_distance)
 {
     trail->min_points_distance = min_points_distance;
 }
@@ -14635,7 +14665,7 @@ CGL_noise_data_type CGL_noise_worley(CGL_noise_data_type x, CGL_noise_data_type 
 }
 // ---------------- WORLEY  ----------------
 
-void CGL_noise_params_default(CGL_noise_params* params)
+CGL_void CGL_noise_params_default(CGL_noise_params* params)
 {
     params->octaves = 3;
     params->fractal_type = CGL_NOISE_FRACTAL_TYPE_NONE;
@@ -14770,11 +14800,11 @@ CGL_noise_data_type CGL_noise_get(CGL_noise_params* params, CGL_noise_data_type 
 }
 
 
-void CGL_noise_init()
+CGL_void CGL_noise_init()
 {
 }
 
-void CGL_noise_shutdown()
+CGL_void CGL_noise_shutdown()
 {
 
 }
@@ -14867,19 +14897,19 @@ CGL_bool CGL_simple_neural_network_deserialize_weights(CGL_simple_neural_network
     return true; // return true
 }
 
-void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative)
+CGL_void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neural_network* network, CGL_int layer_index, CGL_simple_neural_network_activation_function activation_function, CGL_simple_neural_network_activation_function activation_function_derivative)
 {
     network->layers[layer_index].activation_function = activation_function; // set activation function
     network->layers[layer_index].activation_function_derivative = activation_function_derivative; // set activation function derivative
 }
 
-void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v)
+CGL_void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v)
 {
     for(CGL_int i = 0 ; i < network->layer_count ; i++) for(CGL_int j = 0 ; j < network->layers[i].weight_count ; j++) 
     network->layers[i].weights[j] = CGL_utils_random_float_in_range(min_v, max_v);
 }
 
-void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network)
+CGL_void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network)
 {
     for(CGL_int i = 0 ; i < network->layer_count ; i++)
     {
@@ -14892,7 +14922,7 @@ void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network)
     CGL_free(network);    
 }
 
-void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output)
+CGL_void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_float* input, CGL_float* output)
 {
     CGL_simple_neural_network_layer* layer_pr = network->layers; // layer 0
     CGL_simple_neural_network_layer* layer_cr = layer_pr + 1; // layer 1
@@ -14912,7 +14942,7 @@ void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, CGL_
     if(output) memcpy(output, layer_pr->activations, sizeof(CGL_float) * layer_pr->output_count);    
 }
 
-void CGL_simple_neural_network_train(CGL_simple_neural_network* a, CGL_float* input, CGL_float* output, CGL_float learning_rate)
+CGL_void CGL_simple_neural_network_train(CGL_simple_neural_network* a, CGL_float* input, CGL_float* output, CGL_float learning_rate)
 {
     CGL_simple_neural_network_evaluate(a, input, NULL); // evaluate network for prediced output
     CGL_simple_neural_network_layer* layer_pr = a->layers + a->layer_count - 1; // layer 0
@@ -14944,12 +14974,12 @@ void CGL_simple_neural_network_train(CGL_simple_neural_network* a, CGL_float* in
     }
 }
 
-void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b)
+CGL_void CGL_simple_neural_network_copy_weights(CGL_simple_neural_network* a, CGL_simple_neural_network* b)
 {
     for(CGL_int i = 0 ; i < a->layer_count ; i++) memcpy(a->layers[i].weights, b->layers[i].weights, sizeof(CGL_float) * a->layers[i].weight_count);
 }
 
-void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio)
+CGL_void CGL_simple_neural_network_mutate(CGL_simple_neural_network* a, CGL_float mutation_ratio)
 {
     for(CGL_int i = 0 ; i < a->layer_count ; i++) for(CGL_int j = 0 ; j < a->layers[i].weight_count ; j++) if(CGL_utils_random_float_in_range(0.0f, 1.0f) < mutation_ratio) a->layers[i].weights[j] += CGL_utils_random_gaussian(0.0f, 0.1f);
 }
@@ -14987,7 +15017,7 @@ CGL_void CGL_linear_regression_context_destroy(CGL_linear_regression_context* co
     CGL_free(context);
 }
 
-void CGL_linear_regression_randomize_coefficents(CGL_linear_regression_context* context, CGL_float min_v, CGL_float max_v)
+CGL_void CGL_linear_regression_randomize_coefficents(CGL_linear_regression_context* context, CGL_float min_v, CGL_float max_v)
 {
     for(CGL_int i = 0 ; i < context->input_count + 1 ; i++) CGL_matrix_set_elem(context->coefficents, 0, i, CGL_utils_random_float_in_range(min_v, max_v));
 }
@@ -15043,7 +15073,7 @@ struct CGL_path_finding_a_star_context
     CGL_bool copy_data;
 };
 
-void CGL_path_finding_node_init(CGL_path_finding_node* node, void* data_ptr)
+CGL_void CGL_path_finding_node_init(CGL_path_finding_node* node, void* data_ptr)
 {
     node->data_ptr = data_ptr;
     node->id = node->parent_id = node->child_id = -1;
@@ -15227,7 +15257,7 @@ CGL_void* CGL_path_finding_a_star_next_in_path(CGL_path_finding_a_star_context* 
     if(cn_copy && data_out) memcpy(data_out, cn_copy->data_ptr, context->nodes_data_size);
     return cn_copy;
 }
-void CGL_path_finding_a_star_clear_path(CGL_path_finding_a_star_context* context)
+CGL_void CGL_path_finding_a_star_clear_path(CGL_path_finding_a_star_context* context)
 {
     context->start_node = NULL;
     context->current_node = NULL;
@@ -15242,7 +15272,7 @@ void CGL_path_finding_a_star_clear_path(CGL_path_finding_a_star_context* context
     context->nodes_count = 0;
 }
 
-void CGL_path_finding_a_star_context_destroy(CGL_path_finding_a_star_context* context)
+CGL_void CGL_path_finding_a_star_context_destroy(CGL_path_finding_a_star_context* context)
 {
     CGL_free(context->nodes);
     if(context->copy_data) CGL_free(context->nodes_data);
