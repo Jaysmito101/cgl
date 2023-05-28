@@ -2233,6 +2233,8 @@ void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float t
 void CGL_widgets_add_vertex_p3ft2f(CGL_float pos_x, CGL_float pos_y, CGL_float pos_z, CGL_float tex_x, CGL_float tex_y);
 void CGL_widgets_set_stroke_color(CGL_color color);
 void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a);
+void CGL_widgets_set_mask(CGL_vec4 mask);
+void CGL_widgets_set_maskf(CGL_float min_x, CGL_float min_y, CGL_float max_x, CGL_float max_y);
 // for backwards compatibility
 #define CGL_widgets_set_stroke_thickness CGL_widgets_set_stroke_thicnkess 
 void CGL_widgets_set_stroke_thicnkess(CGL_float thickness);
@@ -11064,6 +11066,7 @@ struct CGL_widgets_context
     CGL_mat4 view_proj_matrix;
     CGL_vec4 stroke_color;
     CGL_vec4 fill_color;
+    CGL_vec4 mask;
     CGL_vec4 scale;
     CGL_vec4 offset;
     CGL_vec4 tex_coord_scale_offset;
@@ -11151,7 +11154,7 @@ static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "uniform vec3 u_LightColor;\n"
 "uniform vec3 u_LightPosition;\n"
 "uniform sampler2D u_Texture[16];\n"
-"uniform bool u_TextureEnabled;\n"
+"uniform vec4 u_Mask;\n"
 "\n"
 "void main()\n"
 "{\n"
@@ -11175,6 +11178,11 @@ static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "		vec3 diffuse = diff * u_LightColor;\n"
 "		color.rgb = (diffuse + ambient) * color.rgb;\n"
 "	}\n"
+"   else\n"
+"   {\n"
+"       if (Position.x < u_Mask.x || Position.y < u_Mask.y || Position.x > u_Mask.z || Position.y > u_Mask.w)\n"
+"           discard;\n"
+"   }\n"
 "	FragColor = color;\n"
 "}";
 
@@ -11290,6 +11298,7 @@ CGL_bool CGL_widgets_begin_int(CGL_float scale_x, CGL_float scale_y, CGL_float o
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_thickness = 0.05f;
     __CGL_WIDGETS_CURRENT_CONTEXT->scale = CGL_vec4_init(scale_x, scale_y, 1.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->offset = CGL_vec4_init(offset_x, offset_y, 0.0f, 0.0f);
+    __CGL_WIDGETS_CURRENT_CONTEXT->mask = CGL_vec4_init(-1.0f, -1.0f, 1.0f, 1.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->tex_coord_scale_offset = CGL_vec4_init(1.0f, 1.0f, 0.0f, 0.0f);
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count = 0;
     __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
@@ -11337,6 +11346,7 @@ CGL_bool CGL_widgets_flush()
         //CGL_texture_bind(__CGL_WIDGETS_CURRENT_CONTEXT->texture, 5);
         //CGL_shader_set_uniform_int(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_Texture"), 5);
     //}
+    CGL_shader_set_uniform_vec4v(__CGL_WIDGETS_CURRENT_CONTEXT->shader, CGL_shader_get_uniform_location(__CGL_WIDGETS_CURRENT_CONTEXT->shader, "u_Mask"), __CGL_WIDGETS_CURRENT_CONTEXT->mask.x, __CGL_WIDGETS_CURRENT_CONTEXT->mask.y, __CGL_WIDGETS_CURRENT_CONTEXT->mask.z, __CGL_WIDGETS_CURRENT_CONTEXT->mask.w);
     for(CGL_int i = 0; i < __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_count; i++)
     {
         static CGL_byte texture_uniform_name_buffer[64];
@@ -11475,12 +11485,24 @@ void CGL_widgets_add_vertex_pt2f(CGL_vec3 position, CGL_float tex_x, CGL_float t
 
 void CGL_widgets_set_stroke_color(CGL_color color)
 {
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
 }
 
 void CGL_widgets_set_stroke_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->stroke_color = CGL_vec4_init(r, g, b, a);
+}
+
+void CGL_widgets_set_mask(CGL_vec4 mask)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->mask = mask;
+}
+
+void CGL_widgets_set_maskf(CGL_float min_x, CGL_float min_y, CGL_float max_x, CGL_float max_y)
+{
+    __CGL_WIDGETS_CURRENT_CONTEXT->mask = CGL_vec4_init(min_x, min_y, max_x, max_y);
 }
 
 void CGL_widgets_set_stroke_thicnkess(CGL_float thickness)
@@ -11490,11 +11512,13 @@ void CGL_widgets_set_stroke_thicnkess(CGL_float thickness)
 
 void CGL_widgets_set_fill_color(CGL_color color)
 {
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(color.x, color.y, color.z, color.w);
 }
 
 void CGL_widgets_set_fill_colorf(CGL_float r, CGL_float g, CGL_float b, CGL_float a)
 {
+    __CGL_WIDGETS_CURRENT_CONTEXT->active_texture_id = -1;
     __CGL_WIDGETS_CURRENT_CONTEXT->fill_color = CGL_vec4_init(r, g, b, a);
 }
 
@@ -15509,14 +15533,14 @@ CGL_bool CGL_image_file_is_bmp_f(FILE* file)
     CGL_byte d_i8 = 0;
     CGL_ushort d_u16 = 0;
     CGL_uint d_u32 = 0;
-    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    fread(&d_i8, sizeof(CGL_byte), 1, file);
     if (d_i8 != 'B') return CGL_FALSE;
-    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    fread(&d_i8, sizeof(CGL_byte), 1, file);
     if (d_i8 != 'M') return CGL_FALSE;
-    fread(file, sizeof(CGL_uint), 1, &d_u32); // file size
-    fread(file, sizeof(CGL_uint), 1, &d_u32); // reserved
-    fread(file, sizeof(CGL_uint), 1, &d_u32); // data offset
-    fread(file, sizeof(CGL_uint), 1, &d_u32); // header size
+    fread(&d_u32, sizeof(CGL_uint), 1, file); // file size
+    fread(&d_u32, sizeof(CGL_uint), 1, file); // reserved
+    fread(&d_u32, sizeof(CGL_uint), 1, file); // data offset
+    fread(&d_u32, sizeof(CGL_uint), 1, file); // header size
     fseek(file, 0, SEEK_SET);
     return (d_u32 == 12 || d_u32 == 40 || d_u32 == 56 || d_u32 == 108 || d_u32 == 124);
 }
@@ -15535,17 +15559,17 @@ CGL_bool CGL_image_file_is_gif_f(FILE* file)
     CGL_byte d_i8 = 0;
 	CGL_ushort d_u16 = 0;
 	CGL_uint d_u32 = 0;
-	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	fread(&d_i8, sizeof(CGL_byte), 1, file);
 	if (d_i8 != 'G') return CGL_FALSE;
-	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	fread(&d_i8, sizeof(CGL_byte), 1, file);
 	if (d_i8 != 'I') return CGL_FALSE;
-	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	fread(&d_i8, sizeof(CGL_byte), 1, file);
 	if (d_i8 != 'F') return CGL_FALSE;
-	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	fread(&d_i8, sizeof(CGL_byte), 1, file);
 	if (d_i8 != '8') return CGL_FALSE;
-	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	fread(&d_i8, sizeof(CGL_byte), 1, file);
 	if (d_i8 != '7' && d_i8 != '9') return CGL_FALSE;
-	fread(file, sizeof(CGL_byte), 1, &d_i8);
+	fread(&d_i8, sizeof(CGL_byte), 1, file);
 	if (d_i8 != 'a') return CGL_FALSE;
     fseek(file, 0, SEEK_SET);
     return CGL_TRUE;
@@ -15563,9 +15587,9 @@ CGL_bool CGL_image_file_is_gif(const CGL_byte* file_path)
 CGL_bool CGL_image_file_is_jpeg_f(FILE* file)
 {
     CGL_byte d_i8 = 0;
-    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    fread(&d_i8, sizeof(CGL_byte), 1, file);
     if (d_i8 != 0xFF) return CGL_FALSE;
-    fread(file, sizeof(CGL_byte), 1, &d_i8);
+    fread(&d_i8, sizeof(CGL_byte), 1, file);
     if (d_i8 != 0xD8) return CGL_FALSE;
     fseek(file, 0, SEEK_SET);
     return CGL_TRUE;
@@ -15658,14 +15682,14 @@ CGL_nd_tree* CGL_nd_tree_create(CGL_int dimensions, CGL_sizei item_size, CGL_int
     tree->item_size = item_size;
     tree->max_items_total = max_items;
 
-    tree->aabb_out_max_tmp = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (1 << dimensions) * dimensions);
+    tree->aabb_out_max_tmp = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (CGL_long)(1 << dimensions) * dimensions);
     if (tree->aabb_out_max_tmp == NULL)
     {
         CGL_free(tree);
         return NULL;
     }
     
-    tree->aabb_out_min_tmp = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (1 << dimensions) * dimensions);
+    tree->aabb_out_min_tmp = (CGL_float*)CGL_malloc(sizeof(CGL_float) * (CGL_long)(1 << dimensions) * dimensions);
     if (tree->aabb_out_min_tmp == NULL)
     {
         CGL_free(tree->aabb_out_max_tmp);
@@ -15719,7 +15743,7 @@ CGL_nd_tree* CGL_nd_tree_create(CGL_int dimensions, CGL_sizei item_size, CGL_int
 		return NULL;
 	}
 
-    tree->children_node_pointers = (CGL_sizei*)CGL_malloc(sizeof(CGL_sizei) * (1 << dimensions) * max_nodes);
+    tree->children_node_pointers = (CGL_sizei*)CGL_malloc(sizeof(CGL_sizei) * (CGL_long)(1 << dimensions) * max_nodes);
     if (tree->children_node_pointers == NULL)
     {
         if (tree->positions_bank) CGL_free(tree->positions_bank);
@@ -15729,7 +15753,7 @@ CGL_nd_tree* CGL_nd_tree_create(CGL_int dimensions, CGL_sizei item_size, CGL_int
         CGL_free(tree);
     }
 
-    tree->children_node_aabbs = (CGL_float*)CGL_malloc(sizeof(CGL_float) * dimensions * 2 * (1 << dimensions) * max_nodes);
+    tree->children_node_aabbs = (CGL_float*)CGL_malloc(sizeof(CGL_float) * dimensions * 2 * (CGL_long)(1 << dimensions) * max_nodes);
     if (tree->children_node_aabbs == NULL)
     {
 		if (tree->positions_bank) CGL_free(tree->positions_bank);
