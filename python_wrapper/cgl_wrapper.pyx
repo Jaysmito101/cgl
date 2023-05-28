@@ -502,6 +502,8 @@ cdef extern from "cgl.h":
     void CGL_widgets_set_model_matrix(CGL_mat4* matrix)
     void CGL_widgets_set_texture(CGL_texture* texture)
     void CGL_widgets_set_font_texture(CGL_texture* texture)
+    void CGL_widgets_set_mask(CGL_vec4 mask)
+void CGL_widgets_set_maskf(CGL_float min_x, CGL_float min_y, CGL_float max_x, CGL_float max_y)
     void CGL_widgets_set_texture_coordinate_so(CGL_float scale_x, CGL_float scale_y, CGL_float offset_x, CGL_float offset_y)
     void CGL_widgets_apply_transformations_on_cpu()
     void CGL_widgets_apply_transformations_on_gpu()
@@ -2544,6 +2546,7 @@ cdef class framebuffer:
         self.has_been_destroyed = False
     
     def add_color_attachment(self, tex: texture):
+        texture.has_been_destroyed = True # as this is managed by the framebuffer
         CGL_framebuffer_add_color_attachment(self.c_framebuffer, tex.c_texture)
     
     def get_color_attacment(self, index: int) -> texture:
@@ -2552,6 +2555,7 @@ cdef class framebuffer:
             raise RuntimeError("Failed to get color attachment")
         res = texture()
         res.set_c_texture(c_texture)
+        res.has_been_destroyed = True # as this is managed by the framebuffer
         return res
     
     def bind(self):
@@ -2581,6 +2585,7 @@ cdef class framebuffer:
             raise RuntimeError("Failed to get color texture")
         res = texture()
         res.set_c_texture(c_texture)
+        res.has_been_destroyed = True # as this is managed by the framebuffer
         return res
 
     def get_depth_texture(self) -> texture:
@@ -2589,6 +2594,7 @@ cdef class framebuffer:
             raise RuntimeError("Failed to get depth texture")
         res = texture()
         res.set_c_texture(c_texture)
+        res.has_been_destroyed = True # as this is managed by the framebuffer
         return res
 
 def framebuffer_create_from_default(wnd: window) -> framebuffer:
@@ -3584,8 +3590,18 @@ cdef class widgets:
     
     @staticmethod
     def set_texture(tex: texture):
-        CGL_widgets_set_texture(tex.c_texture)
+        if tex is None:
+            CGL_widgets_set_texture(NULL)
+        else:
+            CGL_widgets_set_texture(tex.c_texture)
     
+    @staticmethod
+    def set_mask(mask: vec4):
+        CGL_widgets_set_mask(mask.c_vec4)
+    
+    def set_maskf(min_x: float, min_y: float, max_x: float, max_y: float):
+        CGL_widgets_set_maskf(min_x, min_y, max_x, max_y)
+
     @staticmethod
     def set_font_texture(tex: texture):
         CGL_widgets_set_font_texture(tex.c_texture)
