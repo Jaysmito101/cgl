@@ -594,6 +594,11 @@ CGL_float CGL_utils_relu_smooth(CGL_float x);
 CGL_float CGL_utils_relu_smooth_derivative(CGL_float x);
 // CGL_vec3 CGL_utils_hsl_to_rgb(CGL_vec3 hsv);
 
+#ifndef CGL_QUICK_SORT_SWAP_BUFFER_SIZE
+#define CGL_QUICK_SORT_SWAP_BUFFER_SIZE 1024
+#endif
+CGL_bool CGL_utils_quick_sort(CGL_void* array, CGL_sizei item_count, CGL_sizei item_size, CGL_int (*comparator)(const CGL_void*, const CGL_void*));
+
 #define CGL_malloc(size) malloc(size)
 #define CGL_realloc(ptr, size) realloc(ptr, size)
 #define CGL_free(ptr) free(ptr)
@@ -4360,6 +4365,44 @@ CGL_uint CGL_utils_rand31()
     lo += hi >> 15;
     if (lo > 0x7FFFFFFF) lo -= 0x7FFFFFFF;
     return (__CGL_UTILS_RAND31_SEED = lo);
+}
+
+static CGL_byte __CGL_UTILS_QUICK_SORT_SWAP_BUFFER[CGL_QUICK_SORT_SWAP_BUFFER_SIZE];
+
+#define __CGL_QUICK_SORT_SWAP_DATA(a, b) \
+{  \
+    memcpy(__CGL_UTILS_QUICK_SORT_SWAP_BUFFER, a, item_size); \
+    memcpy(a, b, item_size); \
+    memcpy(b, __CGL_UTILS_QUICK_SORT_SWAP_BUFFER, item_size); \
+}
+
+#define __CGL_QUICK_SORT_SWAP(a, b) \
+{  \
+    CGL_void* temp = a; \
+    a = b; \
+    b = temp; \
+}
+
+static CGL_void __CGL_utils_quick_sort(CGL_void* begin_ptr, CGL_void* end_ptr, CGL_sizei item_size, CGL_int (*comparator)(const CGL_void*, const CGL_void*))
+{
+    CGL_byte* pivot = (CGL_byte*)end_ptr - item_size;
+    CGL_byte* left_ptr = (CGL_byte*)begin_ptr - item_size;
+    CGL_byte* right_ptr = (CGL_byte*)end_ptr - item_size;
+    while(left_ptr < right_ptr)
+    {
+        while(left_ptr < pivot && comparator(left_ptr = (left_ptr + item_size), pivot) < 0);
+        while(right_ptr > left_ptr && comparator(right_ptr = (right_ptr - item_size), pivot) > 0);
+        if(left_ptr < right_ptr) __CGL_QUICK_SORT_SWAP_DATA(left_ptr, right_ptr) // swap elements to arrange them
+        else __CGL_QUICK_SORT_SWAP_DATA(left_ptr, pivot) // swap pivot to the middle
+    }
+    if((CGL_sizei)(left_ptr - (CGL_byte*)begin_ptr) > item_size) __CGL_utils_quick_sort(begin_ptr, left_ptr, item_size, comparator);
+    if((CGL_sizei)((CGL_byte*)end_ptr - left_ptr) > item_size) __CGL_utils_quick_sort(left_ptr + item_size, end_ptr, item_size, comparator);
+}
+
+CGL_bool CGL_utils_quick_sort(CGL_void* array, CGL_sizei item_count, CGL_sizei item_size, CGL_int (*comparator)(const CGL_void*, const CGL_void*))
+{
+    __CGL_utils_quick_sort(array, (CGL_byte*)array + item_count * item_size, item_size, comparator);
+    return true;
 }
 
 CGL_void CGL_shape_init(CGL_shape* shape, size_t vertices_count)
