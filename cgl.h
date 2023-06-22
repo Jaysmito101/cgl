@@ -867,7 +867,13 @@ struct CGL_mat3
 {
     CGL_float m[9];
 #ifdef __cplusplus
-    CGL_mat3() {}
+    CGL_mat3()
+    {
+        m[0] = 1; m[3] = 0; m[6] = 0;
+		m[1] = 0; m[4] = 1; m[7] = 0;
+		m[2] = 0; m[5] = 0; m[8] = 1; 
+    }
+
     CGL_mat3(CGL_float m0, CGL_float m1, CGL_float m2, CGL_float m3, CGL_float m4, CGL_float m5, CGL_float m6, CGL_float m7, CGL_float m8)
     {
         m[0] = m0; m[3] = m1; m[6] = m2;
@@ -882,7 +888,14 @@ struct CGL_mat4
 {
     CGL_float m[16];
 #ifdef __cplusplus
-    CGL_mat4() {}
+    CGL_mat4()
+    {
+        m[0] = 1;   m[4] = 0;   m[8] = 0;     m[12] = 0;
+		m[1] = 0;   m[5] = 1;   m[9] = 0;     m[13] = 0;
+		m[2] = 0;   m[6] = 0;   m[10] = 1;    m[14] = 0;
+		m[3] = 0;   m[7] = 0;   m[11] = 0;    m[15] = 1;
+    }
+
     CGL_mat4(CGL_float m0, CGL_float m1, CGL_float m2, CGL_float m3,
              CGL_float m4, CGL_float m5, CGL_float m6, CGL_float m7,
              CGL_float m8, CGL_float m9, CGL_float m10, CGL_float m11,
@@ -2794,6 +2807,11 @@ CGL_int CGL_oct_tree_get_items_in_range(CGL_nd_tree* tree, CGL_float x_min, CGL_
 #pragma warning(push, 0)
 #define WIN32_LEAN_AND_MEAN
 #ifndef  CGL_WASM
+
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+
 #include <Windows.h>
 #endif
 #pragma warning(pop)
@@ -2819,6 +2837,7 @@ struct CGL_list
 CGL_list* CGL_list_create(size_t item_size, size_t initial_capacity)
 {
     CGL_list* list = (CGL_list*)malloc(sizeof(CGL_list));
+    if (!list) return NULL;
     list->size = 0;
     list->capacity = initial_capacity;
     list->item_size = item_size;
@@ -3039,6 +3058,7 @@ bool CGL_thread_join(CGL_thread* thread)
  */
 bool CGL_thread_joinable(CGL_thread* thread)
 {
+    (void)thread;
     return true; // Temporary
 }
 
@@ -3247,8 +3267,6 @@ static CGL_hashtable_entry* __CGL_hashtable_get_entry_ptr(CGL_hashtable* table, 
 
 static bool __CGL_hashtable_expand_storage(CGL_hashtable* table)
 {
-    size_t initial_capacity = table->capacity;
-    void* initial_storage = table->storage;
     table->capacity = (size_t)(table->capacity * table->growth_rate);
     table->storage = (CGL_hashtable_entry*)CGL_malloc(table->capacity * sizeof(CGL_hashtable_entry));
     memset(table->storage, 0, table->capacity * sizeof(CGL_hashtable_entry));
@@ -3484,8 +3502,6 @@ CGL_void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator)
 
 #if defined(_WIN32) || defined(_WIN64)
 
-#include <windows.h>
-#include <winsock2.h>
 #include <ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -4242,6 +4258,7 @@ CGL_float CGL_utils_step(CGL_float x)
 
 CGL_float CGL_utils_step_derivative(CGL_float x)
 {
+    (void)x;
     return 0.0f;
 }
 
@@ -4267,6 +4284,7 @@ CGL_float CGL_utils_relu_smooth_derivative(CGL_float x)
 
 CGL_vec3 CGL_utils_hsl_to_rgb(CGL_vec3 hsv)
 {
+    (void)hsv;
     CGL_log_internal("Not implemented yet");
     return CGL_vec3_init(0.0f, 0.0f, 0.0f);
 }
@@ -4423,7 +4441,7 @@ CGL_void CGL_shape_destroy(CGL_shape* shape)
 
 CGL_transform CGL_transform_create_empty()
 {
-    CGL_transform transform;
+    CGL_transform transform = {0};
     transform.position = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     transform.rotation = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     transform.scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
@@ -4434,7 +4452,7 @@ CGL_transform CGL_transform_create_empty()
 
 CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec3 scale)
 {
-    CGL_transform transform;
+    CGL_transform transform = {0};
     transform.position = CGL_vec4_init(position.x, position.y, position.z, 0.0f);
     transform.rotation = CGL_vec4_init(rotation.x, rotation.y, rotation.z, 0.0f);
     transform.scale = CGL_vec4_init(scale.x, scale.y, scale.z, 1.0f);
@@ -4446,10 +4464,11 @@ CGL_transform CGL_transform_create(CGL_vec3 position, CGL_vec3 rotation, CGL_vec
 
 CGL_transform CGL_transform_create_from_matrix(CGL_mat4 matrix)
 {
-    CGL_transform transform;
+    CGL_transform transform = {0};
     transform.position = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     transform.rotation = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
     transform.scale = CGL_vec4_init(1.0f, 1.0f, 1.0f, 1.0f);
+    (void)matrix;
     // TODO: Implement
     CGL_warn("CGL_transform_create_from_matrix() is not implemented yet!");
     return transform;
@@ -4640,8 +4659,8 @@ CGL_bool CGL_utils_calculate_bounding_box(CGL_vec2* points, CGL_int points_count
         if(p.x > min_max_val.z) min_max_val.z = p.x; if(p.y > min_max_val.w) min_max_val.w = p.y;
     }
     min_max_val.x -= 0.1f; min_max_val.y -= 0.1f; min_max_val.z += 0.1f; min_max_val.w += 0.1f;
-    *a = CGL_vec2_init(min_max_val.x, min_max_val.y); *b = CGL_vec2_init(min_max_val.z, min_max_val.y);
-    *c = CGL_vec2_init(min_max_val.z, min_max_val.w); *d = CGL_vec2_init(min_max_val.x, min_max_val.w);
+    *a = CGL_vec2_init(min_max_val.x - padding, min_max_val.y - padding); *b = CGL_vec2_init(min_max_val.z + padding, min_max_val.y - padding);
+    *c = CGL_vec2_init(min_max_val.z + padding, min_max_val.w + padding); *d = CGL_vec2_init(min_max_val.x - padding, min_max_val.w + padding);
     return true;
 }
 
@@ -4728,7 +4747,7 @@ CGL_vec3 CGL_gjk_default_support(CGL_shape* a, CGL_shape* b, CGL_vec3 d)
 CGL_bool CGL_gjk_check_collision_2d(CGL_shape* sa, CGL_shape* sb, CGL_vec3* simplex_out)
 {
     CGL_int index = 0;
-    CGL_vec3 simplex[3];
+    CGL_vec3 simplex[3] = {0};
     CGL_vec3  a, b, c;
     CGL_vec3 dir, ao, ab, ac, ab_perp, ac_perp;
 
@@ -4827,7 +4846,7 @@ CGL_vec3 CGL_gjk_epa_2d(CGL_shape* a, CGL_shape* b, CGL_vec3* simplex)
         if(fabsf(dist - min_dist) > CGL_GJK_EPA_TOLERANCE)
         {
             min_dist = FLT_MAX;
-            CGL_int amt_len = polytope_size - min_index;
+            // CGL_int amt_len = polytope_size - min_index;
             for(CGL_int i = polytope_size - 1 ; i >= min_index ; i--) polytope_copy[i + 1] = polytope[i];
             polytope[min_index] = support; polytope_size += 1;
         }
@@ -4884,6 +4903,7 @@ CGL_bool CGL_aabb_subdivide_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_m
 // hard coded for 2d
 CGL_bool CGL_aabb_subdivide_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabbs_min_out, CGL_float* aabbs_max_out)
 {
+    (void)n;
     CGL_float delta_x = (aabb_max[0] - aabb_min[0]) * 0.5f, delta_y = (aabb_max[1] - aabb_min[1]) * 0.5f;
     aabbs_min_out[0] = aabb_min[0]; aabbs_min_out[1] = aabb_min[1];
     aabbs_max_out[0] = aabb_min[0] + delta_x; aabbs_max_out[1] = aabb_min[1] + delta_y;
@@ -4910,11 +4930,13 @@ CGL_bool CGL_aabb_contains_point_nd(CGL_int n, CGL_float* aabb_min, CGL_float* a
 
 CGL_bool CGL_aabb_contains_point_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point)
 {
+    (void)n;
     return (point[0] >= aabb_min[0] && point[0] <= aabb_max[0] && point[1] >= aabb_min[1] && point[1] <= aabb_max[1]);
 }
 
 CGL_bool CGL_aabb_contains_point_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* point)
 {
+    (void)n;
     return (point[0] >= aabb_min[0] && point[0] <= aabb_max[0] && point[1] >= aabb_min[1] && point[1] <= aabb_max[1] && point[2] >= aabb_min[2] && point[2] <= aabb_max[2]);
 }
 
@@ -4926,12 +4948,14 @@ CGL_bool CGL_aabb_intersects_aabb_nd(CGL_int n, CGL_float* aabb_min, CGL_float* 
 
 CGL_bool CGL_aabb_intersects_aabb_2d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2)
 {
-	return (aabb_min[0] <= aabb_max2[0] && aabb_max[0] >= aabb_min2[0] && aabb_min[1] <= aabb_max2[1] && aabb_max[1] >= aabb_min2[1]);
+    (void)n;
+    return (aabb_min[0] <= aabb_max2[0] && aabb_max[0] >= aabb_min2[0] && aabb_min[1] <= aabb_max2[1] && aabb_max[1] >= aabb_min2[1]);
 }
 
 CGL_bool CGL_aabb_intersects_aabb_3d(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_max, CGL_float* aabb_min2, CGL_float* aabb_max2)
 {
-	return (aabb_min[0] <= aabb_max2[0] && aabb_max[0] >= aabb_min2[0] && aabb_min[1] <= aabb_max2[1] && aabb_max[1] >= aabb_min2[1] && aabb_min[2] <= aabb_max2[2] && aabb_max[2] >= aabb_min2[2]);
+    (void)n;
+    return (aabb_min[0] <= aabb_max2[0] && aabb_max[0] >= aabb_min2[0] && aabb_min[1] <= aabb_max2[1] && aabb_max[1] >= aabb_min2[1] && aabb_min[2] <= aabb_max2[2] && aabb_max[2] >= aabb_min2[2]);
 }
 
 
@@ -5293,7 +5317,7 @@ CGL_void CGL_utils_rot13(const char* data_in, char* str)
       // Rotate the char's value, ensuring it doesn't accidentally "fall off" the end.
       str[idx] = (str[idx] + 13) % (case_type + 26);
       if (str[idx] < 26)
-         str[idx] += case_type;
+         str[idx] += (char)case_type;
    }
 }
 
@@ -5663,11 +5687,11 @@ float CGL_quat_to_axis_angle(CGL_quat quat, float* x, float* y, float* z)
 CGL_void CGL_quat_to_euler_zyx(CGL_quat q, float* z, float* y, float* x)
 {
     // roll (x-axis rotation)
-    if(z)
+    if(x)
     {
         CGL_float sinr_cosp = 2.0f * (q.w * q.vec.x + q.vec.y * q.vec.z);
         CGL_float cosr_cosp = 1.0f - 2.0f * (q.vec.x * q.vec.x + q.vec.y * q.vec.y);
-        *z = atan2f(sinr_cosp, cosr_cosp);
+        *x = atan2f(sinr_cosp, cosr_cosp);
     }
     // pitch (y-axis rotation)
     if(y)
@@ -5687,7 +5711,7 @@ CGL_void CGL_quat_to_euler_zyx(CGL_quat q, float* z, float* y, float* x)
 
 CGL_quat CGL_quat_mul(CGL_quat a, CGL_quat b)
 {
-    CGL_quat result;
+    CGL_quat result = { 0 };
     CGL_vec3 temp1, temp2, temp3;
     temp1 = CGL_vec3_scale(a.vec, b.w);
     temp2 = CGL_vec3_scale(b.vec, a.w);
@@ -5806,6 +5830,7 @@ CGL_vec2 CGL_vec2_apply_transformations(CGL_vec2 original, const CGL_vec2* trans
 
 CGL_vec4 CGL_quat_mul_vec4(CGL_quat q, CGL_vec4 v)
 {
+    (void)q;
     CGL_warn("CGL_quat_mul_vec4 is not implemented yet");
     return v;
 }
@@ -6652,9 +6677,9 @@ CGL_sizei CGL_utils_get_file_size(const CGL_byte* path)
 {
 #if defined(_WIN32) || defined(_WIN64)
     HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if(file == INVALID_HANDLE_VALUE) return -1;
+    if(file == INVALID_HANDLE_VALUE) return 0;
     LARGE_INTEGER size;
-    if(GetFileSizeEx(file, &size) == 0) return -1;
+    if(GetFileSizeEx(file, &size) == 0) return 0;
     CloseHandle(file);
     return size.QuadPart;
 #else
@@ -6914,6 +6939,7 @@ CGL_void CGL_window_destroy(CGL_window* window)
 // poll events
 CGL_void CGL_window_poll_events(CGL_window* window)
 {
+    (void)window;
     glfwPollEvents();
 }
 
@@ -7803,6 +7829,7 @@ CGL_void CGL_ssbo_set_data(CGL_ssbo* ssbo, size_t size, void* data, bool static_
 // set ssbo sub data
 CGL_void CGL_ssbo_set_sub_data(CGL_ssbo* ssbo, size_t offset, size_t size, void* data, bool static_draw)
 {
+    (void)static_draw;
     if(offset + size > ssbo->size)
     {
         CGL_log_internal("CGL_ssbo_set_sub_data: offset + size > ssbo->size");
@@ -7922,6 +7949,7 @@ CGL_void CGL_ubo_set_data(CGL_ubo* ubo, size_t size, void* data, bool static_dra
 
 CGL_void CGL_ubo_set_sub_data(CGL_ubo* ubo, size_t offset, size_t size, void* data, bool static_draw)
 {
+    (void)static_draw;
     if(offset + size > ubo->size) {CGL_log_internal("CGL_ubo_set_sub_data: offset + size > ubo->size");return;}
     glBindBuffer(GL_UNIFORM_BUFFER, ubo->handle);
     glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
@@ -8226,8 +8254,8 @@ CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path)
                 }
                 j++;
             }            
-            CGL_mesh_vertex current_vertex;
-            for (CGL_int i = 0; i < 3; i++)
+            CGL_mesh_vertex current_vertex = { 0 };
+            for (i = 0; i < 3; i++)
             {
                 if (!CGL_list_get(vertex_positions, index_v_vt_vn[i][0] - 1, &current_vertex.position))
                     current_vertex.position = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
@@ -8459,7 +8487,6 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_
     if(resolution < 3) return NULL;
     
     CGL_vec3 direction = CGL_vec3_sub(end, start);
-    CGL_float length = CGL_vec3_length(direction);
     CGL_vec3_normalize(direction);
     CGL_vec3 right = CGL_vec3_init(0.0f, 0.0f, 0.0f);
     CGL_vec3 top = CGL_vec3_init(0.0f, 0.0f, 0.0f);
@@ -8914,18 +8941,21 @@ CGL_void CGL_shader_bind(CGL_shader* shader)
 // get uniform location
 int CGL_shader_get_uniform_location(CGL_shader* shader, const char* name)
 {
+    (void)shader;
     return glGetUniformLocation(shader->handle, name);
 }
 
 // set uniform bool
 CGL_void CGL_shader_set_uniform_bool(CGL_shader* shader, CGL_int location, bool value)
 {
+    (void)shader;
     glUniform1i(location, value);
 }
 
 // set uniform matrix
 CGL_void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_mat4* matrix)
 {
+    (void)shader;
     glUniformMatrix4fv(location, 1, GL_FALSE, (GLfloat*)matrix->m);
     //glUniformMatrix4fv(location, 1, GL_TRUE, (GLfloat*)matrix);
 }
@@ -8933,71 +8963,83 @@ CGL_void CGL_shader_set_uniform_mat4(CGL_shader* shader, CGL_int location, CGL_m
 // set uniform vector
 CGL_void CGL_shader_set_uniform_vec4(CGL_shader* shader, CGL_int location, CGL_vec4* vector)
 {
+    (void)shader;
     glUniform4fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform vector
 CGL_void CGL_shader_set_uniform_vec3(CGL_shader* shader, CGL_int location, CGL_vec3* vector)
 {
+    (void)shader;
     glUniform3fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform vector
 CGL_void CGL_shader_set_uniform_vec2(CGL_shader* shader, CGL_int location, CGL_vec2* vector)
 {
+    (void)shader;
     glUniform2fv(location, 1, (GLfloat*)vector);
 }
 
 // set uniform int
 CGL_void CGL_shader_set_uniform_int(CGL_shader* shader, CGL_int location, CGL_int value)
 {
+    (void)shader;
     glUniform1i(location, value);
 }
 
 // set uniform float
 CGL_void CGL_shader_set_uniform_float(CGL_shader* shader, CGL_int location, CGL_float value)
 {
+    (void)shader;
     glUniform1f(location, value);
 }
 
 // set uniform double
 CGL_void CGL_shader_set_uniform_double(CGL_shader* shader, CGL_int location, CGL_double value)
 {
+    (void)shader;
     glUniform1d(location, value);
 }
 
 // set uniform vector
 CGL_void CGL_shader_set_uniform_vec2v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y)
 {
+    (void)shader;
     glUniform2f(location, x, y);
 }
 
 // set uniform vector
 CGL_void CGL_shader_set_uniform_vec3v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z)
 {
+    (void)shader;
     glUniform3f(location, x, y, z);
 }
 
 // set uniform vector
 CGL_void CGL_shader_set_uniform_vec4v(CGL_shader* shader, CGL_int location, CGL_float x, CGL_float y, CGL_float z, CGL_float w)
 {
+    (void)shader;
     glUniform4f(location, x, y, z, w);
 }
 
 CGL_void CGL_shader_set_uniform_ivec2v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y)
 {
+    (void)shader;
     glUniform2i(location, x, y);
 }
 
 // set uniform vector
 CGL_void CGL_shader_set_uniform_ivec3v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z)
 {
+    (void)shader;
     glUniform3i(location, x, y, z);
 }
 
 // set uniform vector
 CGL_void CGL_shader_set_uniform_ivec4v(CGL_shader* shader, CGL_int location, CGL_int x, CGL_int y, CGL_int z, CGL_int w)
 {
+    (void)shader;
     glUniform4i(location, x, y, z, w);
 }
 
@@ -10195,6 +10237,7 @@ CGL_void CGL_phong_render_begin(CGL_phong_pipeline* pipeline, CGL_camera* camera
 
 CGL_void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_mat* material, CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
+    (void)camera;
     CGL_shader_set_uniform_mat4(pipeline->shader, pipeline->u_model_matrix, model_matrix);
     CGL_shader_set_uniform_bool(pipeline->shader, pipeline->u_use_diffuse_texture, material->use_diffuse_texture);
     CGL_shader_set_uniform_vec3v(pipeline->shader, pipeline->u_diffuse_color, material->diffuse_color.x, material->diffuse_color.y, material->diffuse_color.z);
@@ -10226,7 +10269,8 @@ CGL_void CGL_phong_render(CGL_mesh_gpu* mesh, CGL_mat4* model_matrix, CGL_phong_
 
 CGL_void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 {
-    
+    (void)pipeline;
+    (void)camera;
 }
 
 
@@ -11483,7 +11527,7 @@ CGL_void CGL_widgets_add_mesh(CGL_mesh_cpu* mesh)
 
 CGL_void CGL_widgets_add_vertex_pt(CGL_vec3 position, CGL_vec2 tex_coord)
 {
-    CGL_mesh_vertex vertex;
+    CGL_mesh_vertex vertex = {0};
     vertex.position = CGL_vec4_init(position.x, position.y, position.z, 1.0f);
     vertex.texture_coordinates = CGL_vec4_init(tex_coord.x, tex_coord.y, 0.0f, 0.0f);
     vertex.normal = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
@@ -11815,6 +11859,8 @@ CGL_void __CGL_widgets_add_oval_filled(CGL_vec3 position, CGL_vec2 radius)
 
 CGL_void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius)
 {
+    (void)position;
+    (void)radius;
     CGL_LOG("void __CGL_widgets_add_oval_stroked(CGL_vec3 position, CGL_vec2 radius) not implemented\n");
 }
 
@@ -12319,7 +12365,7 @@ CGL_bool CGL_widgets_add_string(const char* str, CGL_float x, CGL_float y, CGL_f
     CGL_int line_length = 0;
     CGL_int line_length_max = 0;
     CGL_int num_lines = 1;
-    CGL_float ix = x, iy = y + sy;
+    CGL_float ix = x;
     for(CGL_int i = 0; i < length ; i++)
     {
         line_length++;
@@ -12489,7 +12535,7 @@ CGL_void CGL_widgets_add_plot_function(CGL_float start_x, CGL_float start_y, CGL
     if(draw_axes)
     {
         CGL_widgets_set_stroke_colorf(axes_color.x, axes_color.y, axes_color.z, 1.0f);
-        CGL_widgets_set_stroke_thicnkess(plot_thickness);
+        CGL_widgets_set_stroke_thicnkess(axes_thickness);
         if(y_min < 0.0f && y_max > 0.0f)
         {
             CGL_widgets_add_line2f(
@@ -12588,7 +12634,6 @@ CGL_void CGL_widgets_add_bar_graph(CGL_float start_x, CGL_float start_y, CGL_flo
 
     CGL_float curr_x = start_x + bar_spacing;
     CGL_float curr_y = start_y + bar_spacing;
-    CGL_float total_spacing = bar_spacing;
 
     for(CGL_sizei i = 0; i < count; i++)
     {
@@ -12890,8 +12935,8 @@ CGL_void CGL_node_editor_node_render(CGL_node_editor_node* node)
     if(node->render_title) sy += 0.1f;
     //if(sx > sy) sy = sx * node->editor->input->aspect_ratio;
     //else sx = sy / node->editor->input->aspect_ratio;    
-    CGL_float ofx = node->editor->offset_x;
-    CGL_float ofy = node->editor->offset_y;
+    CGL_float ofx = editor->offset_x;
+    CGL_float ofy = editor->offset_y;
     // render selection
     if(node->selected)
     {
@@ -13111,7 +13156,6 @@ CGL_void CGL_ray_caster_calculate(CGL_ray_caster* caster, CGL_vec2 pos, CGL_floa
     
     CGL_float angmn = __CGL_ray_caster_calculate_angle_in_range(caster->theta_min + rotation);        
     CGL_float angmx = __CGL_ray_caster_calculate_angle_in_range(caster->theta_max + rotation);
-    CGL_float cdelta_half = cosf(fabsf(angmx - angmn) * 0.5f);
     CGL_vec2 min_border = CGL_vec2_init(cosf(angmn), sinf(angmn));
     CGL_vec2 max_border = CGL_vec2_init(cosf(angmx), sinf(angmx));
     CGL_vec2 dir = CGL_vec2_add(min_border, max_border);
@@ -13259,7 +13303,7 @@ CGL_void CGL_square_marcher_enable_interpolation(CGL_square_marcher* marcher, bo
 
 CGL_void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec2 a, CGL_vec2 b, CGL_vec2 c)
 {
-    CGL_mesh_vertex v;
+    CGL_mesh_vertex v = {0};
     v.normal = CGL_vec4_init(0.0f, 0.0f, 1.0f, 1.0f);
     v.position = CGL_vec4_init(a.x, a.y, 0.0f, 0.0f);
     CGL_list_push(list, &v);
@@ -13273,9 +13317,9 @@ CGL_void __CGL_square_marcher_generate_mesh_add_triangle(CGL_list* list, CGL_vec
 CGL_mesh_cpu* CGL_square_marcher_generate_mesh(CGL_square_marcher* marcher, CGL_square_marcher_distance_function sampler, CGL_vec2 start, CGL_vec2 end, CGL_int resolution_x, CGL_int resolution_y)
 {
     CGL_vec2 step_size = CGL_vec2_init((end.x - start.x) / (float)resolution_x, (end.y - start.y) / (float)resolution_y);
-    CGL_vec2 pos[4], mpts[4];
+    CGL_vec2 pos[4] = { 0 }, mpts[4] = {0};
     CGL_bool smpb[4];
-    CGL_float smpv[4], intr[4];
+    CGL_float smpv[4] = { 0 }, intr[4] = { 0 };
     CGL_list* mesh_list = CGL_list_create(sizeof(CGL_mesh_vertex), 1000);
 
     for(CGL_int xi = -1 ; xi < resolution_x ; xi ++)
@@ -14692,7 +14736,7 @@ static CGL_noise_data_type __CGL_noise_worley_rand()
 
 CGL_noise_data_type CGL_noise_worley(CGL_noise_data_type x, CGL_noise_data_type y, CGL_noise_data_type z)
 {
-    CGL_int X = (CGL_int)floor(x), Y = (CGL_int)floor(y), Z = (CGL_int)floor(z), noise_points_index = 0;
+    CGL_int X = (CGL_int)floor(x), Y = (CGL_int)floor(y), Z = (CGL_int)floor(z);
     //x -= (CGL_noise_data_type)floor(x); y -= (CGL_noise_data_type)floor(y); z -= (CGL_noise_data_type)floor(z);
     static CGL_noise_data_type rand_points[27][3], vec[3], dist, max_dist = (CGL_noise_data_type)-1.0, min_dist = (CGL_noise_data_type)10000000.0;
     max_dist = (CGL_noise_data_type)-1.0; min_dist = (CGL_noise_data_type)10000000.0;
@@ -14768,7 +14812,7 @@ static CGL_noise_data_type __CGL_noise_get_plain(CGL_noise_params* params, CGL_n
         default:
             return 0.0f;
     };
-    return (CGL_noise_data_type)0.0;
+//    return (CGL_noise_data_type)0.0;
 }
 
 
@@ -15149,7 +15193,6 @@ static CGL_int __CGL_path_finding_a_star_find_node(CGL_path_finding_a_star_conte
 
 static CGL_int __CGL_path_finding_a_star_add_node(CGL_path_finding_a_star_context* context, CGL_path_finding_node* node, CGL_path_finding_node_equals_function node_equals_function)
 {
-    CGL_int *datad = (CGL_int*)node->data_ptr;
     node->id = __CGL_path_finding_a_star_find_node(context, node, node_equals_function); if(node->id != -1) return node->id;        
     CGL_path_finding_node* nodes = context->nodes;
     if(context->nodes_count >= context->max_nodes_count) return -1;
@@ -15160,11 +15203,11 @@ static CGL_int __CGL_path_finding_a_star_add_node(CGL_path_finding_a_star_contex
         if(context->copy_data) nodes[i].data_ptr = context->nodes_data + i * context->nodes_data_size;
         nodes[i].is_active = true;
         if(context->copy_data) memcpy(context->nodes_data + i * context->nodes_data_size, node->data_ptr, context->nodes_data_size);
-        CGL_int *data = (CGL_int*)(context->nodes_data + i * context->nodes_data_size);
+        //CGL_int *data = (CGL_int*)(context->nodes_data + i * context->nodes_data_size);
         context->nodes_count++;
         return node->id;
     }
-    return -1;
+    // return -1;
 }
 
 static CGL_int __CGL_path_finding_a_star_find_node_with_lowest_f(CGL_path_finding_a_star_context* context)
@@ -15173,7 +15216,7 @@ static CGL_int __CGL_path_finding_a_star_find_node_with_lowest_f(CGL_path_findin
     CGL_int lowest_f_node = -1;
     CGL_float lowest_f_v = 0.0f;
     for(CGL_int i = 0 ; i < context->max_nodes_count ; i++) if(nodes[i].is_active && nodes[i].is_open && (lowest_f_node == -1 || nodes[i].f <= lowest_f_v)) { lowest_f_node = i; lowest_f_v = nodes[i].f; }
-    CGL_int *data = (CGL_int*)nodes[lowest_f_node].data_ptr;
+    // CGL_int *data = (CGL_int*)nodes[lowest_f_node].data_ptr;
     nodes[lowest_f_node].is_open = false;
     return lowest_f_node;
 }
@@ -15234,7 +15277,7 @@ CGL_bool CGL_path_finding_a_star_find_path(CGL_path_finding_a_star_context* cont
     context->start_node = &context->nodes[start_node]; // update context variable
     context->user_data = user_data; // update context variable
     if(start_node == -1) return CGL_FALSE; // if initial couldn't be added, return
-    CGL_int current_node = start_node, neighbors_count = 0, new_neighbour_count = 0;  // current node is start node
+    CGL_int current_node = start_node;  // current node is start node
     CGL_int neighbors[CGL_PATH_FINDING_A_STAR_MAX_NEIGHBOURS], neighbour_count = 0; // array of storing neighbors
     CGL_int epochs = 0, node_count_old = 0; // epochs is used to prevent infinite loops
     while(__CGL_path_finding_a_star_get_open_node_count(context) > 0 && epochs <= 100 * context->max_nodes_count) // while there are open nodes
@@ -15392,7 +15435,6 @@ CGL_bool CGL_csv_load_from_buffer(CGL_csv* csv, const CGL_byte* buffer, const CG
 {
     CGL_sizei seperator_length = strlen(seperator);
     CGL_csv_clear(csv);
-    CGL_sizei buffer_length = strlen(buffer);
     CGL_sizei line_start_index = 0, current_index = 0, line_end_index = 0, line_number = 0, column_count = 0, prev_column_start = 0, seperator_count = 0, line_iterator = 0;
     while(buffer[current_index])
     {
@@ -15543,7 +15585,6 @@ CGL_bool CGL_csv_get_column(CGL_csv* csv, CGL_int column, CGL_byte* column_out)
     CGL_list* column_ptr = *(CGL_list**)CGL_list_get(csv->columns, column, NULL);
     if (column_ptr == NULL) return CGL_FALSE;
     CGL_sizei row_count = CGL_list_get_size(column_ptr);
-    CGL_byte* data_ptr = (CGL_byte*)CGL_list_get(column_ptr, 0, NULL);
     memcpy(column_out, column_ptr->data, row_count * csv->item_max_size);
     return CGL_TRUE;
 }
@@ -15604,7 +15645,6 @@ CGL_bool CGL_image_file_is_png(const CGL_byte* file_path)
 CGL_bool CGL_image_file_is_bmp_f(FILE* file)
 {
     CGL_byte d_i8 = 0;
-    CGL_ushort d_u16 = 0;
     CGL_uint d_u32 = 0;
     fread(&d_i8, sizeof(CGL_byte), 1, file);
     if (d_i8 != 'B') return CGL_FALSE;
@@ -15630,8 +15670,6 @@ CGL_bool CGL_image_file_is_bmp(const CGL_byte* file_path)
 CGL_bool CGL_image_file_is_gif_f(FILE* file)
 {
     CGL_byte d_i8 = 0;
-	CGL_ushort d_u16 = 0;
-	CGL_uint d_u32 = 0;
 	fread(&d_i8, sizeof(CGL_byte), 1, file);
 	if (d_i8 != 'G') return CGL_FALSE;
 	fread(&d_i8, sizeof(CGL_byte), 1, file);
