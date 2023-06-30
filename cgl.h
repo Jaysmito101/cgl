@@ -4911,7 +4911,7 @@ CGL_bool CGL_aabb_subdivide_nd(CGL_int n, CGL_float* aabb_min, CGL_float* aabb_m
 
 	for (CGL_int j = 0; j < n; j++)
 	{
-		pm_a[0] = &aabb_min[j]; pm_a[1] = &aabb_mid_pos[j];
+		pm_a[0] = &aabb_min[n - j - 1]; pm_a[1] = &aabb_mid_pos[n - j - 1];
 		nth_dim_val_holder = *pm_a[nth_dim_val_holder_index = 0];
 		for (CGL_int i = 0; i < result_count; i++)
 		{
