@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "sandbox", # The sandbox crate is the main binary
+    "cgl-rs", # The cgl-rs crate is a library
+]
