@@ -44,8 +44,11 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 ## What does CGL Provide? 
 
+* cgl-rs
+  - A Rust wrapper ( https://crates.io/crates/cgl-rs )
+
 * cgl-py
-  - A python port ( https://pypi.org/project/cgl-py )
+  - A python wrapper ( https://pypi.org/project/cgl-py )
 
 * Windowing library (Optional)
   - You can completely disable it by `#define CGL_EXCLUDE_WINDOW_API`
