@@ -31,10 +31,22 @@
 <a href="#31" id="31">31</a>
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
+<a href="#41" id="41">41</a>
+<a href="#42" id="42">42</a>
+<a href="#43" id="43">43</a>
+<a href="#44" id="44">44</a>
+<a href="#45" id="45">45</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(dead_code)]
 
 </span><span class="kw">use </span>std::result;
-<span class="kw">use </span>libc::{c_void, c_int, c_char};
+<span class="kw">use </span>libc::{c_void, c_int};
 
 <span class="kw">pub mod </span>window_manager;
 <span class="kw">pub use </span>window_manager::<span class="kw-2">*</span>;
@@ -42,13 +54,24 @@
 <span class="kw">pub mod </span>logger;
 <span class="comment">// pub use logger::*;
 
-</span><span class="kw">extern </span>{
+</span><span class="kw">pub mod </span>utils;
+
+<span class="kw">pub mod </span>math;
+
+<span class="kw">extern </span>{
     <span class="kw">fn </span>CGL_init() -&gt; c_int;
     <span class="kw">fn </span>CGL_shutdown() -&gt; c_void;
-    <span class="kw">fn </span>CGL_logger_log(level: c_int, log_format: <span class="kw-2">*const </span>c_char, ...) -&gt; c_void;
 }
 
-<span class="kw">pub fn </span>init() -&gt; result::Result&lt;(), ()&gt; {
+
+<span class="doccomment">/// Initializes the CGL library.
+/// 
+/// This function must be called before any other CGL functions are called.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the initialization was successful, otherwise returns `Err(())`.
+</span><span class="kw">pub fn </span>init() -&gt; result::Result&lt;(), ()&gt; {
     <span class="kw">unsafe </span>{
         <span class="kw">let </span>result = CGL_init();
         <span class="kw">if </span>result == <span class="number">0 </span>{
@@ -58,6 +81,7 @@
         }   
     }
 }
+
 
 <span class="kw">pub fn </span>shutdown() -&gt; () {
     <span class="kw">unsafe </span>{

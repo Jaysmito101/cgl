@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["init","shutdown"],"macro":["log_error","log_info","log_trace","log_warning"],"mod":["logger","window_manager"]};
+window.SIDEBAR_ITEMS = {"fn":["init","shutdown"],"macro":["log_error","log_info","log_trace","log_warning"],"mod":["logger","math","utils","window_manager"]};

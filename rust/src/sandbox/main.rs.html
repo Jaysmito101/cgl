@@ -34,21 +34,17 @@
 <a href="#34" id="34">34</a>
 <a href="#35" id="35">35</a>
 <a href="#36" id="36">36</a>
-<a href="#37" id="37">37</a>
-<a href="#38" id="38">38</a>
-<a href="#39" id="39">39</a>
-<a href="#40" id="40">40</a>
 </pre></div><pre class="rust"><code><span class="kw">fn </span>on_window_event(_window: <span class="kw-2">&amp;</span>cgl_rs::Window, event: <span class="kw-2">&amp;</span>cgl_rs::Event) -&gt; bool {
     <span class="kw">match </span>event {
-        cgl_rs::Event::EventWindowClose =&gt; {
+        cgl_rs::Event::WindowClose =&gt; {
             <span class="macro">println!</span>(<span class="string">&quot;Window Close Event&quot;</span>);
             <span class="bool-val">true
         </span>},
-        cgl_rs::Event::EventFramebufferSize(width, height) =&gt; {
+        cgl_rs::Event::FramebufferSize(width, height) =&gt; {
             <span class="macro">println!</span>(<span class="string">&quot;Window Resize Event: {}x{}&quot;</span>, width, height);
             <span class="bool-val">false
         </span>},   
-        cgl_rs::Event::EventDragNDrop(paths) =&gt; {
+        cgl_rs::Event::DragNDrop(paths) =&gt; {
             <span class="macro">println!</span>(<span class="string">&quot;Drag and Drop Event: {:?}&quot;</span>, paths);
             <span class="bool-val">false
         </span>},
@@ -67,10 +63,6 @@
             <span class="kw">if </span>window.is_key_pressed(cgl_rs::Key::Escape) {
                 <span class="kw">break</span>;
             }
-
-            <span class="macro">cgl_rs::log_info!</span>(<span class="string">&quot;This is an info message&quot;</span>);
-            <span class="macro">cgl_rs::log_warning!</span>(<span class="string">&quot;This is a warning message&quot;</span>);
-            <span class="macro">cgl_rs::log_error!</span>(<span class="string">&quot;This is an error message&quot;</span>);
 
             window.poll_events();
             window.swap_buffers();
