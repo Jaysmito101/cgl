@@ -1,4 +1,4 @@
-fn on_window_event(window: &cgl_rs::Window, event: &cgl_rs::Event) -> bool {
+fn on_window_event(_window: &cgl_rs::Window, event: &cgl_rs::Event) -> bool {
     match event {
         cgl_rs::Event::EventWindowClose => {
             println!("Window Close Event");
@@ -24,9 +24,14 @@ fn main() {
         window.register_for_events();
         window.attach_event_handler("my_event_handler", &on_window_event);
         while !window.should_close() {
-            if window.is_key_pressed(cgl_rs::Key::KeyEscape) {
+            if window.is_key_pressed(cgl_rs::Key::Escape) {
                 break;
             }
+
+            cgl_rs::log_info!("This is an info message");
+            cgl_rs::log_warning!("This is a warning message");
+            cgl_rs::log_error!("This is an error message");
+
             window.poll_events();
             window.swap_buffers();
         }

@@ -1,0 +1,24 @@
+[INTERNAL] [Sun Jul 30 18:20:22 202] : Started Logger Session
+[INTERNAL] [Sun Jul 30 18:20:22 202] : Attached Log File : log.txt
+[INTERNAL] [Sun Jul 30 18:20:22 202] : Ending Logger Session
+[INTERNAL] [Sun Jul 30 18:24:48 202] : Started Logger Session
+[INTERNAL] [Sun Jul 30 18:24:48 202] : Attached Log File : log.txt
+[INTERNAL] [Sun Jul 30 18:24:48 202] : Ending Logger Session
+[INTERNAL] [Sun Jul 30 18:26:18 202] : Started Logger Session
+[INTERNAL] [Sun Jul 30 18:26:18 202] : Attached Log File : log.txt
+[INTERNAL] [Sun Jul 30 18:26:18 202] : Ending Logger Session
+[INTERNAL] [Sun Jul 30 18:27:25 202] : Started Logger Session
+[INTERNAL] [Sun Jul 30 18:27:25 202] : Attached Log File : log.txt
+[INTERNAL] [Sun Jul 30 18:27:25 202] : Ending Logger Session
+[INTERNAL] [Sun Jul 30 18:28:01 202] : Started Logger Session
+[INTERNAL] [Sun Jul 30 18:28:01 202] : Attached Log File : log.txt
+[INTERNAL] [Sun Jul 30 18:28:01 202] : Ending Logger Session
+[INTERNAL] [Sun Jul 30 18:29:23 202] : Started Logger Session
+[INTERNAL] [Sun Jul 30 18:29:23 202] : Attached Log File : log.txt
+[INTERNAL] [Sun Jul 30 18:29:23 202] : Ending Logger Session
+[INTERNAL] [Sun Jul 30 18:30:08 202] : Started Logger Session
+[INTERNAL] [Sun Jul 30 18:30:08 202] : Attached Log File : log.txt
+[INTERNAL] [Sun Jul 30 18:30:08 202] : Ending Logger Session
+[INTERNAL] [Mon Jul 31 00:51:08 202] : Started Logger Session
+[INTERNAL] [Mon Jul 31 00:51:08 202] : Attached Log File : log.txt
+[INTERNAL] [Mon Jul 31 00:51:08 202] : Ending Logger Session

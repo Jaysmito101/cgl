@@ -7,7 +7,7 @@ fn main() {
     
     match env::consts::OS {
         "windows" => {
-            println!("cargo:rustc-link-search=native={}", Path::new(&dir).join("lib").join("windows").display());
+            println!("cargo:rustc-link-search={}", Path::new(&dir).join("lib").join("windows").display());
             println!("cargo:rustc-link-lib=user32");
             println!("cargo:rustc-link-lib=kernel32");
             println!("cargo:rustc-link-lib=gdi32");
