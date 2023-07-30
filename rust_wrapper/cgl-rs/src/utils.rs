@@ -1,8 +1,9 @@
 //! This module contains CGL utility functions, as well some miscellaneous functions.
 
-
 #![allow(non_camel_case_types)]
-use libc::{c_void, c_int, c_char, c_float, c_uchar, size_t};
+use std::{ops::{Add, Sub, Mul, Div}, ffi::CString};
+
+use libc::{c_void, c_int, c_char, c_float, size_t};
 
 extern {
     fn CGL_utils_sleep(milis: size_t) -> c_void;
@@ -23,18 +24,11 @@ extern {
     fn CGL_utils_srand31(seed: u32) -> c_void;
     fn CGL_utils_rand31() -> u32;
 
-    fn CGL_utils_sigmoid(x: c_float) -> c_float;
-    fn CGL_utils_sigmoid_derivative(x: c_float) -> c_float;
-    fn CGL_utils_relu(x: c_float) -> c_float;
-    fn CGL_utils_relu_derivative(x: c_float) -> c_float;
-    fn CGL_utils_tanh(x: c_float) -> c_float;
-    fn CGL_utils_tanh_derivative(x: c_float) -> c_float;
-    fn CGL_utils_step(x: c_float) -> c_float;
-    fn CGL_utils_step_derivative(x: c_float) -> c_float;
-    fn CGL_utils_relu_leaky(x: c_float) -> c_float;
-    fn CGL_utils_relu_leaky_derivative(x: c_float) -> c_float;
-    fn CGL_utils_relu_smooth(x: c_float) -> c_float;
-    fn CGL_utils_relu_smooth_derivative(x: c_float) -> c_float;
+    fn CGL_utils_crc32(data: *const c_void, size: size_t) -> u32;
+    fn CGL_utils_crc64(data: *const c_void, size: size_t) -> u64;
+    fn CGL_utils_rot13(data_in: *const c_char, data_out: *mut c_char) -> c_void;
+    fn CGL_utils_super_fast_hash(data: *const c_void, size: size_t) -> u32;
+
 }
 
 
@@ -193,7 +187,7 @@ pub fn write_file(path: &str, data: &[u8], size: usize) -> bool {
 /// # Example
 ///
 /// ```
-/// let success = cgl_rs::utils::write_string_to_file("log.txt", "Hello, world!", 13);
+/// let success = cgl_rs::utils::write_string_to_file("log.txt", "Hello, world!");
 /// ```
 pub fn write_string_to_file(path: &str, data: &str) -> bool {
     write_file(path, data.as_bytes(), data.len())
@@ -414,5 +408,165 @@ pub fn srand31(seed: u32) -> () {
 pub fn rand31() -> u32 {
     unsafe {
         CGL_utils_rand31()
+    }
+}
+
+
+/// Linearly interpolates between two values.
+///
+/// # Arguments
+///
+/// * `a` - A value of type `T` representing the start value.
+/// * `b` - A value of type `T` representing the end value.
+/// * `t` - A value of type `T` representing the interpolation factor.
+///
+/// # Returns
+///
+/// A value of type `T` representing the interpolated value.
+///
+/// # Example
+///
+/// ```
+/// let a = 0f32;
+/// let b = 10f32;
+/// let t = 0.5f32;
+/// let result = cgl_rs::utils::lerp(a, b, t);
+/// ```
+pub fn lerp<T: Copy + Add<Output = T> + Sub<Output = T> + Mul<Output = T>>(a: T, b: T, t: T) -> T {
+    a + (b - a) * t
+}
+
+
+
+/// Maps a value from one range to another.
+///
+/// # Arguments
+///
+/// * `value` - A value of type `T` representing the value to map.
+/// * `start1` - A value of type `T` representing the start of the input range.
+/// * `stop1` - A value of type `T` representing the end of the input range.
+/// * `start2` - A value of type `T` representing the start of the output range.
+/// * `stop2` - A value of type `T` representing the end of the output range.
+///
+/// # Returns
+///
+/// A value of type `T` representing the mapped value.
+///
+/// # Example
+///
+/// ```
+/// let value = 5;
+/// let start1 = 0;
+/// let stop1 = 10;
+/// let start2 = 0;
+/// let stop2 = 100;
+/// let result = cgl_rs::utils::map(value, start1, stop1, start2, stop2);
+/// ```
+pub fn map<T: Copy + Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>>(value: T, start1: T, stop1: T, start2: T, stop2: T) -> T {
+    start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1))
+}
+
+/// Calculates the CRC32 checksum of the given data.
+/// 
+/// The C implementation is based on linux's crc32 implementation.
+///
+/// # Arguments
+///
+/// * `data` - A slice of bytes representing the data to calculate the checksum for.
+///
+/// # Returns
+///
+/// A `u32` representing the calculated CRC32 checksum.
+///
+/// # Example
+///
+/// ```
+/// let data = b"hello world";
+/// let crc32_checksum = cgl_rs::utils::crc32(data);
+/// assert_eq!(crc32_checksum, 222957957);
+/// ```
+pub fn crc32(data: &[u8]) -> u32 {
+    unsafe {
+        CGL_utils_crc32(data.as_ptr() as *const c_void, data.len() as size_t) as u32
+    }
+}
+
+// Calculates the CRC64 checksum of the given data.
+///
+/// The C implementation is based on linux's crc64 implementation.
+/// 
+/// # Arguments
+///
+/// * `data` - A slice of bytes representing the data to calculate the checksum for.
+///
+/// # Returns
+///
+/// A `u64` representing the calculated CRC64 checksum.
+///
+/// # Example
+///
+/// ```
+/// let data = b"hello world";
+/// let crc64_checksum = cgl_rs::utils::crc64(data);
+/// assert_eq!(crc64_checksum, 14017174577685478301);
+/// ```
+pub fn crc64(data: &[u8]) -> u64 {
+    unsafe {
+        CGL_utils_crc64(data.as_ptr() as *const c_void, data.len() as size_t) as u64
+    }
+}
+
+/// Applies the ROT13 substitution cipher to the given string.
+///
+/// # Arguments
+///
+/// * `data` - A string slice representing the data to apply the ROT13 cipher to.
+///
+/// # Returns
+///
+/// A `String` representing the result of applying the ROT13 cipher to the input string.
+///
+/// # Safety
+///
+/// This function is marked as unsafe because it calls an external C function that takes a raw pointer as an argument.
+///
+/// # Example
+///
+/// ```
+/// let data = "hello world";
+/// let result = cgl_rs::utils::rot13(data);
+/// assert_eq!(result, "uryyb jbeyq\0");
+/// ```
+pub fn rot13(data: &str) -> String {
+    unsafe {
+        let mut result = vec![0u8; data.len() + 1];
+        let c_str_data = CString::new(data).unwrap();
+        CGL_utils_rot13(c_str_data.as_ptr(), result.as_mut_ptr() as *mut c_char);
+        String::from_utf8_unchecked(result)
+    }
+}
+
+/// Calculates the SuperFastHash of the given data.
+/// 
+/// This algorithm is from http://www.azillionmonkeys.com/qed/hash.html
+/// 
+/// # Arguments
+/// 
+/// * `data` - A slice of bytes representing the data to calculate the SuperFastHash for.
+/// 
+/// # Returns
+/// 
+/// A `u32` representing the calculated SuperFastHash.
+/// 
+/// # Example
+/// 
+/// ```
+/// let data = b"hello world";
+/// let super_fast_hash = cgl_rs::utils::super_fast_hash(data);
+/// assert_eq!(super_fast_hash, 2794219650);
+/// ```
+pub fn super_fast_hash(data: &[u8]) -> u32 {
+    unsafe {
+        CGL_utils_super_fast_hash(data.as_ptr() as *const c_void, data.len() as size_t) as u32
     }
 }

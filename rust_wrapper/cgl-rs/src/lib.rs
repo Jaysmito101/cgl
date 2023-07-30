@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::result;
-use libc::{c_void, c_int, c_char};
+use libc::{c_void, c_int};
 
 pub mod window_manager;
 pub use window_manager::*;
@@ -10,6 +10,8 @@ pub mod logger;
 // pub use logger::*;
 
 pub mod utils;
+
+pub mod math;
 
 extern {
     fn CGL_init() -> c_int;
