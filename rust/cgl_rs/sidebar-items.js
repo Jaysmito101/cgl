@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Action","Key","MouseButton"],"fn":["init","log","shutdown"],"struct":["Window"]};
+window.SIDEBAR_ITEMS = {"fn":["init","shutdown"],"macro":["log_error","log_info","log_trace","log_warning"],"mod":["logger","window_manager"]};

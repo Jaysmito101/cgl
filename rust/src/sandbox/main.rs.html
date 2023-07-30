@@ -19,24 +19,62 @@
 <a href="#19" id="19">19</a>
 <a href="#20" id="20">20</a>
 <a href="#21" id="21">21</a>
-</pre></div><pre class="rust"><code><span class="comment">//use cgl_rs::*;
-
-</span><span class="kw">use </span>std::time::Duration;
+<a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
+<a href="#25" id="25">25</a>
+<a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a>
+<a href="#29" id="29">29</a>
+<a href="#30" id="30">30</a>
+<a href="#31" id="31">31</a>
+<a href="#32" id="32">32</a>
+<a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
+</pre></div><pre class="rust"><code><span class="kw">fn </span>on_window_event(_window: <span class="kw-2">&amp;</span>cgl_rs::Window, event: <span class="kw-2">&amp;</span>cgl_rs::Event) -&gt; bool {
+    <span class="kw">match </span>event {
+        cgl_rs::Event::EventWindowClose =&gt; {
+            <span class="macro">println!</span>(<span class="string">&quot;Window Close Event&quot;</span>);
+            <span class="bool-val">true
+        </span>},
+        cgl_rs::Event::EventFramebufferSize(width, height) =&gt; {
+            <span class="macro">println!</span>(<span class="string">&quot;Window Resize Event: {}x{}&quot;</span>, width, height);
+            <span class="bool-val">false
+        </span>},   
+        cgl_rs::Event::EventDragNDrop(paths) =&gt; {
+            <span class="macro">println!</span>(<span class="string">&quot;Drag and Drop Event: {:?}&quot;</span>, paths);
+            <span class="bool-val">false
+        </span>},
+        <span class="kw">_ </span>=&gt; {<span class="bool-val">false</span>}
+    }
+}
 
 <span class="kw">fn </span>main() {
     cgl_rs::init().expect(<span class="string">&quot;Failed to initialize CGL&quot;</span>);
-    
     {
         <span class="comment">// new scope so the window is dropped before shutdown
-        </span><span class="kw">let </span>window = cgl_rs::Window::new(<span class="string">&quot;My Window&quot;</span>, <span class="number">800</span>, <span class="number">600</span>).unwrap();
-
-
+        </span><span class="kw">let </span><span class="kw-2">mut </span>window = cgl_rs::Window::new(<span class="string">&quot;My Window&quot;</span>, <span class="number">800</span>, <span class="number">600</span>).unwrap();
+        window.register_for_events();
+        window.attach_event_handler(<span class="string">&quot;my_event_handler&quot;</span>, <span class="kw-2">&amp;</span>on_window_event);
         <span class="kw">while </span>!window.should_close() {
+            <span class="kw">if </span>window.is_key_pressed(cgl_rs::Key::Escape) {
+                <span class="kw">break</span>;
+            }
+
+            <span class="macro">cgl_rs::log_info!</span>(<span class="string">&quot;This is an info message&quot;</span>);
+            <span class="macro">cgl_rs::log_warning!</span>(<span class="string">&quot;This is a warning message&quot;</span>);
+            <span class="macro">cgl_rs::log_error!</span>(<span class="string">&quot;This is an error message&quot;</span>);
+
             window.poll_events();
             window.swap_buffers();
         }
-        
     }
-    
     cgl_rs::shutdown();
 }</code></pre></div></section></main></body></html>

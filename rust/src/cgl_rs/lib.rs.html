@@ -31,45 +31,18 @@
 <a href="#31" id="31">31</a>
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
-<a href="#34" id="34">34</a>
-<a href="#35" id="35">35</a>
-<a href="#36" id="36">36</a>
-<a href="#37" id="37">37</a>
-<a href="#38" id="38">38</a>
-<a href="#39" id="39">39</a>
-<a href="#40" id="40">40</a>
-<a href="#41" id="41">41</a>
-<a href="#42" id="42">42</a>
-<a href="#43" id="43">43</a>
-<a href="#44" id="44">44</a>
-<a href="#45" id="45">45</a>
-<a href="#46" id="46">46</a>
-<a href="#47" id="47">47</a>
-<a href="#48" id="48">48</a>
-<a href="#49" id="49">49</a>
-<a href="#50" id="50">50</a>
-<a href="#51" id="51">51</a>
-<a href="#52" id="52">52</a>
-<a href="#53" id="53">53</a>
-<a href="#54" id="54">54</a>
-<a href="#55" id="55">55</a>
-<a href="#56" id="56">56</a>
-<a href="#57" id="57">57</a>
-<a href="#58" id="58">58</a>
 </pre></div><pre class="rust"><code><span class="attr">#![allow(dead_code)]
 
-</span><span class="kw">use </span>std::ffi::CString;
-<span class="kw">use </span>std::result;
+</span><span class="kw">use </span>std::result;
 <span class="kw">use </span>libc::{c_void, c_int, c_char};
 
-<span class="kw">mod </span>window_manager;
-<span class="kw">pub use </span>window_manager::MouseButton;
-<span class="kw">pub use </span>window_manager::Action;
-<span class="kw">pub use </span>window_manager::Key;
-<span class="kw">pub use </span>window_manager::Window;
+<span class="kw">pub mod </span>window_manager;
+<span class="kw">pub use </span>window_manager::<span class="kw-2">*</span>;
 
+<span class="kw">pub mod </span>logger;
+<span class="comment">// pub use logger::*;
 
-<span class="kw">extern </span>{
+</span><span class="kw">extern </span>{
     <span class="kw">fn </span>CGL_init() -&gt; c_int;
     <span class="kw">fn </span>CGL_shutdown() -&gt; c_void;
     <span class="kw">fn </span>CGL_logger_log(level: c_int, log_format: <span class="kw-2">*const </span>c_char, ...) -&gt; c_void;
@@ -90,27 +63,4 @@
     <span class="kw">unsafe </span>{
         CGL_shutdown();
     }
-}
-
-<span class="kw">pub fn </span>log(level: i32, log_format: <span class="kw-2">&amp;</span>str) -&gt; () {
-    <span class="kw">unsafe </span>{
-        <span class="kw">let </span>log_format = CString::new(log_format).unwrap();
-        CGL_logger_log(level, log_format.as_ptr());
-    }
-}
-
-
-<span class="comment">/*
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
-
-*/</span></code></pre></div></section></main></body></html>
+}</code></pre></div></section></main></body></html>
