@@ -1,3 +1,5 @@
+//! The window manager module is responsible for creating and managing windows. It is also responsible for handling input events and passing them to the appropriate window.
+
 #![allow(non_camel_case_types)]
 use libc::{c_void, c_int, c_char, c_double};
 
@@ -211,13 +213,13 @@ pub enum Action {
 /// Represents an event that can be received by a window, with each variant corresponding to a specific type of event.
 #[derive(Debug)]
 pub enum Event {
-    EventKey(Key, Action, i32, i32),
-    EventMouseButton(MouseButton, Action, i32),
-    EventMousePosition(f64, f64),
-    EventMouseScroll(f64, f64),
-    EventFramebufferSize(i32, i32),
-    EventWindowClose,
-    EventDragNDrop(Vec<String>)
+    Key(Key, Action, i32, i32),
+    MouseButton(MouseButton, Action, i32),
+    MousePosition(f64, f64),
+    MouseScroll(f64, f64),
+    FramebufferSize(i32, i32),
+    WindowClose,
+    DragNDrop(Vec<String>)
 }
 
 /// Represents a function that handles a window event.
@@ -404,32 +406,32 @@ fn cgl_window_dispatch_event(window: *mut CGL_window, event: Event) {
 }
 
 extern "C" fn cgl_window_key_callback(window: *mut CGL_window, key: i32, scancode: i32, action: i32, mods: i32) -> c_void {
-    cgl_window_dispatch_event(window, Event::EventKey(cgl_window_i32_to_key(key), cgl_window_i32_to_action(action), scancode, mods));
+    cgl_window_dispatch_event(window, Event::Key(cgl_window_i32_to_key(key), cgl_window_i32_to_action(action), scancode, mods));
     fn_returning_c_void()
 }
 
 extern "C" fn cgl_window_mouse_button_callback(window: *mut CGL_window, button: i32, action: i32, mods: i32) -> c_void {
-    cgl_window_dispatch_event(window, Event::EventMouseButton(cgl_window_i32_to_mouse_button(button), cgl_window_i32_to_action(action), mods));
+    cgl_window_dispatch_event(window, Event::MouseButton(cgl_window_i32_to_mouse_button(button), cgl_window_i32_to_action(action), mods));
     fn_returning_c_void()
 }
 
 extern "C" fn cgl_window_mouse_position_callback(window: *mut CGL_window, xpos: f64, ypos: f64) -> c_void {
-    cgl_window_dispatch_event(window, Event::EventMousePosition(xpos, ypos));
+    cgl_window_dispatch_event(window, Event::MousePosition(xpos, ypos));
     fn_returning_c_void()
 }
 
 extern "C" fn cgl_window_mouse_scroll_callback(window: *mut CGL_window, xoffset: f64, yoffset: f64) -> c_void {
-    cgl_window_dispatch_event(window, Event::EventMouseScroll(xoffset, yoffset));
+    cgl_window_dispatch_event(window, Event::MouseScroll(xoffset, yoffset));
     fn_returning_c_void()
 }
 
 extern "C" fn cgl_window_framebuffer_size_callback(window: *mut CGL_window, width: i32, height: i32) -> c_void {
-    cgl_window_dispatch_event(window, Event::EventFramebufferSize(width, height));
+    cgl_window_dispatch_event(window, Event::FramebufferSize(width, height));
     fn_returning_c_void()
 }
 
 extern "C" fn cgl_window_close_callback(window: *mut CGL_window) -> c_void {
-    cgl_window_dispatch_event(window, Event::EventWindowClose);
+    cgl_window_dispatch_event(window, Event::WindowClose);
     fn_returning_c_void()
 }
 
@@ -441,7 +443,7 @@ extern "C" fn cgl_window_drag_n_drop_callback(window: *mut CGL_window, paths: *c
             paths_vec.push(path.to_string());
         }
     }
-    cgl_window_dispatch_event(window, Event::EventDragNDrop(paths_vec));
+    cgl_window_dispatch_event(window, Event::DragNDrop(paths_vec));
     fn_returning_c_void()
 }
 

@@ -9,12 +9,21 @@ pub use window_manager::*;
 pub mod logger;
 // pub use logger::*;
 
+pub mod utils;
+
 extern {
     fn CGL_init() -> c_int;
     fn CGL_shutdown() -> c_void;
-    fn CGL_logger_log(level: c_int, log_format: *const c_char, ...) -> c_void;
 }
 
+
+/// Initializes the CGL library.
+/// 
+/// This function must be called before any other CGL functions are called.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the initialization was successful, otherwise returns `Err(())`.
 pub fn init() -> result::Result<(), ()> {
     unsafe {
         let result = CGL_init();
@@ -25,6 +34,7 @@ pub fn init() -> result::Result<(), ()> {
         }   
     }
 }
+
 
 pub fn shutdown() -> () {
     unsafe {

@@ -1,14 +1,14 @@
 fn on_window_event(_window: &cgl_rs::Window, event: &cgl_rs::Event) -> bool {
     match event {
-        cgl_rs::Event::EventWindowClose => {
+        cgl_rs::Event::WindowClose => {
             println!("Window Close Event");
             true
         },
-        cgl_rs::Event::EventFramebufferSize(width, height) => {
+        cgl_rs::Event::FramebufferSize(width, height) => {
             println!("Window Resize Event: {}x{}", width, height);
             false
         },   
-        cgl_rs::Event::EventDragNDrop(paths) => {
+        cgl_rs::Event::DragNDrop(paths) => {
             println!("Drag and Drop Event: {:?}", paths);
             false
         },
@@ -27,10 +27,6 @@ fn main() {
             if window.is_key_pressed(cgl_rs::Key::Escape) {
                 break;
             }
-
-            cgl_rs::log_info!("This is an info message");
-            cgl_rs::log_warning!("This is a warning message");
-            cgl_rs::log_error!("This is an error message");
 
             window.poll_events();
             window.swap_buffers();

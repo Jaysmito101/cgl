@@ -1,5 +1,8 @@
+//! This module contains functions for logging.
+
 #![allow(non_camel_case_types)]
 use libc::{c_void, c_int, c_char, c_float, c_uchar};
+
 
 /// A struct representing a logger context (internal use only, c side)
 #[repr(C)]
