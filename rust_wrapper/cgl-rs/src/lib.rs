@@ -3,15 +3,16 @@
 use std::result;
 use libc::{c_void, c_int};
 
-pub mod window_manager;
-pub use window_manager::*;
 
-pub mod logger;
-// pub use logger::*;
+
+mod macros;
 
 pub mod utils;
-
 pub mod math;
+pub mod logger;
+// pub use logger::*;
+pub mod window_manager;
+pub use window_manager::*;
 
 extern {
     fn CGL_init() -> c_int;

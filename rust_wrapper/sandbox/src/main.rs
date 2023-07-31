@@ -18,6 +18,7 @@ fn on_window_event(_window: &cgl_rs::Window, event: &cgl_rs::Event) -> bool {
 
 fn main() {
     cgl_rs::init().expect("Failed to initialize CGL");
+
     {
         // new scope so the window is dropped before shutdown
         let mut window = cgl_rs::Window::new("My Window", 800, 600).unwrap();

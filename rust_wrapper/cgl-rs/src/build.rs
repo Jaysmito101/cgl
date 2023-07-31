@@ -24,5 +24,6 @@ fn main() {
     println!("cargo:rustc-link-lib=static=cgl");    
     println!("cargo:rustc-link-lib=static=glfw3");
     println!("cargo:rustc-link-lib=static=glad");
+    println!("cargo:rustc-link-lib=static=freetype");
     
 }

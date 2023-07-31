@@ -29,6 +29,11 @@ extern {
     fn CGL_utils_rot13(data_in: *const c_char, data_out: *mut c_char) -> c_void;
     fn CGL_utils_super_fast_hash(data: *const c_void, size: size_t) -> u32;
 
+    /// These are originally CGL Macros but have been proxied here as functions.
+    fn CGL_utils_random_float_MACRO() -> c_float;
+    fn CGL_utils_random_float_in_range_MACRO(min_val: c_float, max_val: c_float) -> c_float;
+    fn CGL_utils_random_int_MACRO(min_val: c_int, max_val: c_int) -> c_int;
+    fn CGL_utils_random_bool_MACRO() -> c_int;
 }
 
 
@@ -568,5 +573,67 @@ pub fn rot13(data: &str) -> String {
 pub fn super_fast_hash(data: &[u8]) -> u32 {
     unsafe {
         CGL_utils_super_fast_hash(data.as_ptr() as *const c_void, data.len() as size_t) as u32
+    }
+}
+
+
+/// Generates a random floating-point number between 0 and 1.
+///
+/// # Returns
+///
+/// A `f32` representing the generated random number.
+///
+/// # Example
+///
+/// ```
+/// let random_number = cgl_rs::utils::random_float();
+/// ```
+pub fn random_float() -> f32 {
+    unsafe {
+        CGL_utils_random_float_MACRO()
+    }
+}
+
+/// Generates a random floating-point number within the given range.
+///
+/// # Arguments
+///
+/// * `min` - A `f32` representing the minimum value of the range.
+/// * `max` - A `f32` representing the maximum value of the range.
+///
+/// # Returns
+///
+/// A `f32` representing the generated random number within the given range.
+///
+/// # Example
+///
+/// ```
+/// let random_number = cgl_rs::utils::random_float_range(0.0, 1.0);
+/// ```
+pub fn random_float_range(min: f32, max: f32) -> f32 {
+    unsafe {
+        CGL_utils_random_float_in_range_MACRO(min as f32, max as f32) as f32
+    }
+}
+
+/// Generates a random integer within the given range.
+///
+/// # Arguments
+///
+/// * `min_value` - An `i32` representing the minimum value of the range.
+/// * `max_value` - An `i32` representing the maximum value of the range.
+///
+/// # Returns
+///
+/// An `i32` representing the generated random number within the given range.
+///
+/// # Example
+///
+/// ```
+/// let random_number = cgl_rs::utils::random_int(0, 10);
+/// ```
+pub fn random_int(min_value: i32, max_value: i32) -> i32 {
+    unsafe {
+        CGL_utils_random_int_MACRO(min_value as i32, max_value as i32) as i32
     }
 }
