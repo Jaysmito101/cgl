@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"cgl_rs":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.71.0/core/fmt/trait.Display.html\" title=\"trait core::fmt::Display\">Display</a> for <a class=\"struct\" href=\"cgl_rs/math/struct.Vector2.html\" title=\"struct cgl_rs::math::Vector2\">Vector2</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
