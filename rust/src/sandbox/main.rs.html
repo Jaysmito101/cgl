@@ -35,6 +35,9 @@
 <a href="#35" id="35">35</a>
 <a href="#36" id="36">36</a>
 <a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
 </pre></div><pre class="rust"><code><span class="kw">fn </span>on_window_event(_window: <span class="kw-2">&amp;</span>cgl_rs::Window, event: <span class="kw-2">&amp;</span>cgl_rs::Event) -&gt; bool {
     <span class="kw">match </span>event {
         cgl_rs::Event::WindowClose =&gt; {
@@ -56,19 +59,22 @@
 <span class="kw">fn </span>main() {
     cgl_rs::init().expect(<span class="string">&quot;Failed to initialize CGL&quot;</span>);
 
-    {
-        <span class="comment">// new scope so the window is dropped before shutdown
-        </span><span class="kw">let </span><span class="kw-2">mut </span>window = cgl_rs::Window::new(<span class="string">&quot;My Window&quot;</span>, <span class="number">800</span>, <span class="number">600</span>).unwrap();
-        window.register_for_events();
-        window.attach_event_handler(<span class="string">&quot;my_event_handler&quot;</span>, <span class="kw-2">&amp;</span>on_window_event);
-        <span class="kw">while </span>!window.should_close() {
-            <span class="kw">if </span>window.is_key_pressed(cgl_rs::Key::Escape) {
-                <span class="kw">break</span>;
-            }
+    <span class="kw">let </span>ma = cgl_rs::math::Matrix4x4::scale(<span class="number">5.0</span>, <span class="number">6.0</span>, <span class="number">7.0</span>);
+    <span class="macro">println!</span>(<span class="string">&quot;Matrix A: {}&quot;</span>, ma);
 
-            window.poll_events();
-            window.swap_buffers();
-        }
-    }
-    cgl_rs::shutdown();
+    <span class="comment">// {
+    //     // new scope so the window is dropped before shutdown
+    //     let mut window = cgl_rs::Window::new(&quot;My Window&quot;, 800, 600).unwrap();
+    //     window.register_for_events();
+    //     window.attach_event_handler(&quot;my_event_handler&quot;, &amp;on_window_event);
+    //     while !window.should_close() {
+    //         if window.is_key_pressed(cgl_rs::Key::Escape) {
+    //             break;
+    //         }
+
+    //         window.poll_events();
+    //         window.swap_buffers();
+    //     }
+    // }
+    </span>cgl_rs::shutdown();
 }</code></pre></div></section></main></body></html>

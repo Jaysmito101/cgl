@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TextureDataType","TextureFormat","TextureInternalFormat","TextureScalingMode","TextureWrappingMode"],"fn":["clear","init","render_screen_quad","shutdown"],"struct":["Framebuffer","Texture"]};
