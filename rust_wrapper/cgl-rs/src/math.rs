@@ -7,3 +7,6 @@ pub mod constants;
 
 mod vector;
 pub use self::vector::*;
+
+mod matrix;
+pub use self::matrix::*;

@@ -9,10 +9,11 @@ mod macros;
 
 pub mod utils;
 pub mod math;
+pub mod graphics;
 pub mod logger;
 // pub use logger::*;
-pub mod window_manager;
-pub use window_manager::*;
+pub mod window;
+pub use window::*;
 
 extern {
     fn CGL_init() -> c_int;
@@ -39,6 +40,9 @@ pub fn init() -> result::Result<(), ()> {
 }
 
 
+/// Shuts down the CGL library.
+///
+/// This function should be called when the CGL library is no longer needed.
 pub fn shutdown() -> () {
     unsafe {
         CGL_shutdown();
