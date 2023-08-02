@@ -3,17 +3,15 @@
 #![allow(non_camel_case_types)]
 use libc::{c_void, c_int, c_uint, size_t};
 
-/// The internal window handle used by CGL
+/// The internal handle used by CGL
 #[repr(C)]
 pub(crate) struct CGL_texture {
     _private: c_void
 }
 
-#[repr(C)]
-pub(crate) struct CGL_image {
-    _private: c_void
-}
-
+/// The texture format used by CGL
+/// These are reflections of OpenGL's enum values
+/// You can also use the _i version of methods to pass integers directly instead of enums
 pub enum TextureFormat {
     RED     = 0x1903,
     GREEN   = 0x1904,
@@ -24,6 +22,10 @@ pub enum TextureFormat {
     BGR     = 0x80E0,
     BGRA    = 0x80E1
 }
+
+/// The texture internal format used by CGL
+/// These are reflections of OpenGL's enum values
+/// You can also use the _i version of methods to pass integers directly instead of enums
 pub enum TextureInternalFormat {
     RGBA32F             = 0x8814,
     RGB32F              = 0x8815,
@@ -50,6 +52,10 @@ pub enum TextureInternalFormat {
     BGRA_INTEGER        = 0x8D9B
 }
 
+
+/// The texture data type used by CGL
+/// These are reflections of OpenGL's enum values
+/// You can also use the _i version of methods to pass integers directly instead of enums
 pub enum TextureDataType {
     BYTE              = 0x1400,
     UNSIGNED_BYTE     = 0x1401,
@@ -60,6 +66,9 @@ pub enum TextureDataType {
     FLOAT             = 0x1406
 }
 
+/// The texture scaling mode used by CGL
+/// These are reflections of OpenGL's enum values
+/// You can also use the _i version of methods to pass integers directly instead of enums
 pub enum TextureScalingMode {
     NEAREST                 = 0x2600,
     LINEAR                  = 0x2601,
@@ -69,11 +78,31 @@ pub enum TextureScalingMode {
     LINEAR_MIPMAP_LINEAR    = 0x2703
 }
 
+
+/// The texture wrapping mode used by CGL
+/// These are reflections of OpenGL's enum values
+/// You can also use the _i version of methods to pass integers directly instead of enums
 pub enum TextureWrappingMode {
     REPEAT              = 0x2901,
     MIRRORED_REPEAT     = 0x8370,
     CLAMP_TO_EDGE       = 0x812F,
     CLAMP_TO_BORDER     = 0x812D
+}
+
+/// The texture object
+pub struct Texture {
+    pub(crate) handle: *mut CGL_texture,
+    pub(crate) has_been_destroyed: bool
+}
+
+
+#[repr(C)]
+pub(crate) struct CGL_image {
+    pub(crate) data: *mut c_void,
+    pub(crate) height: c_int,
+    pub(crate) width: c_int,
+    pub(crate) bytes_per_channel: c_int,
+    pub(crate) channels: c_int
 }
 
 extern {
@@ -95,11 +124,6 @@ extern {
     fn CGL_texture_get_size(texture: *mut CGL_texture, width: *mut c_int, height: *mut c_int);
     fn CGL_texture_set_scaling_method(texture: *mut CGL_texture, method: c_int);
     fn CGL_texture_set_wrapping_method(texture: *mut CGL_texture, method: c_int);
-}
-
-pub struct Texture {
-    pub(crate) handle: *mut CGL_texture,
-    pub(crate) has_been_destroyed: bool
 }
 
 
@@ -612,7 +636,7 @@ impl Clone for Texture {
     /// A new instance of `Texture` with the same handle as the original texture.
     fn clone(&self) -> Self {
         Texture {
-            handle: self.handle,
+            handle: self.handle.clone(),
             has_been_destroyed: true
         }
     }

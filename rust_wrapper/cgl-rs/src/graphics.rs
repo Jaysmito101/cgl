@@ -11,6 +11,15 @@ pub use framebuffer::*;
 mod texture;
 pub use texture::*;
 
+mod shader;
+pub use shader::*;
+
+mod ssbo;
+pub use ssbo::*;
+
+mod mesh;
+pub use mesh::*;
+
 extern {
     fn CGL_gl_init() -> c_int;
     fn CGL_gl_shutdown() -> c_void;

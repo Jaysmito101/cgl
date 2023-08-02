@@ -25,6 +25,15 @@ pub struct Vector4 {
     pub w: f32,
 }
 
+/// A 4-dimensional vector with `x`, `y`, `z` and `w` components, all of which are `i32`.
+#[derive(Debug, Copy, Clone, PartialEq)] #[repr(C)]
+pub struct IVector4 {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+    pub w: i32
+}
+
 /// Allows indexing into a `Vector2` by `usize` index.
 impl std::ops::Index<usize> for Vector2 {
     type Output = f32;
@@ -886,7 +895,7 @@ impl std::ops::Index<usize> for Vector4 {
                 1 => &self.y,
                 2 => &self.z,
                 3 => &self.w,
-                _ => panic!("Index out of bounds for Vector3"),
+                _ => panic!("Index out of bounds for Vector4"),
             }
         }
 }
@@ -917,7 +926,7 @@ impl std::ops::IndexMut<usize> for Vector4 {
             1 => &mut self.y,
             2 => &mut self.z,
             3 => &mut self.w,
-            _ => panic!("Index out of bounds for Vector3"),
+            _ => panic!("Index out of bounds for Vector4"),
         }
     }
 }
@@ -1053,4 +1062,115 @@ impl Vector4 {
 
 
 
+}
+
+
+impl std::ops::Index<usize> for IVector4 {
+    type Output = i32;
+
+    // Returns a reference to the element at the given `index` of this `Vector4`.
+        ///
+        /// # Arguments
+        ///
+        /// * `index` - The index of the element to retrieve.
+        ///
+        /// # Panics
+        ///
+        /// Panics if `index` is greater than or equal to 4.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use cgl_rs::math::IVector4;
+        ///
+        /// let vec = IVector4::new(1, 2, 3, 4);
+        /// assert_eq!(vec[0], 1);
+        /// assert_eq!(vec[1], 2);
+        /// assert_eq!(vec[2], 3);
+        /// assert_eq!(vec[3], 4);
+        /// ```
+        fn index(&self, index: usize) -> &Self::Output {
+            match index {
+                0 => &self.x,
+                1 => &self.y,
+                2 => &self.z,
+                3 => &self.w,
+                _ => panic!("Index out of bounds for IVector4"),
+            }
+        }
+}
+
+impl std::ops::IndexMut<usize> for IVector4 {
+    /// Returns a mutable reference to the element at the given `index` of this `Vector4`.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The index of the element to retrieve.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` is greater than or equal to 4.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use cgl_rs::math::IVector4;
+    ///
+    /// let mut vec = IVector4::new(1, 2, 3, 4);
+    /// vec[0] = 5;
+    /// assert_eq!(vec[0], 5);
+    /// ```
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            3 => &mut self.w,
+            _ => panic!("Index out of bounds for IVector4"),
+        }
+    }
+}
+
+
+impl IVector4 {
+    /// Creates a new `IVector4` with the given `x`, `y`, `z`, and `w` components.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - The `x` component of the vector.
+    /// * `y` - The `y` component of the vector.
+    /// * `z` - The `z` component of the vector.
+    /// * `w` - The `w` component of the vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use cgl_rs::math::IVector4;
+    ///
+    /// let vec = IVector4::new(1, 2, 3, 4);
+    /// assert_eq!(vec.x, 1);
+    /// assert_eq!(vec.y, 2);
+    /// assert_eq!(vec.z, 3);
+    /// assert_eq!(vec.w, 4);
+    /// ```
+    pub fn new(x: i32, y: i32, z: i32, w: i32) -> IVector4 {
+        IVector4 { x, y, z, w }
+    }
+
+    /// Returns a new `IVector4` with all components set to 0.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use cgl_rs::math::IVector4;
+    ///
+    /// let vec = IVector4::zero();
+    /// assert_eq!(vec.x, 0);
+    /// assert_eq!(vec.y, 0);
+    /// assert_eq!(vec.z, 0);
+    /// assert_eq!(vec.w, 0);
+    /// ```
+    pub fn zero() -> IVector4 {
+        IVector4::new(0, 0, 0, 0)
+    }
 }

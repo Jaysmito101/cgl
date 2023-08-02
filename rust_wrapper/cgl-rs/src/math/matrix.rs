@@ -49,7 +49,7 @@ extern {
     fn CGL_mat4_to_mat3(m: &Matrix4x4) -> Matrix3x3;
     fn CGL_mat4_from_mat3(m: &Matrix3x3) -> Matrix4x4;
     fn CGL_mat4_rotate_about_axis(axis: &Vector3, angle: f32) -> Matrix4x4;
-    fn CGL_mat4_look_at(eye: &Vector3, target: &Vector3, up: &Vector3) -> Matrix4x4;
+    fn CGL_mat4_look_at(eye: Vector3, target: Vector3, up: Vector3) -> Matrix4x4;
     fn CGL_mat4_lerp(a: &Matrix4x4, b: &Matrix4x4, t: f32) -> Matrix4x4;
     fn CGL_mat4_decompose_lu(m: &Matrix4x4, l: *mut Matrix4x4, u: *mut Matrix4x4) -> std::ffi::c_void;
 }
@@ -657,12 +657,13 @@ impl Matrix4x4 {
     /// ```
     /// use cgl_rs::math::{Matrix4x4, Vector3};
     ///
-    /// let eye = Vector3::new(0.0, 0.0, 1.0);
-    /// let target = Vector3::new(0.0, 0.0, 0.0);
-    /// let up = Vector3::new(0.0, 1.0, 0.0);
-    /// let view_matrix = Matrix4x4::look_at(&eye, &target, &up);
+    /// let mat = Matrix4x4::look_at(
+    ///    Vector3::new(0.0, 0.0, 0.0),
+    ///    Vector3::new(0.0, 0.0, -1.0),
+    ///    Vector3::new(0.0, 1.0, 0.0)
+    /// );
     /// ```
-    pub fn look_at(eye: &Vector3, target: &Vector3, up: &Vector3) -> Matrix4x4 {
+    pub fn look_at(eye: Vector3, target: Vector3, up: Vector3) -> Matrix4x4 {
         unsafe {
             CGL_mat4_look_at(eye, target, up) as Matrix4x4
         }

@@ -110,7 +110,7 @@ pub fn read_file_as_string(path: &str) -> String {
 ///
 /// # Example
 ///
-/// ```norun
+/// ```no_run
 /// let path = "path/to/file";
 /// let size = cgl_rs::utils::get_file_size(path);
 /// ```

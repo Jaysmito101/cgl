@@ -324,7 +324,7 @@ impl Framebuffer {
     ///
     /// # Example
     ///
-    /// ```norun
+    /// ```no_run
     /// cgl_rs::init();
     /// let mut window =  cgl_rs::Window::new("Hello World", 600, 800).unwrap();
     /// cgl_rs::graphics::init();
@@ -484,7 +484,7 @@ impl Clone for Framebuffer {
     /// ```
     fn clone(&self) -> Self {
         Framebuffer {
-            handle: self.handle,
+            handle: self.handle.clone(),
             has_been_destroyed: true
         }
     }
