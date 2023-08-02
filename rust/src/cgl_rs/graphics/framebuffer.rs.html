@@ -815,7 +815,7 @@
     ///
     /// # Example
     ///
-    /// ```norun
+    /// ```no_run
     /// cgl_rs::init();
     /// let mut window =  cgl_rs::Window::new(&quot;Hello World&quot;, 600, 800).unwrap();
     /// cgl_rs::graphics::init();
@@ -975,7 +975,7 @@
     /// ```
     </span><span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
         Framebuffer {
-            handle: <span class="self">self</span>.handle,
+            handle: <span class="self">self</span>.handle.clone(),
             has_been_destroyed: <span class="bool-val">true
         </span>}
     }

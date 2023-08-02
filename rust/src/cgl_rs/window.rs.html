@@ -1799,20 +1799,20 @@
     ///
     /// The `handler` parameter is a reference to a function that will be called when the event occurs. The function must have the following signature:
     ///
-    /// ```norun
-    /// fn my_event_handler(window: &amp;Window, event: &amp;Event) {
+    /// ```no_run
+    /// fn my_event_handler(window: &amp;cgl_rs::Window, event: &amp;cgl_rs::Event) {
     ///     println!(&quot;Event occurred!&quot;);
     /// }
-    /// ```
     ///
+    /// ```
     /// # Example
     ///
-    /// ```norun
+    /// ```no_run
     /// cgl_rs::init();
     /// {
     ///     let mut window = cgl_rs::Window::new(&quot;My Window&quot;, 800, 600).unwrap();
     ///
-    ///     window.attach_event_handler(&quot;my_event&quot;, &amp;my_event_handler);
+    ///     // window.attach_event_handler(&quot;my_event&quot;, &amp;my_event_handler);
     /// }
     /// cgl_rs::shutdown();
     /// ```
@@ -1827,7 +1827,7 @@
     ///
     /// # Example
     ///
-    /// ```norun
+    /// ```no_run
     /// cgl_rs::init();
     /// {
     ///     let mut window = cgl_rs::Window::new(&quot;My Window&quot;, 800, 600).unwrap();

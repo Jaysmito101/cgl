@@ -926,6 +926,7 @@
 <a href="#926" id="926">926</a>
 <a href="#927" id="927">927</a>
 <a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Matrix math module. Includes a 4x4 matrix struct and associated methods.
 //! NOTE: These matrix library is for graphics programming with OpenGL.
 //!       For linear algebra, check the cgl_rs::math::linalg module.
@@ -977,7 +978,7 @@
     <span class="kw">fn </span>CGL_mat4_to_mat3(m: <span class="kw-2">&amp;</span>Matrix4x4) -&gt; Matrix3x3;
     <span class="kw">fn </span>CGL_mat4_from_mat3(m: <span class="kw-2">&amp;</span>Matrix3x3) -&gt; Matrix4x4;
     <span class="kw">fn </span>CGL_mat4_rotate_about_axis(axis: <span class="kw-2">&amp;</span>Vector3, angle: f32) -&gt; Matrix4x4;
-    <span class="kw">fn </span>CGL_mat4_look_at(eye: <span class="kw-2">&amp;</span>Vector3, target: <span class="kw-2">&amp;</span>Vector3, up: <span class="kw-2">&amp;</span>Vector3) -&gt; Matrix4x4;
+    <span class="kw">fn </span>CGL_mat4_look_at(eye: Vector3, target: Vector3, up: Vector3) -&gt; Matrix4x4;
     <span class="kw">fn </span>CGL_mat4_lerp(a: <span class="kw-2">&amp;</span>Matrix4x4, b: <span class="kw-2">&amp;</span>Matrix4x4, t: f32) -&gt; Matrix4x4;
     <span class="kw">fn </span>CGL_mat4_decompose_lu(m: <span class="kw-2">&amp;</span>Matrix4x4, l: <span class="kw-2">*mut </span>Matrix4x4, u: <span class="kw-2">*mut </span>Matrix4x4) -&gt; std::ffi::c_void;
 }
@@ -1585,12 +1586,13 @@
     /// ```
     /// use cgl_rs::math::{Matrix4x4, Vector3};
     ///
-    /// let eye = Vector3::new(0.0, 0.0, 1.0);
-    /// let target = Vector3::new(0.0, 0.0, 0.0);
-    /// let up = Vector3::new(0.0, 1.0, 0.0);
-    /// let view_matrix = Matrix4x4::look_at(&amp;eye, &amp;target, &amp;up);
+    /// let mat = Matrix4x4::look_at(
+    ///    Vector3::new(0.0, 0.0, 0.0),
+    ///    Vector3::new(0.0, 0.0, -1.0),
+    ///    Vector3::new(0.0, 1.0, 0.0)
+    /// );
     /// ```
-    </span><span class="kw">pub fn </span>look_at(eye: <span class="kw-2">&amp;</span>Vector3, target: <span class="kw-2">&amp;</span>Vector3, up: <span class="kw-2">&amp;</span>Vector3) -&gt; Matrix4x4 {
+    </span><span class="kw">pub fn </span>look_at(eye: Vector3, target: Vector3, up: Vector3) -&gt; Matrix4x4 {
         <span class="kw">unsafe </span>{
             CGL_mat4_look_at(eye, target, up) <span class="kw">as </span>Matrix4x4
         }

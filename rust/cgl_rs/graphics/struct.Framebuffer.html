@@ -146,18 +146,19 @@ cgl_rs::shutdown();</code></pre></div>
 </ul>
 <h5 id="returns-5"><a href="#returns-5">Returns</a></h5>
 <p>Returns a vector of bytes containing the pixel data.</p>
-<h5 id="example-8"><a href="#example-8">Example</a></h5><div class="example-wrap"><pre class="language-norun"><code>cgl_rs::init();
-let mut window =  cgl_rs::Window::new(&quot;Hello World&quot;, 600, 800).unwrap();
+<h5 id="example-8"><a href="#example-8">Example</a></h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>cgl_rs::init();
+<span class="kw">let </span><span class="kw-2">mut </span>window =  cgl_rs::Window::new(<span class="string">&quot;Hello World&quot;</span>, <span class="number">600</span>, <span class="number">800</span>).unwrap();
 cgl_rs::graphics::init();
 {
-    let framebuffer = cgl_rs::graphics::Framebuffer::new(800, 600).unwrap();
-    let pixels = framebuffer.read_pixels(0, 0, 100, 100);
-    assert_eq!(pixels.len(), 100 * 100 * 4 * 4);
+    <span class="kw">let </span>framebuffer = cgl_rs::graphics::Framebuffer::new(<span class="number">800</span>, <span class="number">600</span>).unwrap();
+    <span class="kw">let </span>pixels = framebuffer.read_pixels(<span class="number">0</span>, <span class="number">0</span>, <span class="number">100</span>, <span class="number">100</span>);
+    <span class="macro">assert_eq!</span>(pixels.len(), <span class="number">100 </span>* <span class="number">100 </span>* <span class="number">4 </span>* <span class="number">4</span>);
 }
 cgl_rs::graphics::shutdown();
 window.destroy();
-cgl_rs::shutdown();
-</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.get_mouse_pick_id" class="method"><a class="srclink rightside" href="../../src/cgl_rs/graphics/framebuffer.rs.html#380-384">source</a><h4 class="code-header">pub fn <a href="#method.get_mouse_pick_id" class="fn">get_mouse_pick_id</a>(&amp;self, x: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, y: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, index: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a></h4></section></summary><div class="docblock"><p>Gets the mouse pick ID at the specified screen coordinates and index.</p>
+cgl_rs::shutdown();</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.get_mouse_pick_id" class="method"><a class="srclink rightside" href="../../src/cgl_rs/graphics/framebuffer.rs.html#380-384">source</a><h4 class="code-header">pub fn <a href="#method.get_mouse_pick_id" class="fn">get_mouse_pick_id</a>(&amp;self, x: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, y: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, index: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a></h4></section></summary><div class="docblock"><p>Gets the mouse pick ID at the specified screen coordinates and index.</p>
 <h5 id="arguments-6"><a href="#arguments-6">Arguments</a></h5>
 <ul>
 <li><code>x</code> - The x coordinate of the screen position to check.</li>

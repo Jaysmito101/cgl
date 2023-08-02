@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["TextureDataType","TextureFormat","TextureInternalFormat","TextureScalingMode","TextureWrappingMode"],"fn":["clear","init","render_screen_quad","shutdown"],"struct":["Framebuffer","Texture"]};
+window.SIDEBAR_ITEMS = {"enum":["TextureDataType","TextureFormat","TextureInternalFormat","TextureScalingMode","TextureWrappingMode"],"fn":["clear","init","render_screen_quad","shutdown"],"struct":["Framebuffer","MeshCPU","MeshCPU_C","MeshGPU","MeshVertex","Shader","ShaderStorageBufferObject","Texture"],"type":["SSBO"]};

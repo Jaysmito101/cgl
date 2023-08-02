@@ -66,26 +66,30 @@ cgl_rs::shutdown();</code></pre></div>
 )</h4></section></summary><div class="docblock"><p>Attaches an named event handler to the window.</p>
 <p>The <code>name</code> parameter is a string that identifies the event handler. This can be any string that is unique to the event handler.</p>
 <p>The <code>handler</code> parameter is a reference to a function that will be called when the event occurs. The function must have the following signature:</p>
-<div class="example-wrap"><pre class="language-norun"><code>fn my_event_handler(window: &amp;Window, event: &amp;Event) {
-    println!(&quot;Event occurred!&quot;);
-}
-</code></pre></div><h5 id="example-4"><a href="#example-4">Example</a></h5><div class="example-wrap"><pre class="language-norun"><code>cgl_rs::init();
-{
-    let mut window = cgl_rs::Window::new(&quot;My Window&quot;, 800, 600).unwrap();
 
-    window.attach_event_handler(&quot;my_event&quot;, &amp;my_event_handler);
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>my_event_handler(window: <span class="kw-2">&amp;</span>cgl_rs::Window, event: <span class="kw-2">&amp;</span>cgl_rs::Event) {
+    <span class="macro">println!</span>(<span class="string">&quot;Event occurred!&quot;</span>);
 }
-cgl_rs::shutdown();
-</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.detach_event_handler" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#643-645">source</a><h4 class="code-header">pub fn <a href="#method.detach_event_handler" class="fn">detach_event_handler</a>(&amp;mut self, name: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.str.html">str</a>)</h4></section></summary><div class="docblock"><p>Detaches a named event handler from the window.</p>
-<p>The <code>name</code> parameter is a string that identifies the event handler. This should be the same string that was used to attach the event handler.</p>
-<h5 id="example-5"><a href="#example-5">Example</a></h5><div class="example-wrap"><pre class="language-norun"><code>cgl_rs::init();
+</code></pre></div>
+<h5 id="example-4"><a href="#example-4">Example</a></h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>cgl_rs::init();
 {
-    let mut window = cgl_rs::Window::new(&quot;My Window&quot;, 800, 600).unwrap();
+    <span class="kw">let </span><span class="kw-2">mut </span>window = cgl_rs::Window::new(<span class="string">&quot;My Window&quot;</span>, <span class="number">800</span>, <span class="number">600</span>).unwrap();
+
+    <span class="comment">// window.attach_event_handler(&quot;my_event&quot;, &amp;my_event_handler);
+</span>}
+cgl_rs::shutdown();</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.detach_event_handler" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#643-645">source</a><h4 class="code-header">pub fn <a href="#method.detach_event_handler" class="fn">detach_event_handler</a>(&amp;mut self, name: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.str.html">str</a>)</h4></section></summary><div class="docblock"><p>Detaches a named event handler from the window.</p>
+<p>The <code>name</code> parameter is a string that identifies the event handler. This should be the same string that was used to attach the event handler.</p>
+<h5 id="example-5"><a href="#example-5">Example</a></h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>cgl_rs::init();
+{
+    <span class="kw">let </span><span class="kw-2">mut </span>window = cgl_rs::Window::new(<span class="string">&quot;My Window&quot;</span>, <span class="number">800</span>, <span class="number">600</span>).unwrap();
      
-    window.detach_event_handler(&quot;my_event&quot;);
+    window.detach_event_handler(<span class="string">&quot;my_event&quot;</span>);
 }
-cgl_rs::shutdown();
-</code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.poll_events" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#669-673">source</a><h4 class="code-header">pub fn <a href="#method.poll_events" class="fn">poll_events</a>(&amp;self)</h4></section></summary><div class="docblock"><p>Polls for events on the window.</p>
+cgl_rs::shutdown();</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.poll_events" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#669-673">source</a><h4 class="code-header">pub fn <a href="#method.poll_events" class="fn">poll_events</a>(&amp;self)</h4></section></summary><div class="docblock"><p>Polls for events on the window.</p>
 <p>This function should be called in a loop to continuously poll for events on the window.</p>
 <h5 id="example-6"><a href="#example-6">Example</a></h5>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code>cgl_rs::init();
