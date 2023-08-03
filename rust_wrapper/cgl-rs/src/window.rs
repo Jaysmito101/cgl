@@ -203,7 +203,7 @@ pub enum MouseButton {
 }
 
 /// Represents an action, with each variant corresponding to a specific action code.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Action {
     Release        = 0,
     Press          = 1,
@@ -747,7 +747,7 @@ impl Window {
     /// }
     /// cgl_rs::shutdown();
     /// ```
-    pub fn set_title(&mut self, title: &str) {
+    pub fn set_title(&self, title: &str) {
         let title = std::ffi::CString::new(title).unwrap();
         unsafe {
             CGL_window_set_title(self.handle, title.as_ptr());
@@ -772,7 +772,7 @@ impl Window {
     /// }
     /// cgl_rs::shutdown();
     /// ```
-    pub fn set_size(&mut self, width: i32, height: i32) {
+    pub fn set_size(&self, width: i32, height: i32) {
         unsafe {
             CGL_window_set_size(self.handle, width, height);
         }
@@ -796,7 +796,7 @@ impl Window {
     /// }
     /// cgl_rs::shutdown();
     /// ```
-    pub fn set_position(&mut self, x: i32, y: i32) {
+    pub fn set_position(&self, x: i32, y: i32) {
         unsafe {
             CGL_window_set_position(self.handle, x, y);
         }
@@ -843,7 +843,7 @@ impl Window {
     /// }
     /// cgl_rs::shutdown();
     /// ```
-    pub fn set_user_data<T>(&mut self, user_data: *mut T) {
+    pub fn set_user_data<T>(&self, user_data: *mut T) {
         unsafe {
             CGL_window_set_user_data(self.handle, user_data as *mut c_void);
         }
@@ -953,7 +953,7 @@ impl Window {
     /// }
     /// cgl_rs::shutdown();
     /// ```
-    pub fn rescure_callbacks(&mut self) {
+    pub fn rescure_callbacks(&self) {
         unsafe {
             CGL_window_resecure_callbacks(self.handle);
         }
@@ -973,7 +973,7 @@ impl Window {
     /// }
     /// cgl_rs::shutdown();
     /// ```
-    pub fn make_context_current(&mut self) {
+    pub fn make_context_current(&self) {
         unsafe {
             CGL_window_make_context_current(self.handle);
         }

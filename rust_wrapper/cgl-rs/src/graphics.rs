@@ -20,6 +20,16 @@ pub use ssbo::*;
 mod mesh;
 pub use mesh::*;
 
+mod bloom;
+pub use bloom::*;
+
+mod tilemap;
+pub use tilemap::*;
+
+pub mod text;
+
+pub mod widgets;
+
 extern {
     fn CGL_gl_init() -> c_int;
     fn CGL_gl_shutdown() -> c_void;

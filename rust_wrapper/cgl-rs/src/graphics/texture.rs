@@ -1,4 +1,4 @@
-//! The framebuffer module for CGL
+//! The txture module of CGL
 
 #![allow(non_camel_case_types)]
 use libc::{c_void, c_int, c_uint, size_t};

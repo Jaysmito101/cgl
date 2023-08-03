@@ -1,6 +1,6 @@
 [package]
 name = "cgl-rs"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["Jaysmito Mukherjee <jaysmito101@gmail.com>"]
 description = "CGL is a multipurpose library mainly for recreational coding / demo scenes / prototyping / small games / experimentation."

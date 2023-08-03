@@ -1,4 +1,4 @@
-//! The framebuffer module for CGL
+//! The SSBO module for CGL
 
 #![allow(non_camel_case_types)]
 use libc::{c_void, c_int, size_t};
@@ -105,7 +105,7 @@ impl ShaderStorageBufferObject {
         Ok(ssbo)
     }
    
-    /// Destroys the texture and frees its resources. If the texture has already been destroyed, this method does nothing.
+    /// Destroys the ssbo and frees its resources. If it has already been destroyed, this method does nothing.
     /// 
     /// # Example
     /// 

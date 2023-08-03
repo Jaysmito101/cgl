@@ -1,4 +1,4 @@
-//! The framebuffer module for CGL
+//! The Mesh (CPU & GPU) module for CGL
 
 #![allow(non_camel_case_types)]
 use libc::{c_void, c_int, size_t, c_char, c_float};

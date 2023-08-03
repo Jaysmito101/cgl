@@ -1,5 +1,15 @@
 #![allow(dead_code)]
 
+
+//! The CGL Library
+//! 
+//! CGL is a library for creating cross-platform graphical applications and mainly creative coding.
+//! 
+//! 
+//! You can find the CGL main repository at : <https://github.com/Jaysmito101/cgl>
+//! 
+//! Also You can find a huge collections of creative coding projects, simultions, games made at : <https://github.com/Jaysmito101/cgl/tree/main/examples>
+
 use std::result;
 use libc::{c_void, c_int};
 
@@ -11,6 +21,7 @@ pub mod utils;
 pub mod math;
 pub mod graphics;
 pub mod logger;
+pub mod noise;
 // pub use logger::*;
 pub mod window;
 pub use window::*;
