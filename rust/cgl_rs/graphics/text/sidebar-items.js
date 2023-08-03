@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["bake_to_texture","init","shutdown"],"struct":["Font","FontCharacter"]};
