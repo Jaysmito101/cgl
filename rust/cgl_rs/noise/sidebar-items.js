@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FractalType","NoiseType"],"fn":["get","init","opensimplex","opensimplex2s","perlin","shutdown","value","valuecubic","worley"],"struct":["NoiseParams"],"type":["NoiseDataType"]};

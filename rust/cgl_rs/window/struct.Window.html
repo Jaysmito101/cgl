@@ -140,7 +140,7 @@ cgl_rs::shutdown();</code></pre></div>
 
 }
 cgl_rs::shutdown();</code></pre></div>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_title" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#750-755">source</a><h4 class="code-header">pub fn <a href="#method.set_title" class="fn">set_title</a>(&amp;mut self, title: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.str.html">str</a>)</h4></section></summary><div class="docblock"><p>Sets the title of the window.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_title" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#750-755">source</a><h4 class="code-header">pub fn <a href="#method.set_title" class="fn">set_title</a>(&amp;self, title: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.str.html">str</a>)</h4></section></summary><div class="docblock"><p>Sets the title of the window.</p>
 <h5 id="arguments-2"><a href="#arguments-2">Arguments</a></h5>
 <ul>
 <li><code>title</code> - A string slice containing the new title of the window.</li>
@@ -153,7 +153,7 @@ cgl_rs::shutdown();</code></pre></div>
     window.set_title(<span class="string">&quot;New Title&quot;</span>);
 }
 cgl_rs::shutdown();</code></pre></div>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_size" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#775-779">source</a><h4 class="code-header">pub fn <a href="#method.set_size" class="fn">set_size</a>(&amp;mut self, width: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, height: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>)</h4></section></summary><div class="docblock"><p>Sets the size of the window.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_size" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#775-779">source</a><h4 class="code-header">pub fn <a href="#method.set_size" class="fn">set_size</a>(&amp;self, width: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, height: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>)</h4></section></summary><div class="docblock"><p>Sets the size of the window.</p>
 <h5 id="arguments-3"><a href="#arguments-3">Arguments</a></h5>
 <ul>
 <li><code>width</code> - The new width of the window.</li>
@@ -167,7 +167,7 @@ cgl_rs::shutdown();</code></pre></div>
     window.set_size(<span class="number">1024</span>, <span class="number">768</span>);
 }
 cgl_rs::shutdown();</code></pre></div>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_position" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#799-803">source</a><h4 class="code-header">pub fn <a href="#method.set_position" class="fn">set_position</a>(&amp;mut self, x: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, y: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>)</h4></section></summary><div class="docblock"><p>Sets the position of the window.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_position" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#799-803">source</a><h4 class="code-header">pub fn <a href="#method.set_position" class="fn">set_position</a>(&amp;self, x: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>, y: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.i32.html">i32</a>)</h4></section></summary><div class="docblock"><p>Sets the position of the window.</p>
 <h5 id="arguments-4"><a href="#arguments-4">Arguments</a></h5>
 <ul>
 <li><code>x</code> - The new x position of the window.</li>
@@ -194,7 +194,7 @@ cgl_rs::shutdown();</code></pre></div>
     window.set_hidden(<span class="bool-val">true</span>);
 }
 cgl_rs::shutdown();</code></pre></div>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_user_data" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#846-850">source</a><h4 class="code-header">pub fn <a href="#method.set_user_data" class="fn">set_user_data</a>&lt;T&gt;(&amp;mut self, user_data: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.pointer.html">*mut T</a>)</h4></section></summary><div class="docblock"><p>Sets the user data associated with the window.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_user_data" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#846-850">source</a><h4 class="code-header">pub fn <a href="#method.set_user_data" class="fn">set_user_data</a>&lt;T&gt;(&amp;self, user_data: <a class="primitive" href="https://doc.rust-lang.org/1.71.0/std/primitive.pointer.html">*mut T</a>)</h4></section></summary><div class="docblock"><p>Sets the user data associated with the window.</p>
 <h5 id="arguments-6"><a href="#arguments-6">Arguments</a></h5>
 <ul>
 <li><code>user_data</code> - A pointer to the user data to associate with the window.</li>
@@ -249,7 +249,7 @@ cgl_rs::shutdown();</code></pre></div>
     <span class="macro">assert_eq!</span>(height, <span class="number">600</span>);
 }
 cgl_rs::shutdown();</code></pre></div>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.rescure_callbacks" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#956-960">source</a><h4 class="code-header">pub fn <a href="#method.rescure_callbacks" class="fn">rescure_callbacks</a>(&amp;mut self)</h4></section></summary><div class="docblock"><p>Rescues the callbacks of the window.
+</div></details><details class="toggle method-toggle" open><summary><section id="method.rescure_callbacks" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#956-960">source</a><h4 class="code-header">pub fn <a href="#method.rescure_callbacks" class="fn">rescure_callbacks</a>(&amp;self)</h4></section></summary><div class="docblock"><p>Rescues the callbacks of the window.
 This is usefule whn usiong cgl::window along with any third party library
 that internally uses glfw with cgl::window.</p>
 <h5 id="example-18"><a href="#example-18">Example</a></h5>
@@ -260,7 +260,7 @@ that internally uses glfw with cgl::window.</p>
     window.rescure_callbacks();
 }
 cgl_rs::shutdown();</code></pre></div>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.make_context_current" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#976-980">source</a><h4 class="code-header">pub fn <a href="#method.make_context_current" class="fn">make_context_current</a>(&amp;mut self)</h4></section></summary><div class="docblock"><p>Makes the OpenGL context of the window current.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.make_context_current" class="method"><a class="srclink rightside" href="../../src/cgl_rs/window.rs.html#976-980">source</a><h4 class="code-header">pub fn <a href="#method.make_context_current" class="fn">make_context_current</a>(&amp;self)</h4></section></summary><div class="docblock"><p>Makes the OpenGL context of the window current.</p>
 <h5 id="example-19"><a href="#example-19">Example</a></h5>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code>cgl_rs::init();
 {

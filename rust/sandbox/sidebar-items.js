@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["main","on_window_event"]};
+window.SIDEBAR_ITEMS = {"fn":["main"]};

@@ -35,7 +35,7 @@ cgl_rs::graphics::init();
 cgl_rs::graphics::shutdown();
 window.destroy();
 cgl_rs::shutdown();</code></pre></div>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.destroy" class="method"><a class="srclink rightside" href="../../src/cgl_rs/graphics/ssbo.rs.html#124-131">source</a><h4 class="code-header">pub fn <a href="#method.destroy" class="fn">destroy</a>(&amp;mut self)</h4></section></summary><div class="docblock"><p>Destroys the texture and frees its resources. If the texture has already been destroyed, this method does nothing.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.destroy" class="method"><a class="srclink rightside" href="../../src/cgl_rs/graphics/ssbo.rs.html#124-131">source</a><h4 class="code-header">pub fn <a href="#method.destroy" class="fn">destroy</a>(&amp;mut self)</h4></section></summary><div class="docblock"><p>Destroys the ssbo and frees its resources. If it has already been destroyed, this method does nothing.</p>
 <h5 id="example-2"><a href="#example-2">Example</a></h5>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code>cgl_rs::init();
 <span class="kw">let </span><span class="kw-2">mut </span>window = cgl_rs::Window::new(<span class="string">&quot;Hello, World!&quot;</span>, <span class="number">800</span>, <span class="number">600</span>).unwrap();
