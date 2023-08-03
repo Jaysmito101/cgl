@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Action","Event","Key","MouseButton"],"struct":["GLFWwindow","Window"],"type":["EventFunction"]};
