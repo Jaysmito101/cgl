@@ -565,6 +565,8 @@ CGL_void CGL_net_ssl_log_errors();
 
 CGL_void CGL_utils_sleep(const CGL_sizei milis);
 CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size); // read file into memory
+const CGL_byte* CGL_utils_get_executable_path();
+const CGL_byte* CGL_utils_get_executable_directory();
 CGL_sizei CGL_utils_get_file_size(const CGL_byte* path);
 CGL_bool CGL_utils_append_file(const CGL_byte* path, const CGL_byte* data, size_t size);
 CGL_bool CGL_utils_write_file(const CGL_byte* path, const CGL_byte* data, size_t size); // write data to file
@@ -6765,6 +6767,40 @@ CGL_byte* CGL_utils_read_file(const CGL_byte* path, size_t* size_ptr)
 #endif
 }
 
+const CGL_byte* CGL_utils_get_executable_path()
+{
+	static CGL_byte buffer[2048];
+#if defined(_WIN32) || defined(_WIN64)
+	GetModuleFileName(NULL, buffer, 2048);
+#else
+	ssize_t len = readlink("/proc/self/exe", buffer, 2048);
+	if (len == -1) return NULL;
+	buffer[len] = 0;
+#endif
+	return buffer;
+}
+
+const CGL_byte* CGL_utils_get_executable_directory()
+{
+	static CGL_byte buffer[2048];
+
+	const CGL_byte* path = CGL_utils_get_executable_path();
+
+	if (path == NULL) return NULL;
+
+	CGL_sizei i = strlen(path) - 1;
+	while (i >= 0 && path[i] != '/' && path[i] != '\\') i--;
+
+	if (i < 0) return NULL;
+
+	memcpy(buffer, path, i + 1);
+	buffer[i + 1] = 0;
+
+	return buffer;
+}
+
+
+
 // write data to file
 bool CGL_utils_write_file(const char* path, const char* data, size_t size)
 {
@@ -7534,7 +7570,6 @@ CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height)
 			return NULL;
 		}
 	}
-
 
 	// attach the textures
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebuffer->color_texture->handle, 0);
@@ -10434,10 +10469,10 @@ static const char* __CGL_TILEMAP_FRAGENT_SHADER =
 "    }\n"
 "    else // case where tile is a texture from tileset \n"
 "    {\n"
-"        vec2 final_tex_scale = current_tile.color.zw - current_tile.color.xy;\n"
+"        vec2 final_tex_scale = current_tile.color.zw;\n"
 "        vec2 final_tex_coord = vec2(\n"
-"            tile_tex_coord.x / final_tex_scale.x + current_tile.color.x,\n"
-"            tile_tex_coord.y / final_tex_scale.y + current_tile.color.y\n"
+"            (tile_tex_coord.x) * final_tex_scale.x + current_tile.color.x,\n"
+"            (tile_tex_coord.y) * final_tex_scale.y + current_tile.color.y\n"
 "        );\n"
 "        FragColor = texture(u_texture_tileset, final_tex_coord);\n"
 "        return;\n"
@@ -11072,7 +11107,7 @@ CGL_font* CGL_font_load_from_memory(const char* data, CGL_sizei size)
 {
 	CGL_font* font = __CGL_font_create();
 	if (!font) return NULL;
-	if (FT_New_Memory_Face(__CGL_free_type_library, data, (FT_Long)size, 0, &font->face)) { CGL_log_internal("Could not Load Font\n"); }
+	if (FT_New_Memory_Face(__CGL_free_type_library, (const FT_Byte*)data, (FT_Long)size, 0, &font->face)) { CGL_log_internal("Could not Load Font\n"); }
 	return font;
 }
 
@@ -15044,8 +15079,9 @@ CGL_void CGL_simple_neural_network_set_layer_activation_function(CGL_simple_neur
 
 CGL_void CGL_simple_neural_network_randomize_weights(CGL_simple_neural_network* network, CGL_float min_v, CGL_float max_v)
 {
-	for (CGL_int i = 0; i < network->layer_count; i++) for (CGL_int j = 0; j < network->layers[i].weight_count; j++)
-		network->layers[i].weights[j] = CGL_utils_random_float_in_range(min_v, max_v);
+	for (CGL_int i = 0; i < network->layer_count; i++)
+		for (CGL_int j = 0; j < network->layers[i].weight_count; j++)
+			network->layers[i].weights[j] = CGL_utils_random_float_in_range(min_v, max_v);
 }
 
 CGL_void CGL_simple_neural_network_destroy(CGL_simple_neural_network* network)
@@ -15072,7 +15108,8 @@ CGL_void CGL_simple_neural_network_evaluate(CGL_simple_neural_network* network, 
 		for (CGL_int j = 0; j < layer_cr->output_count; j++)
 		{
 			CGL_float sum = 0.0f;
-			for (CGL_int k = 0; k < layer_pr->output_count + 1; k++) sum += layer_pr->activations[k] * layer_cr->weights[k * layer_cr->output_count + j];
+			for (CGL_int k = 0; k < layer_pr->output_count + 1; k++)
+				sum += layer_pr->activations[k] * layer_cr->weights[k * layer_cr->output_count + j];
 			layer_cr->activations[j] = layer_cr->activation_function(sum);
 		}
 		layer_cr->activations[layer_cr->output_count] = 1.0f; // bias
@@ -15087,7 +15124,8 @@ CGL_void CGL_simple_neural_network_train(CGL_simple_neural_network* a, CGL_float
 	CGL_simple_neural_network_layer* layer_pr = a->layers + a->layer_count - 1; // layer 0
 	CGL_simple_neural_network_layer* layer_cr = layer_pr - 1; // layer 1
 	// calculate errors for the last layer
-	for (CGL_int i = 0; i < layer_pr->output_count; i++) layer_pr->errors[i] = (output[i] - layer_pr->activations[i]) * layer_pr->activation_function_derivative(layer_pr->activations[i]);
+	for (CGL_int i = 0; i < layer_pr->output_count; i++) 
+		layer_pr->errors[i] = (output[i] - layer_pr->activations[i]) * layer_pr->activation_function_derivative(layer_pr->activations[i]);
 	// calculate (propagate) errors for the rest of the layers
 	for (CGL_int i = a->layer_count - 2; i >= 0; i--) // loop through layers n-1 to 0
 	{
@@ -15095,7 +15133,8 @@ CGL_void CGL_simple_neural_network_train(CGL_simple_neural_network* a, CGL_float
 		{
 			// error[j] = sum(error[k] * weight[j][k]) * derivative(activation[j])
 			CGL_float sum = 0.0f; // accumulator for sum
-			for (CGL_int k = 0; k < layer_pr->output_count; k++) sum += layer_pr->errors[k] * layer_pr->weights[j * layer_pr->output_count + k];  // accumulate sum
+			for (CGL_int k = 0; k < layer_pr->output_count; k++)
+				sum += layer_pr->errors[k] * layer_pr->weights[j * layer_pr->output_count + k];  // accumulate sum
 			layer_cr->errors[j] = sum * layer_cr->activation_function_derivative(layer_cr->activations[j]); // calculte error for the neuron
 		}
 		layer_pr = layer_cr; layer_cr--; // update layer pointers
@@ -15107,7 +15146,8 @@ CGL_void CGL_simple_neural_network_train(CGL_simple_neural_network* a, CGL_float
 	{
 		for (CGL_int j = 0; j < layer_cr->output_count; j++)
 		{
-			for (CGL_int k = 0; k < layer_pr->output_count + 1; k++) layer_cr->weights[k * layer_cr->output_count + j] += learning_rate * layer_pr->activations[k] * layer_cr->errors[j];
+			for (CGL_int k = 0; k < layer_pr->output_count + 1; k++)
+				layer_cr->weights[k * layer_cr->output_count + j] += learning_rate * layer_pr->activations[k] * layer_cr->errors[j];
 		}
 		layer_pr = layer_cr; layer_cr++;
 	}
