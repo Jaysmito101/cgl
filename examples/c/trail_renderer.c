@@ -29,6 +29,7 @@ SOFTWARE.
 #define CGL_EXCLUDE_NODE_EDITOR
 #define CGL_EXCLUDE_WIDGETS
 #define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_TEXT_RENDER
 #include "cgl.h"
 
 #define TRAIL_COUNT 16
@@ -158,8 +159,8 @@ int main()
     CGL_vec3 trail_tip_pos_trpt[TRAIL_COUNT * 2] = {0};
     CGL_float trail_tip_pos_thresh[TRAIL_COUNT] = {0};
     for(int i = 0; i < TRAIL_COUNT; i++) { trail_tip_pos[i] = CGL_vec3_init(CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar); trail_tip_pos_tar[i] = CGL_vec3_init(CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar); trail_tip_pos_thresh[i] = 0.0f; }
-    for(int i = 0; i < TRAIL_COUNT * 2; i++) { trail_tip_pos_tar[i] = CGL_vec3_init(CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar); trail_tip_pos_thresh[i] = 0.0f; }
-
+    for(int i = 0; i < TRAIL_COUNT; i++) { trail_tip_pos_tar[i] = CGL_vec3_init(CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar, CGL_utils_random_float() * (max_ar - min_ar) + min_ar); trail_tip_pos_thresh[i] = 0.0f; }
+    
     CGL_vec3 trail_color[TRAIL_COUNT];
     for(int i = 0; i < TRAIL_COUNT; i++) trail_color[i] = CGL_vec3_init(CGL_utils_random_float() * 0.8f , CGL_utils_random_float() * 0.5f + 0.5f, CGL_utils_random_float() * 0.8f);
 

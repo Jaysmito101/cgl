@@ -1887,6 +1887,7 @@ CGL_void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool st
 
 CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count);
 CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh);
+CGL_mesh_cpu* CGL_mesh_cpu_flip_normals(CGL_mesh_cpu* mesh);
 CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolution, CGL_float scale); // generate plane mesh
@@ -1895,6 +1896,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(CGL_bool use_3d_tex_coords);
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
+CGL_mesh_cpu* CGL_mesh_cpu_create_torus_elbow(CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle);
 
 CGL_mesh_cpu* CGL_mesh_cpu_add_mesh(CGL_mesh_cpu* mesh, CGL_mesh_cpu* mesh_other);
 CGL_mesh_cpu* CGL_mesh_cpu_add_cube(CGL_mesh_cpu* mesh, CGL_bool use_3d_tex_coords);
@@ -1903,6 +1905,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_quad(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, 
 CGL_mesh_cpu* CGL_mesh_cpu_add_from_parametric_function(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
+CGL_mesh_cpu* CGL_mesh_cpu_add_torus(CGL_mesh_cpu* mesh, CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle);
 
 
 
@@ -5599,11 +5602,11 @@ CGL_mat4 CGL_mat4_inverse(CGL_mat4 m)
 CGL_mat4 CGL_mat4_transpose(CGL_mat4 m)
 {
 	return CGL_mat4_init(
-		CGL_mat4_elem_get(m, 0, 0), CGL_mat4_elem_get(m, 1, 0), CGL_mat4_elem_get(m, 2, 0), CGL_mat4_elem_get(m, 3, 0),
-		CGL_mat4_elem_get(m, 0, 1), CGL_mat4_elem_get(m, 1, 1), CGL_mat4_elem_get(m, 2, 1), CGL_mat4_elem_get(m, 3, 1),
-		CGL_mat4_elem_get(m, 0, 2), CGL_mat4_elem_get(m, 1, 2), CGL_mat4_elem_get(m, 2, 2), CGL_mat4_elem_get(m, 3, 2),
-		CGL_mat4_elem_get(m, 0, 3), CGL_mat4_elem_get(m, 1, 3), CGL_mat4_elem_get(m, 2, 3), CGL_mat4_elem_get(m, 3, 3)
-	);
+                         CGL_mat4_elem_get(m, 0, 0), CGL_mat4_elem_get(m, 0, 1), CGL_mat4_elem_get(m, 0, 2), CGL_mat4_elem_get(m, 0, 3),
+                         CGL_mat4_elem_get(m, 1, 0), CGL_mat4_elem_get(m, 1, 1), CGL_mat4_elem_get(m, 1, 2), CGL_mat4_elem_get(m, 1, 3),
+                         CGL_mat4_elem_get(m, 2, 0), CGL_mat4_elem_get(m, 2, 1), CGL_mat4_elem_get(m, 2, 2), CGL_mat4_elem_get(m, 2, 3),
+                         CGL_mat4_elem_get(m, 3, 0), CGL_mat4_elem_get(m, 3, 1), CGL_mat4_elem_get(m, 3, 2), CGL_mat4_elem_get(m, 3, 3)
+                         );
 }
 
 CGL_mat4 CGL_mat4_gauss_elim(CGL_mat4 m)
@@ -8258,9 +8261,20 @@ CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh)
 	{
 		CGL_vec4_normalize_vec3(mesh->vertices[i].normal);
 	}
-
+    
 	return mesh;
 }
+
+CGL_mesh_cpu* CGL_mesh_cpu_flip_normals(CGL_mesh_cpu* mesh)
+{
+    for (size_t i = 0; i < mesh->vertex_count; i++)
+	{
+		mesh->vertices[i].normal = CGL_vec4_init(- mesh->vertices[i].normal.x, -mesh->vertices[i].normal.y, -mesh->vertices[i].normal.z, 0.0f);
+	}
+    
+	return mesh;
+}
+
 
 CGL_void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, CGL_int count)
 {
@@ -8576,11 +8590,18 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_
 	CGL_int index_index = 0;
 	for (CGL_int i = 0; i < resolution; i++)
 	{
+        // prevent lerp interpolation floating-point inaccuracy on last step
+        CGL_float angle_plus_step = angle + angle_step;
+        
+        if(i +1 == resolution)
+            angle_plus_step = 0.0f;
+        
 		CGL_vec3 p0 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle) * radius0), CGL_vec3_scale_(top, sinf(angle) * radius0));
-		CGL_vec3 p1 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle + angle_step) * radius0), CGL_vec3_scale_(top, sinf(angle + angle_step) * radius0));
+		CGL_vec3 p1 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle_plus_step) * radius0), CGL_vec3_scale_(top, sinf(angle_plus_step) * radius0));
 		CGL_vec3 p2 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle) * radius1), CGL_vec3_scale_(top, sinf(angle) * radius1));
-		CGL_vec3 p3 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle + angle_step) * radius1), CGL_vec3_scale_(top, sinf(angle + angle_step) * radius1));
+		CGL_vec3 p3 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle_plus_step) * radius1), CGL_vec3_scale_(top, sinf(angle_plus_step) * radius1));
 		angle += angle_step;
+        
 		// Output the first triangle of this grid square
 		// triangle(p0, p2, p1)
 		mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 1.0f);
@@ -8615,6 +8636,38 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_
 	mesh->index_count_used += index_index;
 	return mesh;
 }
+
+
+CGL_mesh_cpu* CGL_mesh_cpu_create_torus_elbow(CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle)
+{
+	CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(resolution0*resolution1 * 2 * 3, resolution0*resolution1 * 2 * 3);
+	CGL_mesh_cpu_add_torus(mesh, center, radius0, radius1, resolution0, resolution1, elbow_angle);
+    
+    CGL_mesh_cpu_offset_vertices(mesh, center);
+	CGL_mesh_cpu_recalculate_normals(mesh);
+	return mesh;
+}
+
+
+// placeholder
+static float m_r = 1.0f;
+static float M_r = 2.0f;
+
+static CGL_vec3 __CGL_mesh_cpu_torus_parametric_function(CGL_float u, CGL_float v)
+{
+	return CGL_vec3_init(cosf(u)* (M_r +  m_r * cosf(v)), m_r * sinf(v), sinf(u) * (M_r + m_r * cosf(v)));
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_add_torus(CGL_mesh_cpu* mesh, CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle)
+{
+    m_r = radius1;
+    M_r = radius0;
+    
+	return CGL_mesh_cpu_add_from_parametric_function(mesh, resolution0, resolution1, 0.0f, 0.0f, elbow_angle, CGL_2PI, __CGL_mesh_cpu_torus_parametric_function);
+    
+    m_r = 1.0f; M_r = 2.0f;
+}
+
 
 CGL_mesh_cpu* CGL_mesh_cpu_offset_vertices(CGL_mesh_cpu* mesh, CGL_vec3 offset)
 {
@@ -8662,7 +8715,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_transform_vertices(CGL_mesh_cpu* mesh, CGL_mat4 trans
 
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v)
 {
-	return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function);
+	return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, CGL_2PI, CGL_PI, __CGL_mesh_cpu_sphere_parametric_function);
 }
 
 CGL_mesh_cpu* CGL_mesh_cpu_add_mesh(CGL_mesh_cpu* mesh, CGL_mesh_cpu* mesh_other)
@@ -9861,7 +9914,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
 "}\n"
 "\n"
-"vec4 calculate_directional_light(CGL_int index)\n"
+"vec4 calculate_directional_light(int index)\n"
 "{\n"
 "    vec3 light_direcion = normalize(-LIGHT_VECTOR(index));\n"
 "    // diffuse shading\n"
@@ -9887,7 +9940,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    return (ambient_lighting + diffuse_lighting + specular_lighting) * LIGHT_INTENSITY(index);\n"
 "}\n"
 "\n"
-"vec4 calculate_point_light(CGL_int index)\n"
+"vec4 calculate_point_light(int index)\n"
 "{\n"
 "    vec3 light_direcion = normalize(LIGHT_VECTOR(index) - Position);\n"
 "    // diffuse shading\n"
@@ -9917,7 +9970,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    return (ambient_lighting + diffuse_lighting + specular_lighting) * attenuation * LIGHT_INTENSITY(index);\n"
 "}\n"
 "\n"
-"vec4 calculate_spot_light(CGL_int index)\n"
+"vec4 calculate_spot_light(int index)\n"
 "{\n"
 "    return vec4(0.0f);\n"
 "}\n"
