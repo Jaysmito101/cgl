@@ -8576,11 +8576,18 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_
 	CGL_int index_index = 0;
 	for (CGL_int i = 0; i < resolution; i++)
 	{
+        // prevent lerp interpolation floating-point inaccuracy on last step
+        CGL_float angle_plus_step = angle + angle_step;
+        
+        if(i +1 == resolution)
+            angle_plus_step = 0.0f;
+        
 		CGL_vec3 p0 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle) * radius0), CGL_vec3_scale_(top, sinf(angle) * radius0));
-		CGL_vec3 p1 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle + angle_step) * radius0), CGL_vec3_scale_(top, sinf(angle + angle_step) * radius0));
+		CGL_vec3 p1 = CGL_vec3_add3_(start, CGL_vec3_scale_(right, cosf(angle_plus_step) * radius0), CGL_vec3_scale_(top, sinf(angle_plus_step) * radius0));
 		CGL_vec3 p2 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle) * radius1), CGL_vec3_scale_(top, sinf(angle) * radius1));
-		CGL_vec3 p3 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle + angle_step) * radius1), CGL_vec3_scale_(top, sinf(angle + angle_step) * radius1));
+		CGL_vec3 p3 = CGL_vec3_add3_(end, CGL_vec3_scale_(right, cosf(angle_plus_step) * radius1), CGL_vec3_scale_(top, sinf(angle_plus_step) * radius1));
 		angle += angle_step;
+        
 		// Output the first triangle of this grid square
 		// triangle(p0, p2, p1)
 		mesh->vertices[mesh->vertex_count_used + vertex_index].position = CGL_vec4_init(p0.x, p0.y, p0.z, 1.0f);
@@ -8662,7 +8669,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_transform_vertices(CGL_mesh_cpu* mesh, CGL_mat4 trans
 
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v)
 {
-	return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, 3.14f * 2.0f, 3.14f, __CGL_mesh_cpu_sphere_parametric_function);
+	return CGL_mesh_cpu_create_from_parametric_function(res_u, res_v, 0.0f, 0.0f, CGL_2PI, CGL_PI, __CGL_mesh_cpu_sphere_parametric_function);
 }
 
 CGL_mesh_cpu* CGL_mesh_cpu_add_mesh(CGL_mesh_cpu* mesh, CGL_mesh_cpu* mesh_other)
