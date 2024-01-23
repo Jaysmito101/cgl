@@ -1887,6 +1887,7 @@ CGL_void CGL_mesh_gpu_upload(CGL_mesh_gpu* mesh, CGL_mesh_cpu* mesh_cpu, bool st
 
 CGL_mesh_cpu* CGL_mesh_cpu_create(size_t vertex_count, size_t index_count);
 CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh);
+CGL_mesh_cpu* CGL_mesh_cpu_flip_normals(CGL_mesh_cpu* mesh);
 CGL_mesh_cpu* CGL_mesh_cpu_load_obj(const char* path);
 CGL_mesh_cpu* CGL_mesh_cpu_triangle(CGL_vec3 a, CGL_vec3 b, CGL_vec3 c); // generate triangle mesh
 CGL_mesh_cpu* CGL_mesh_cpu_plane(CGL_vec3 front, CGL_vec3 right, CGL_int resolution, CGL_float scale); // generate plane mesh
@@ -8260,9 +8261,20 @@ CGL_mesh_cpu* CGL_mesh_cpu_recalculate_normals(CGL_mesh_cpu* mesh)
 	{
 		CGL_vec4_normalize_vec3(mesh->vertices[i].normal);
 	}
-
+    
 	return mesh;
 }
+
+CGL_mesh_cpu* CGL_mesh_cpu_flip_normals(CGL_mesh_cpu* mesh)
+{
+    for (size_t i = 0; i < mesh->vertex_count; i++)
+	{
+		mesh->vertices[i].normal = CGL_vec4_init(- mesh->vertices[i].normal.x, -mesh->vertices[i].normal.y, -mesh->vertices[i].normal.z, 0.0f);
+	}
+    
+	return mesh;
+}
+
 
 CGL_void __CGL_mesh_cpu_load_obj_helper_parse_obj_line(char* line, float* items, CGL_int count)
 {
@@ -9902,7 +9914,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0f, 1.0f);\n"
 "}\n"
 "\n"
-"vec4 calculate_directional_light(CGL_int index)\n"
+"vec4 calculate_directional_light(int index)\n"
 "{\n"
 "    vec3 light_direcion = normalize(-LIGHT_VECTOR(index));\n"
 "    // diffuse shading\n"
@@ -9928,7 +9940,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    return (ambient_lighting + diffuse_lighting + specular_lighting) * LIGHT_INTENSITY(index);\n"
 "}\n"
 "\n"
-"vec4 calculate_point_light(CGL_int index)\n"
+"vec4 calculate_point_light(int index)\n"
 "{\n"
 "    vec3 light_direcion = normalize(LIGHT_VECTOR(index) - Position);\n"
 "    // diffuse shading\n"
@@ -9958,7 +9970,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "    return (ambient_lighting + diffuse_lighting + specular_lighting) * attenuation * LIGHT_INTENSITY(index);\n"
 "}\n"
 "\n"
-"vec4 calculate_spot_light(CGL_int index)\n"
+"vec4 calculate_spot_light(int index)\n"
 "{\n"
 "    return vec4(0.0f);\n"
 "}\n"
