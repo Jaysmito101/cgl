@@ -1895,6 +1895,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(CGL_bool use_3d_tex_coords);
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
+CGL_mesh_cpu* CGL_mesh_cpu_create_torus_elbow(CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle);
 
 CGL_mesh_cpu* CGL_mesh_cpu_add_mesh(CGL_mesh_cpu* mesh, CGL_mesh_cpu* mesh_other);
 CGL_mesh_cpu* CGL_mesh_cpu_add_cube(CGL_mesh_cpu* mesh, CGL_bool use_3d_tex_coords);
@@ -1903,6 +1904,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_quad(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, 
 CGL_mesh_cpu* CGL_mesh_cpu_add_from_parametric_function(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
+CGL_mesh_cpu* CGL_mesh_cpu_add_torus(CGL_mesh_cpu* mesh, CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle);
 
 
 
@@ -8622,6 +8624,38 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_
 	mesh->index_count_used += index_index;
 	return mesh;
 }
+
+
+CGL_mesh_cpu* CGL_mesh_cpu_create_torus_elbow(CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle)
+{
+	CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(resolution0*resolution1 * 2 * 3, resolution0*resolution1 * 2 * 3);
+	CGL_mesh_cpu_add_torus(mesh, center, radius0, radius1, resolution0, resolution1, elbow_angle);
+    
+    CGL_mesh_cpu_offset_vertices(mesh, center);
+	CGL_mesh_cpu_recalculate_normals(mesh);
+	return mesh;
+}
+
+
+// placeholder
+static float m_r = 1.0f;
+static float M_r = 2.0f;
+
+static CGL_vec3 __CGL_mesh_cpu_torus_parametric_function(CGL_float u, CGL_float v)
+{
+	return CGL_vec3_init(cosf(u)* (M_r +  m_r * cosf(v)), m_r * sinf(v), sinf(u) * (M_r + m_r * cosf(v)));
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_add_torus(CGL_mesh_cpu* mesh, CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle)
+{
+    m_r = radius1;
+    M_r = radius0;
+    
+	return CGL_mesh_cpu_add_from_parametric_function(mesh, resolution0, resolution1, 0.0f, 0.0f, elbow_angle, CGL_2PI, __CGL_mesh_cpu_torus_parametric_function);
+    
+    m_r = 1.0f; M_r = 2.0f;
+}
+
 
 CGL_mesh_cpu* CGL_mesh_cpu_offset_vertices(CGL_mesh_cpu* mesh, CGL_vec3 offset)
 {
