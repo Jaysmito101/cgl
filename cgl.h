@@ -5601,11 +5601,11 @@ CGL_mat4 CGL_mat4_inverse(CGL_mat4 m)
 CGL_mat4 CGL_mat4_transpose(CGL_mat4 m)
 {
 	return CGL_mat4_init(
-		CGL_mat4_elem_get(m, 0, 0), CGL_mat4_elem_get(m, 1, 0), CGL_mat4_elem_get(m, 2, 0), CGL_mat4_elem_get(m, 3, 0),
-		CGL_mat4_elem_get(m, 0, 1), CGL_mat4_elem_get(m, 1, 1), CGL_mat4_elem_get(m, 2, 1), CGL_mat4_elem_get(m, 3, 1),
-		CGL_mat4_elem_get(m, 0, 2), CGL_mat4_elem_get(m, 1, 2), CGL_mat4_elem_get(m, 2, 2), CGL_mat4_elem_get(m, 3, 2),
-		CGL_mat4_elem_get(m, 0, 3), CGL_mat4_elem_get(m, 1, 3), CGL_mat4_elem_get(m, 2, 3), CGL_mat4_elem_get(m, 3, 3)
-	);
+                         CGL_mat4_elem_get(m, 0, 0), CGL_mat4_elem_get(m, 0, 1), CGL_mat4_elem_get(m, 0, 2), CGL_mat4_elem_get(m, 0, 3),
+                         CGL_mat4_elem_get(m, 1, 0), CGL_mat4_elem_get(m, 1, 1), CGL_mat4_elem_get(m, 1, 2), CGL_mat4_elem_get(m, 1, 3),
+                         CGL_mat4_elem_get(m, 2, 0), CGL_mat4_elem_get(m, 2, 1), CGL_mat4_elem_get(m, 2, 2), CGL_mat4_elem_get(m, 2, 3),
+                         CGL_mat4_elem_get(m, 3, 0), CGL_mat4_elem_get(m, 3, 1), CGL_mat4_elem_get(m, 3, 2), CGL_mat4_elem_get(m, 3, 3)
+                         );
 }
 
 CGL_mat4 CGL_mat4_gauss_elim(CGL_mat4 m)
