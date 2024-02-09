@@ -1896,6 +1896,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_cube(CGL_bool use_3d_tex_coords);
 CGL_mesh_cpu* CGL_mesh_cpu_sphere(CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_create_from_parametric_function(CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
+CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder2(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution_x, CGL_int resolution_y);
 CGL_mesh_cpu* CGL_mesh_cpu_create_torus_elbow(CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle);
 
 CGL_mesh_cpu* CGL_mesh_cpu_add_mesh(CGL_mesh_cpu* mesh, CGL_mesh_cpu* mesh_other);
@@ -1905,6 +1906,7 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_quad(CGL_mesh_cpu* mesh, CGL_vec3 a, CGL_vec3 b, 
 CGL_mesh_cpu* CGL_mesh_cpu_add_from_parametric_function(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v, CGL_float start_u, CGL_float start_v, CGL_float end_u, CGL_float end_v, CGL_parametric_function function);
 CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int res_v);
 CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution);
+CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder2(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution_x, CGL_int resolution_y);
 CGL_mesh_cpu* CGL_mesh_cpu_add_torus(CGL_mesh_cpu* mesh, CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle);
 
 
@@ -8569,7 +8571,16 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_sphere(CGL_mesh_cpu* mesh, CGL_int res_u, CGL_int
 CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution)
 {
 	CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(resolution * 2 * 3, resolution * 2 * 3);
-	CGL_mesh_cpu_add_cylinder(mesh, start, end, radius0, radius1, resolution);
+	CGL_mesh_cpu_add_cylinder2(mesh, start, end, radius0, radius1, resolution, 1);
+	CGL_mesh_cpu_recalculate_normals(mesh);
+	return mesh;
+}
+
+CGL_mesh_cpu* CGL_mesh_cpu_create_cylinder2(CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution_x, CGL_int resolution_y)
+{
+	CGL_int resolution = resolution_x * resolution_y;	
+	CGL_mesh_cpu* mesh = CGL_mesh_cpu_create(resolution * 2 * 3, resolution * 2 * 3);
+	CGL_mesh_cpu_add_cylinder2(mesh, start, end, radius0, radius1, resolution_x, resolution_y);
 	CGL_mesh_cpu_recalculate_normals(mesh);
 	return mesh;
 }
@@ -8637,6 +8648,29 @@ CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_
 	return mesh;
 }
 
+CGL_mesh_cpu* CGL_mesh_cpu_add_cylinder2(CGL_mesh_cpu* mesh, CGL_vec3 start, CGL_vec3 end, CGL_float radius0, CGL_float radius1, CGL_int resolution_x, CGL_int resolution_y)
+{
+	if (mesh == NULL) return NULL;
+	if (resolution_x < 3 || resolution_y < 1) return NULL;
+
+	CGL_vec3 prev = start;
+	CGL_vec3 curr = start;
+	CGL_float rad_prev = radius0;
+	CGL_float rad_curr = 0.0f;
+
+	for (CGL_int i = 1; i <= resolution_y; i++) 
+	{
+		CGL_float u0 = (CGL_float)i / (CGL_float)resolution_y;
+		curr = CGL_vec3_add(start, CGL_vec3_scale(CGL_vec3_sub(end, start), u0));
+		rad_curr = radius0 + (radius1 - radius0) * u0;
+		CGL_mesh_cpu_add_cylinder(mesh, prev, curr, rad_prev, rad_curr, resolution_x);
+
+		prev = curr;
+		rad_prev = rad_curr;
+	}
+
+	return mesh;
+}
 
 CGL_mesh_cpu* CGL_mesh_cpu_create_torus_elbow(CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle)
 {
