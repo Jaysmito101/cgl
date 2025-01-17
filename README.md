@@ -8,7 +8,6 @@
 <img src="https://img.shields.io/github/issues-pr/Jaysmito101/cgl?style=for-the-badge" />
 <img alt="Lines of code" src="https://img.shields.io/tokei/lines/github/Jaysmito101/cgl?style=for-the-badge" />
 <img src="https://img.shields.io/github/repo-size/Jaysmito101/cgl?style=for-the-badge" />
-<img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2024?style=for-the-badge" />
 <a href="https://patreon.com/jaysmito101"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Djaysmito101%26type%3Dpledges&style=for-the-badge" alt="Support me on Patreon" /></a>
 
 </p>
