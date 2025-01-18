@@ -122,7 +122,7 @@ CGL requires the following to get started with development :
  - OpenAL (Optional)
  - Freetype2 (Optional)
 
-You can check the example CMakeLists.txt file for how to setup a project [here](https://github.com/Jaysmito101/cgl/blob/main/examples/example_cmakelists.txt).
+You can check the example CMakeLists.txt file for how to setup a project [here](https://github.com/Jaysmito101/cgl/blob/main/examples/c/example_cmakelists.txt).
 
 
 ### Improving The Documentation
@@ -145,7 +145,7 @@ Before contributing please read through a part of `cgl.h` to get an idea of CGL 
 - Try to compress the code by
   * Avoid braces for single line blocks
   * Try to avoid if/else if possible
-  * Try to compress multiple lines to a single line as much as posible
-- Use CGL internal types for new modules rather than creating it seperately for them
-- Avoid Code Repetation
+  * Try to compress multiple lines to a single line as much as possible
+- Use CGL internal types for new modules rather than creating it separately for them
+- Avoid Code Repetition
 - Try to place simple single line functions as Macros if possible

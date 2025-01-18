@@ -80,7 +80,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
    - Bower Watson Algorithm for Delaunay Triangulator
    
 * Artificial Intelligence
-  - Neural Netowrks
+  - Neural Networks
   - Backpropagation
   - Serializing/Deserializing networks
   - Multi Variable Linear Regression
@@ -91,13 +91,13 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 * Data structures
   - List(dynamic array) + Stack (implemented together)
-  - Hashtable -> This hastable is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
-     - Hashtable Iterator -> Iterate through the hashtable using a [simple](https://github.com/Jaysmito101/cgl/blob/main/examples/using_hashtable_iterator.c) API
+  - Hashtable -> This hashtable is general purpose. Key can be string or a n-bit buffer. The value can be anything int, string, float, custom types, ...
+     - Hashtable Iterator -> Iterate through the hashtable using a [simple](https://github.com/Jaysmito101/cgl/blob/main/examples/c/using_hashtable_iterator.c) API
   
 * Logger
   - Can be enabled/disabled by `#define CGL_DISABLE_LOGGER`
   - Log to multiple log files simultaneously
-  - Log to console with colored output for seperate log levels
+  - Log to console with colored output for separate log levels
   - Logger with auto timestamps
   
 * Cross Platform Networking (Optional)
@@ -106,7 +106,7 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   - SSL sockets (optional) (requires  OpenSSL)
   - HTTP/HTTPS request (beta)
   
-* General Purpose Markov Chains (Optional) [Example](./examples/markov_text_generation.c)
+* General Purpose Markov Chains (Optional) [Example](./examples/c/markov_text_generation.c)
   - Can work with any type of data ( text / image / etc.  )
   - Train/Generate with 3 - 4 lines of code
   - Trainer implemented for text generation (n-gram based)
@@ -127,11 +127,11 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
   
 * 2D Collision Detection
   - Detect collisions between 2D polygons
-  - Generate Seperating Axes for polygons
+  - Generate Separating Axes for polygons
   - Get Overlap distance
   - GJK (Gilbert–Johnson–Keerthi distance algorithm)
   - EPA (Expanding Polytope Algorithm)
-  - SAT (Seperate Axis Theorem)
+  - SAT (Separate Axis Theorem)
 
 * Marching Square
   - Fully Customizablt Marcher
@@ -190,14 +190,14 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
     - Plot a function
   - font based text widgets (load custom font for high quality text rendering with widgets api)
   - Surrport for rendering 3D meshes with widgets API
-  - Support for Textures to Widgtes API (efficient)
+  - Support for Textures to Widgets API (efficient)
   - Advanced Bezier Curve( lines or dotted) widget
   - Add individual vertices
   - Adjust stroke color/thickness
   - Customize Batch renderer max vertices capacity (for low memory systems)
 
 * Math library
-  - Advanced Matrix Library (this is seperate from matrix lib for graphics)
+  - Advanced Matrix Library (this is separate from matrix lib for graphics)
     - Linear Algebra for matrixx math
   - vec2/vec3/vec4
   - mat3/mat4 (for graphics)
