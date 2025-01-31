@@ -23,12 +23,25 @@ SOFTWARE.
 */
 
 
+// ignore -Wswitch
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
+
 #define CGL_LOGGING_ENABLED
 #define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDE_AUDIO
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
+
+
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
 
 
 #define WINDOW_WIDTH 800
@@ -50,11 +63,21 @@ SOFTWARE.
 // Increase pixel mask block size for the fade effect
 // Edit out the hard-coded things
 
-const CGL_byte* DIFFUSE_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+const CGL_byte* DIFFUSE_VERTEX_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else 
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec3 Normal;\n"
@@ -75,7 +98,14 @@ const CGL_byte* DIFFUSE_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "   Color = pipe_color.xyz;"
 "}";
 
-const CGL_byte* DIFFUSE_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+const CGL_byte* DIFFUSE_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -99,7 +129,7 @@ const CGL_byte* DIFFUSE_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "	float diffuse = max(dot(Normal, light_dir), 0.0f);\n"
 "    float ambient = 0.1f;\n"
 "    float specular_max = 1.0f;\n"
-"    float specular = pow(max(dot(reflect(-light_dir, Normal), normalize(u_eye_pos-Position)), 0.0f), 32);\n"
+"    float specular = pow(max(dot(reflect(-light_dir, Normal), normalize(u_eye_pos-Position)), 0.0f), 32.0);\n"
 "	vec3 result = (specular_max*specular*light_color + diffuse * light_color + ambient) * object_color;\n"
 "    float fade_factor = 1.0f;\n"
 "    if(u_fade_stage > 0.0f)\n"
@@ -145,7 +175,8 @@ typedef struct
     
     CGL_color color;
     Pipe_Direction direction_current;
-    
+
+    CGL_mesh_gpu* mesh_gpu;    
     CGL_mesh_cpu* mesh_cpu;
 } Pipe;
 
@@ -192,6 +223,7 @@ void pipes_init()
         pipes[i].direction_current = PIPE_NONE;
         
         pipes[i].mesh_cpu =  CGL_mesh_cpu_create(1000000, 1000000);
+        pipes[i].mesh_gpu = CGL_mesh_gpu_create();
     }
 }
 
@@ -200,6 +232,7 @@ void pipes_reset()
     for(CGL_int i = 0; i < PIPE_MAX_COUNT; i++)
     {
         CGL_mesh_cpu_destroy(pipes[i].mesh_cpu);
+        CGL_mesh_gpu_destroy(pipes[i].mesh_gpu);
     }
     
     pipes_init();
@@ -467,7 +500,7 @@ void pipe_append_extension(Pipe* pipe, CGL_mesh_cpu* pipe_extension, CGL_coord c
     //CGL_info("%d, %d, %d\n", coord_next.x, coord_next.y, coord_next.z);
     
     // Set the primitive transform to the new position and add it to the current pipe
-    CGL_vec3 offset = (CGL_vec3){coord_next.x, coord_next.y, coord_next.z};
+    CGL_vec3 offset = (CGL_vec3){(CGL_float)coord_next.x, (CGL_float)coord_next.y, (CGL_float)coord_next.z};
     CGL_mat4 rotate = rotation_from_direction(pipe->direction_current, direction_next);
     
     CGL_mesh_cpu_transform_vertices(pipe_extension, rotate);
@@ -525,7 +558,7 @@ CGL_bool pipe_3d_update()
         
         // draw sphere
         pipe_append_extension(pipe, sphere, pipe_start_coord, PIPE_NONE);
-        
+        CGL_mesh_gpu_upload(pipe->mesh_gpu, pipe->mesh_cpu, false);
         return CGL_TRUE;
     }
     
@@ -551,7 +584,7 @@ CGL_bool pipe_3d_update()
     }
     
     // the pipe can extend, so extend the pipe
-    if((direction_next == pipe->direction_current))
+    if (direction_next == pipe->direction_current)
     {
         // keep going forward, add a cylinder
         pipe_append_extension(pipe, cylinder, coord_next, direction_next);
@@ -562,7 +595,7 @@ CGL_bool pipe_3d_update()
         pipe_append_extension(pipe, torus, coord_next, direction_next);
         pipe->direction_current = direction_next;
     }
-    
+    CGL_mesh_gpu_upload(pipe->mesh_gpu, pipe->mesh_cpu, false);
     return CGL_TRUE;
 }
 
@@ -596,6 +629,16 @@ void debug_mesh()
         CGL_mesh_gpu_upload(debug_meshes_gpu[i], debug_meshes[i], false);
     }
 }*/
+struct {
+    CGL_window* window;
+    CGL_framebuffer* framebuffer;
+    CGL_shader* diffuse_shader;
+    CGL_texture* texture;
+
+    CGL_mat4 perspective;
+    CGL_vec3 eye;
+    CGL_mat4 view;
+} g_State;
 
 void pipes_render(CGL_shader* diffuse_shader)
 {
@@ -604,11 +647,7 @@ void pipes_render(CGL_shader* diffuse_shader)
     for(CGL_int i = 0; i < PIPE_MAX_COUNT; i++)
     {
         CGL_shader_set_uniform_vec4(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "pipe_color"), (CGL_vec4*)&(pipes[i].color));
-        
-        CGL_mesh_gpu* mesh_gpu = CGL_mesh_gpu_create();
-        CGL_mesh_gpu_upload(mesh_gpu, pipes[i].mesh_cpu, false);
-        CGL_mesh_gpu_render(mesh_gpu);
-        CGL_mesh_gpu_destroy(mesh_gpu);
+        CGL_mesh_gpu_render(pipes[i].mesh_gpu);
     }
     /*for(CGL_int i = 0; i < DEBUG_MESH_COUNT; i++)
     {
@@ -617,32 +656,30 @@ void pipes_render(CGL_shader* diffuse_shader)
 }
 
 
-int main(int argc, char**argv, char** envp)
-{
-    if(!CGL_init())
-        return -1;
+
+CGL_bool init() {
+    if(!CGL_init()) return CGL_FALSE;
     
-    CGL_logger_init(true);
+    g_State.window = CGL_window_create(WINDOW_WIDTH, WINDOW_HEIGHT, "CGL 3D Pipes - Jaysmito Mukherjee");
     
-    CGL_window* window = CGL_window_create(WINDOW_WIDTH, WINDOW_HEIGHT, "CGL 3D Pipes - Jaysmito Mukherjee");
-    
-    CGL_window_make_context_current(window);
+    CGL_window_make_context_current(g_State.window);
     CGL_gl_init();
-    CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(window);
+    CGL_widgets_init();
+    g_State.framebuffer = CGL_framebuffer_create_from_default(g_State.window);
     
     //debug_mesh();
     
-    CGL_shader* diffuse_shader = CGL_shader_create(DIFFUSE_VERTEX_SHADER_SOURCE, DIFFUSE_FRAGMENT_SHADER_SOURCE, NULL);
-    CGL_shader_bind(diffuse_shader);
+    g_State.diffuse_shader = CGL_shader_create(DIFFUSE_VERTEX_SHADER_SOURCE, DIFFUSE_FRAGMENT_SHADER_SOURCE, NULL);
+    CGL_shader_bind(g_State.diffuse_shader);
     
     pipes_init();
     grid_init();
-    CGL_texture* texture = fade_effect_init(WINDOW_WIDTH, WINDOW_HEIGHT);
-    CGL_shader_set_uniform_int(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "u_TexFade"), CGL_texture_bind(texture, 0));
+    g_State.texture = fade_effect_init(WINDOW_WIDTH, WINDOW_HEIGHT);
+    CGL_shader_set_uniform_int(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "u_TexFade"), CGL_texture_bind(g_State.texture, 0));
     
     
-    CGL_shader_set_uniform_float(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "u_WindowWidth"), (float)(WINDOW_WIDTH));
-    CGL_shader_set_uniform_float(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "u_WindowHeight"), (float)(WINDOW_HEIGHT));
+    CGL_shader_set_uniform_float(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "u_WindowWidth"), (float)(WINDOW_WIDTH));
+    CGL_shader_set_uniform_float(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "u_WindowHeight"), (float)(WINDOW_HEIGHT));
     
     
     // Primitive creation
@@ -660,78 +697,106 @@ int main(int argc, char**argv, char** envp)
     CGL_float offset = CGL_SQRT2*sqrtf(radius0)/2.0f;
     torus = CGL_mesh_cpu_offset_vertices(torus, CGL_vec3_init(-offset, 0.0f,  -offset));
     // 3D scene setup
-    CGL_mat4 perspective = CGL_mat4_perspective(CGL_PI_2 * 0.5f, 1.0f, 0.01f, 100.0f);
-    CGL_vec3 eye = CGL_vec3_init(PIPE_BOX_LENGTH/2.0f, 2.0f+PIPE_BOX_LENGTH/2.0f, 2.5f*PIPE_BOX_LENGTH);
-    CGL_mat4 view = CGL_mat4_look_at(eye, CGL_vec3_init(PIPE_BOX_LENGTH/2.0f, PIPE_BOX_LENGTH/2.0f, PIPE_BOX_LENGTH/2.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
+    g_State.perspective = CGL_mat4_perspective(CGL_PI_2 * 0.5f, 1.0f, 0.01f, 100.0f);
+    g_State.eye = CGL_vec3_init(PIPE_BOX_LENGTH/2.0f, 2.0f+PIPE_BOX_LENGTH/2.0f, 2.5f*PIPE_BOX_LENGTH);
+    g_State.view = CGL_mat4_look_at(g_State.eye, CGL_vec3_init(PIPE_BOX_LENGTH/2.0f, PIPE_BOX_LENGTH/2.0f, PIPE_BOX_LENGTH/2.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
     
     glEnable(GL_DEPTH_TEST);
-    
-    while(!CGL_window_should_close(window))
-    { 
-        if(CGL_window_get_key(window, CGL_KEY_UP) == CGL_PRESS)
-            eye.y += 1.0f;
-        
-        if(CGL_window_get_key(window, CGL_KEY_DOWN) == CGL_PRESS)
-            eye.y -= 1.0f;
-        
-        if(CGL_window_get_key(window, CGL_KEY_LEFT) == CGL_PRESS)
-            eye.x -= 1.0f;
-        
-        if(CGL_window_get_key(window, CGL_KEY_RIGHT) == CGL_PRESS)
-            eye.x += 1.0f;
-        
-        if(CGL_window_get_key(window, CGL_KEY_O) == CGL_PRESS)
-            eye.z -= 1.0f;
-        
-        if(CGL_window_get_key(window, CGL_KEY_P) == CGL_PRESS)
-            eye.z += 1.0f;
-        
-        
-        CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
-        
-        CGL_mat4 view_proj = CGL_mat4_mul(perspective, view);
-        view = CGL_mat4_look_at(eye, CGL_vec3_init(2.0f, 2.0f, 2.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
-        
-        
-        
-        CGL_framebuffer_bind(default_framebuffer);
-        
-        CGL_gl_clear(0.0f, 0.0f, 0.0f, 0.0f);
-        
-        int rx = 0; int ry = 0;
-        CGL_framebuffer_get_size(default_framebuffer, &rx, &ry);
-        
-        CGL_shader_bind(diffuse_shader);
-        CGL_shader_set_uniform_mat4(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "view_proj"), &view_proj);
-        CGL_shader_set_uniform_vec3v(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "u_light_pos"), PIPE_BOX_LENGTH/2.0f, PIPE_BOX_LENGTH/2.0f, 2*PIPE_BOX_LENGTH);
-        CGL_shader_set_uniform_vec3v(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "u_eye_pos"), eye.x, eye.y, eye.z);
-        
-        
-        if(CGL_window_get_key(window, CGL_KEY_L) == CGL_PRESS)
-        {
-            if(!pipe_3d_update())
-            {
-                fade_out(diffuse_shader);
-            }
-        }
-        
-        pipes_render(diffuse_shader);
-        
-        
-        
-        CGL_window_swap_buffers(window);
-        glfwWaitEvents();
-        //CGL_window_poll_events(window);
-        if(CGL_window_get_key(window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
-    }
-    
-    CGL_texture_destroy(texture);
-    CGL_shader_destroy(diffuse_shader);
-    CGL_framebuffer_destroy(default_framebuffer);
+
+    return CGL_TRUE;
+}
+
+
+void cleanup() {
+    CGL_texture_destroy(g_State.texture);
+    CGL_shader_destroy(g_State.diffuse_shader);
+    CGL_framebuffer_destroy(g_State.framebuffer);
+    CGL_widgets_shutdown();
     CGL_gl_shutdown();
-    CGL_window_destroy(window);
-    //CGL_logger_shutdown();
+    CGL_window_destroy(g_State.window);
     CGL_shutdown();
-    
-    return 0;
+}
+
+EM_BOOL loop(double time, void* userData) {
+    (void)time;
+    (void)userData;
+
+    if(CGL_window_get_key(g_State.window, CGL_KEY_UP) == CGL_PRESS)
+        g_State.eye.y += 1.0f;
+        
+    if(CGL_window_get_key(g_State.window, CGL_KEY_DOWN) == CGL_PRESS)
+        g_State.eye.y -= 1.0f;
+        
+    if(CGL_window_get_key(g_State.window, CGL_KEY_LEFT) == CGL_PRESS)
+        g_State.eye.x -= 1.0f;
+        
+    if(CGL_window_get_key(g_State.window, CGL_KEY_RIGHT) == CGL_PRESS)
+        g_State.eye.x += 1.0f;
+        
+    if(CGL_window_get_key(g_State.window, CGL_KEY_O) == CGL_PRESS)
+        g_State.eye.z -= 1.0f;
+        
+    if(CGL_window_get_key(g_State.window, CGL_KEY_P) == CGL_PRESS)
+        g_State.eye.z += 1.0f;
+        
+        
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
+        
+    CGL_mat4 view_proj = CGL_mat4_mul(g_State.perspective, g_State.view);
+    g_State.view = CGL_mat4_look_at(g_State.eye, CGL_vec3_init(2.0f, 2.0f, 2.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
+        
+        
+        
+    CGL_framebuffer_bind(g_State.framebuffer);
+        
+    CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
+        
+    int rx = 0; int ry = 0;
+    CGL_framebuffer_get_size(g_State.framebuffer, &rx, &ry);
+        
+    CGL_shader_bind(g_State.diffuse_shader);
+    CGL_shader_set_uniform_mat4(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "view_proj"), &view_proj);
+    CGL_shader_set_uniform_vec3v(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "u_light_pos"), PIPE_BOX_LENGTH/2.0f, PIPE_BOX_LENGTH/2.0f, 2*PIPE_BOX_LENGTH);
+    CGL_shader_set_uniform_vec3v(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "u_eye_pos"), g_State.eye.x, g_State.eye.y, g_State.eye.z);
+        
+        
+    if(CGL_window_get_key(g_State.window, CGL_KEY_L) == CGL_PRESS)
+    {
+        if(!pipe_3d_update())
+        {
+            fade_out(g_State.diffuse_shader);
+        }
+    }
+        
+    pipes_render(g_State.diffuse_shader);
+        
+    CGL_widgets_begin();
+    CGL_widgets_add_string("Press L", -0.9f, 0.8f, 0.5f, 0.1f);
+    CGL_widgets_end();
+        
+        
+    CGL_window_swap_buffers(g_State.window);
+    glfwWaitEvents();
+    //CGL_window_poll_events(window);
+    if(CGL_window_get_key(g_State.window, CGL_KEY_ESCAPE) == CGL_PRESS) return CGL_FALSE;
+
+    return CGL_TRUE;
+}
+
+int main()
+{   
+    if (!init()) return EXIT_FAILURE;
+
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    while(!CGL_window_should_close(g_State.window))
+    { 
+        if(!loop(0.0, NULL)) break;
+    }
+    cleanup();    
+#endif
+
+    return EXIT_SUCCESS;
 }
