@@ -7,33 +7,33 @@
       "views": 123,
       "description": "A project to show how to create a basic window.",
       "image": "builds/window_creation/thumb.png",
-      "published_date": "2023-01-15",
+      "published_date": "2024-02-01",
       "author": "Jaysmito101",
       "difficulty": 2
     },
     {
-      "name": "Shader Playground",
-      "path": "builds/shader_playground",
-      "source_code": "https://github.com/Jaysmito101/shader_playground",
-      "tags": ["shader", "glsl", "creative", "visual"],
+      "name": "2D Collision Detection",
+      "path": "builds/2d_collision_detection",
+      "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/2d_collision_detection.c",
+      "tags": ["cgl", "2d", "collision", "sat", "gjk", "physics"],
       "views": 456,
-      "description": "Experimenting with custom shaders and visual effects.",
-      "image": "https://placehold.co/300?text=Shader",
-      "published_date": "2023-03-20",
+      "description": "A project to show how to implement 2D collision detection using SAT and GJK algorithms.",
+      "image": "builds/2d_collision_detection/thumb.png",
+      "published_date": "2024-02-01",
       "author": "Jaysmito101",
       "difficulty": 4
     },
     {
-      "name": "Interactive Particle System",
-      "path": "builds/particle_system",
-      "source_code": "https://github.com/Jaysmito101/particle_system",
-      "tags": ["particles", "interactive", "js", "canvas"],
+      "name": "2D Procedural Trees",
+      "path": "builds/2d_procedural_trees",
+      "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/2d_procedural_trees.c",
+      "tags": ["cgl", "2d", "procedural", "creative", "trees"],
       "views": 789,
-      "description": "A dynamic particle system built with JavaScript and canvas.",
-      "image": "https://placehold.co/300?text=Particles",
+      "description": "An Interactive application to procedurally generate 2D trees.",
+      "image": "builds/2d_procedural_trees/thumb.png",
       "published_date": "2024-02-01",
       "author": "Jaysmito101",
-      "difficulty": 3
+      "difficulty": 4
     },
     {
       "name": "3D Maze Game",
@@ -45,6 +45,6 @@
       "image": "builds/3d_maze_game/thumb.png",
       "published_date": "2024-02-01",
       "author": "Jaysmito101",
-      "difficulty": 5
+      "difficulty": 3
     }
 ]

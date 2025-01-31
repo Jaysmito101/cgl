@@ -329,7 +329,12 @@
     
       async function main() {
         // Increment the view count
-        const views = await pageHit(project.path);
+        let views = 0;
+        try {
+          views = await pageHit(project.path);
+        } catch (err) {
+          console.error("Failed to increment view count:", err);
+        }
 
         // Populate project details
         document.getElementById("projTitle").textContent = project.name;

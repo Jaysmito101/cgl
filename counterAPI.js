@@ -17,7 +17,7 @@ const cyrb53 = (str, seed = 0) => {
 
 const pageHit = async (name) => {
     const nameHash = cyrb53(name);
-    const url = `https://api.cors.lol?url=https://api.counterapi.dev/v1/cgl_web_demos/${nameHash}/up`;
+    const url = `https://api.counterapi.dev/v1/cgl_web_demos/${nameHash}/up`;
     
     const response = await fetch(url, {
         method: 'GET',
@@ -36,7 +36,7 @@ const pageHit = async (name) => {
 
 const getHitCount = async (name) => {
     const nameHash = cyrb53(name);
-    const url = `https://api.cors.lol?url=https://api.counterapi.dev/v1/cgl_web_demos/${nameHash}`;
+    const url = `https://api.counterapi.dev/v1/cgl_web_demos/${nameHash}`;
 
     // fix cors
     const response = await fetch(url,
