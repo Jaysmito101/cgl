@@ -7554,7 +7554,11 @@ CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height)
 	}
 
 
+#ifdef CGL_WASM
+	framebuffer->depth_texture = CGL_texture_create_blank(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT24, GL_UNSIGNED_INT);
+#else
 	framebuffer->depth_texture = CGL_texture_create_blank(width, height, GL_DEPTH_COMPONENT, GL_DEPTH24_STENCIL8, GL_FLOAT);
+#endif
 	if (!framebuffer->depth_texture)
 	{
 		CGL_texture_destroy(framebuffer->color_texture);
@@ -7588,14 +7592,15 @@ CGL_framebuffer* CGL_framebuffer_create(CGL_int width, CGL_int height)
 
 
 	// check if framebuffer is complete
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	CGL_int res = 0;
+	if ((res = glCheckFramebufferStatus(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		CGL_texture_destroy(framebuffer->color_texture);
 		CGL_texture_destroy(framebuffer->depth_texture);
 		for (CGL_int i = 0; i < 3; i++)
 			CGL_texture_destroy(framebuffer->mousepick_texture[i]);
 		free(framebuffer);
-		CGL_log_internal("Framebuffer is not complete\n");
+		CGL_log_internal("Framebuffer is not complete: %d\n", res);
 		// get and print opengl error
 		GLenum error = glGetError();
 		if (error != GL_NO_ERROR)
@@ -7629,7 +7634,11 @@ CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height)
 	}
 	framebuffer->color_attachments[0] = framebuffer->color_texture;
 
+#ifdef CGL_WASM
+	framebuffer->depth_texture = CGL_texture_create_blank(width, height, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT24, GL_UNSIGNED_INT);
+#else
 	framebuffer->depth_texture = CGL_texture_create_blank(width, height, GL_DEPTH_COMPONENT, GL_DEPTH24_STENCIL8, GL_FLOAT);
+#endif
 	if (!framebuffer->depth_texture)
 	{
 		CGL_texture_destroy(framebuffer->color_texture);
@@ -7646,12 +7655,13 @@ CGL_framebuffer* CGL_framebuffer_create_basic(CGL_int width, CGL_int height)
 
 
 	// check if framebuffer is complete
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	CGL_int res = 0;
+	if ((res = glCheckFramebufferStatus(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		CGL_texture_destroy(framebuffer->color_texture);
 		CGL_texture_destroy(framebuffer->depth_texture);
 		free(framebuffer);
-		CGL_log_internal("Framebuffer is not complete\n");
+		CGL_log_internal("Framebuffer is not complete: %d\n", res);
 		// get and print opengl error
 		GLenum error = glGetError();
 		if (error != GL_NO_ERROR) CGL_log_internal("OpenGL error: %d\n", (error));
