@@ -4233,7 +4233,6 @@ CGL_void CGL_console_progress_bar(CGL_float progress, CGL_int width, CGL_byte* p
 
 float CGL_utils_get_time()
 {
-#ifndef CGL_WASM
 #if defined(_WIN32) || defined(_WIN64)
 	static LARGE_INTEGER starting_time;
 	LARGE_INTEGER frequency, time;
@@ -4242,7 +4241,9 @@ float CGL_utils_get_time()
 	QueryPerformanceCounter(&time);
 	CGL_float ftime = (CGL_float)(time.QuadPart - starting_time.QuadPart) / (CGL_float)frequency.QuadPart;
 	return ftime;
-#else // for POSIX
+#elif defined(CGL_WASM)
+	return (float)emscripten_get_now() / 1000.0f;
+#else  // for POSIX
 	struct timespec spec;
 	if (clock_gettime(1, &spec) == -1)
 	{
@@ -4250,9 +4251,6 @@ float CGL_utils_get_time()
 		return 0.0f;
 	}
 	return (float)(spec.tv_sec * 1000 + spec.tv_nsec / 1e6) / 1000.0f;
-#endif
-#else 
-	return 0.0f;
 #endif
 }
 
@@ -6941,7 +6939,7 @@ static CGL_window* __CGL_window_create(CGL_int width, CGL_int height, const char
 	}
 #ifdef CGL_WASM
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
 	//    glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_CONTEXT_API);
@@ -7764,13 +7762,7 @@ CGL_void CGL_framebuffer_bind(CGL_framebuffer* framebuffer)
 	if (framebuffer->is_default)
 	{
 		CGL_int width = 512, height = 512;
-#ifdef CGL_WASM
-		// TODO
-#else
-#ifndef CGL_EXCLUDE_WINDOW_API
 		CGL_window_get_size((CGL_window*)framebuffer->user_data, &width, &height);
-#endif
-#endif
 		glViewport(0, 0, width, height);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
@@ -7980,9 +7972,19 @@ CGL_void CGL_ssbo_copy(CGL_ssbo* dst, CGL_ssbo* src, size_t src_offset, size_t d
 		CGL_log_internal("CGL_ssbo_copy: src_offset + size > src->size");
 		return;
 	}
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, dst->handle);
-	glCopyNamedBufferSubData(src->handle, dst->handle, src_offset, dst_offset, size);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// NOT Supported!
+	// glBindBuffer(GL_SHADER_STORAGE_BUFFER, dst->handle);
+	// glCopyNamedBufferSubData(src->handle, dst->handle, src_offset, dst_offset, size);
+	// glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Copying data via glCopyBufferSubData 
+	glBindBuffer(GL_COPY_READ_BUFFER, src->handle);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, dst->handle);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, src_offset, dst_offset, size);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+
 }
 
 
@@ -11357,13 +11359,25 @@ struct CGL_widgets_context
 	CGL_bool is_font_texture;
 };
 
-static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = 
+#ifdef CGL_WASM	
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+"in vec4 texcoordscaleoffset;\n"
+"in ivec4 texids;\n"
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
 "layout (location = 3) in vec4 texcoordscaleoffset;\n"
 "layout (location = 4) in ivec4 texids;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec3 Normal;\n"
@@ -11399,7 +11413,14 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	Color = vec4(position.w, texcoord.zw, normal.w);\n"
 "}";
 
-static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -11417,12 +11438,39 @@ static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "uniform sampler2D u_Texture[16];\n"
 "uniform vec4 u_Mask;\n"
 "\n"
+"// It has to be done this way as some WebGL implementations do not support indexing into u_Textures with TexID\n"
+"vec4 sampleTexture()\n"
+"{\n"
+"    vec2 adjustedTexCoord = TexCoord * TexCoordScaleOffset.xy + TexCoordScaleOffset.zw;\n"
+"\n"
+"    switch (TexID)\n"
+"    {\n"
+"        case 0: return texture(u_Texture[0], adjustedTexCoord);\n"
+"        case 1: return texture(u_Texture[1], adjustedTexCoord);\n"
+"        case 2: return texture(u_Texture[2], adjustedTexCoord);\n"
+"        case 3: return texture(u_Texture[3], adjustedTexCoord);\n"
+"        case 4: return texture(u_Texture[4], adjustedTexCoord);\n"
+"        case 5: return texture(u_Texture[5], adjustedTexCoord);\n"
+"        case 6: return texture(u_Texture[6], adjustedTexCoord);\n"
+"        case 7: return texture(u_Texture[7], adjustedTexCoord);\n"
+"        case 8: return texture(u_Texture[8], adjustedTexCoord);\n"
+"        case 9: return texture(u_Texture[9], adjustedTexCoord);\n"
+"        case 10: return texture(u_Texture[10], adjustedTexCoord);\n"
+"        case 11: return texture(u_Texture[11], adjustedTexCoord);\n"
+"        case 12: return texture(u_Texture[12], adjustedTexCoord);\n"
+"        case 13: return texture(u_Texture[13], adjustedTexCoord);\n"
+"        case 14: return texture(u_Texture[14], adjustedTexCoord);\n"
+"        case 15: return texture(u_Texture[15], adjustedTexCoord);\n"
+"        default: return vec4(1.0); // Return white color if TexID is invalid\n"
+"    }\n"
+"}\n"
+"\n"
 "void main()\n"
 "{\n"
 "	vec4 color = Color;\n"
 "	if(TexID > -1)\n"
 "	{\n"
-"		color = texture(u_Texture[TexID], TexCoord * TexCoordScaleOffset.xy + TexCoordScaleOffset.zw);\n"
+"		color = sampleTexture();\n"
 "       if(UsingFontTexture == 1)\n"
 "       {\n"
 "           color = color.r * Color;\n"
