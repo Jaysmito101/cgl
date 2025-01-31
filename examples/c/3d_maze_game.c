@@ -27,18 +27,36 @@ SOFTWARE.
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDE_RAY_CASTER
 #define CGL_EXCLUDE_NODE_EDITOR
-#define CGL_EXCLUDE_WIDGETS
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_EXCLUDE_AUDIO
 #include "cgl.h"
 
 #define MAX_LIGHTS 64
 #define BOARD_SIZE 16
 
-static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
+
+
+static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE =
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec2 TexCoord;\n"
@@ -50,7 +68,13 @@ static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	TexCoord = texcoord.xy;\n"
 "}";
 
-static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -77,11 +101,21 @@ static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "	FragColor = vec4(color, 1.0f);\n"
 "}";
 
-static const char* PRIMARY_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+static const char* PRIMARY_VERTEX_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "in layout(location = 0) vec4 position;\n"
 "in layout(location = 1) vec4 normal;\n"
 "in layout(location = 2) vec4 texcoord;\n"
+#endif
 "\n"
 "void main()\n"
 "{\n"
@@ -89,7 +123,13 @@ static const char* PRIMARY_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "}\n"
 "";
 
-static const char* PRIMARY_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+static const char* PRIMARY_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -100,7 +140,7 @@ static const char* PRIMARY_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "uniform vec4 light_positions[MAX_LIGHTS]; // w is intensity\n"
 "uniform vec4 light_colors[MAX_LIGHTS]; // w is reserved\n"
 "uniform int light_count;\n"
-"uniform int board_piece_pos[BOARD_RESOLUTION][BOARD_RESOLUTION];\n"
+"uniform int board_piece_pos[BOARD_RESOLUTION * BOARD_RESOLUTION];\n"
 "uniform float time;\n"
 "uniform vec2 player_pos;\n"
 "\n"
@@ -113,8 +153,8 @@ static const char* PRIMARY_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "const vec2 RESOLUTION = vec2(600, 600);\n"
 "\n"
 "// colors\n"
-"const vec3 COLOR_WOOD = vec3(133/256.0f, 94/256.0f, 66/256.0f);\n"
-"const vec3 COLOR_WOOD_DARK = vec3(75/256.0f, 57/256.0f, 35/256.0f) * 0.5f;\n"
+"const vec3 COLOR_WOOD = vec3(133.0/256.0f, 94.0/256.0f, 66.0/256.0f);\n"
+"const vec3 COLOR_WOOD_DARK = vec3(75.0/256.0f, 57.0/256.0f, 35.0/256.0f) * 0.5f;\n"
 "\n"
 "// sdf functions\n"
 "float sphereSDF(vec3 p, float r)\n"
@@ -177,7 +217,7 @@ static const char* PRIMARY_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "    float cell_size = 2.0f * board_size / float(BOARD_RESOLUTION);\n"
 "    {\n"
 "        vec2 tmp_v2 = clamp(p.xz, -board_size, board_size);\n"
-"        ivec2 tmp2_v2 = ivec2( ( (tmp_v2 + board_size)*0.5f/board_size) * BOARD_RESOLUTION );\n"
+"        ivec2 tmp2_v2 = ivec2( ( (tmp_v2 + board_size)*0.5f/board_size) * float(BOARD_RESOLUTION) );\n"
 "        tmp_v2 = mod(tmp_v2, cell_size) - cell_size * 0.5f;\n"
 "\n"
 "        \n"
@@ -186,7 +226,7 @@ static const char* PRIMARY_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "        vec3 p_pcs = vec3(tmp_v2.x, p.y - 0.5f, tmp_v2.y);\n"
 "        //float d_pcs = sphereSDF(p_pcs, cell_size * 0.75f);\n"
 "        float d_pcs = boxSDF(p_pcs, vec3(cell_size, 0.3f, cell_size));\n"
-"        float mask = float(board_piece_pos[tmp2_v2.x][tmp2_v2.y]);\n"
+"        float mask = float(board_piece_pos[tmp2_v2.x * BOARD_RESOLUTION + tmp2_v2.y]);\n"
 "        mask = clamp(mask, 0.0f, 1.0f);\n"
 "        d_board = max(d_board, mix(d_board, -d_pcs, mask));\n"
 "    }\n"
@@ -339,7 +379,7 @@ void propagate_set(CGL_int src, CGL_int dst)
 {
     for (CGL_int i = 0; i < 16; i++)
         for (CGL_int j = 0; j < 16; j++)
-            if (ke_sets[i][j] == src) ke_sets[i][j] = dst;
+            if (ke_sets[i][j] == src) ke_sets[i][j] = (CGL_byte)dst;
 }
 
 void get_partitioning_sets(CGL_int index, CGL_int* a, CGL_int* b)
@@ -373,7 +413,7 @@ void generate_maze()
         for (CGL_int j = 0; j < 16; j++)
         {
             ke_sets[i][j] = 0;
-            if (i % 2 == 0 && j % 2 == 0) { board[i][j] = 1; ke_sets[i][j] = counter++; }
+            if (i % 2 == 0 && j % 2 == 0) { board[i][j] = 1; ke_sets[i][j] = (CGL_byte)(counter++); }
             else { board[i][j] = 0; walls[num_walls++] = i * 16 + j; }
         }
     }
@@ -410,7 +450,7 @@ void generate_maze()
                 0.05f,
                 0.1f
             );
-            board[i][j] = 3 + lamps_left;
+            board[i][j] = 3 + (CGL_byte)lamps_left;
             lamps_left--;
         }
     }
@@ -430,16 +470,44 @@ void generate_maze()
 }
 
 
-int main()
-{
+struct {
+    CGL_window* window;
+    CGL_framebuffer* framebuffer;
+    CGL_framebuffer* default_framebuffer;
+    CGL_framebuffer* bloom_framebuffer;
+
+    CGL_shader* present_shader;
+    CGL_shader* primary_shader;
+
+    CGL_float curr_time;
+    CGL_float prev_time;
+    CGL_float time;
+    CGL_float angle;
+
+#ifndef CGL_WASM
+    // Bloom is not supported on WASM
+    // as bloom uses compute shaders, and
+    // thats not supported by webgl
+    // later we might add support for it
+    // if we switch to WebGPU
+    CGL_bloom* bloom;
+#endif
+} g_State;
+
+CGL_bool init() {
     srand((uint32_t)time(NULL));
-    CGL_init();
-    CGL_window* window = CGL_window_create(600, 600, "3D Maze - Jaysmito Mukherjee");
-    if (!window) return 1;
-    CGL_window_make_context_current(window);
-    CGL_gl_init();
-    CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(window);
-    CGL_framebuffer* bloom_framebuffer = CGL_framebuffer_create(600, 600);
+    if(!CGL_init()) return CGL_FALSE;
+    
+    g_State.window = CGL_window_create(600, 600, "3D Maze - Jaysmito Mukherjee");
+    if (!g_State.window) return 1;
+
+    CGL_window_make_context_current(g_State.window);
+    if(!CGL_gl_init()) return CGL_FALSE;
+
+    if(!CGL_widgets_init()) return CGL_FALSE;
+
+    g_State.default_framebuffer = CGL_framebuffer_create_from_default(g_State.window);
+    g_State.bloom_framebuffer = CGL_framebuffer_create_basic(600, 600);
 
     lights[num_lights++] = create_light(
         CGL_vec3_init(-3.0f, 1.0f, 3.0f),
@@ -468,116 +536,145 @@ int main()
 
     generate_maze();
 
-    CGL_shader* present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
-    CGL_shader* primary_shader = CGL_shader_create(PRIMARY_VERTEX_SHADER_SOURCE, PRIMARY_FRAGMENT_SHADER_SOURCE, NULL);
+    g_State.present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
+    g_State.primary_shader = CGL_shader_create(PRIMARY_VERTEX_SHADER_SOURCE, PRIMARY_FRAGMENT_SHADER_SOURCE, NULL);
 
-    CGL_bloom* bloom = CGL_bloom_create(600, 600, 3);
+#ifndef CGL_WASM
+    g_State.bloom = CGL_bloom_create(600, 600, 3);
+#endif
+
+    g_State.curr_time = CGL_utils_get_time();
+    g_State.prev_time = CGL_utils_get_time();
+    g_State.time = 0.0f;
+    g_State.angle = 0.0f;
+
+    return CGL_TRUE;
+}
+
+void cleanup() {
+    CGL_shader_destroy(g_State.primary_shader);
+    CGL_shader_destroy(g_State.present_shader);
+    CGL_framebuffer_destroy(g_State.default_framebuffer);
+    CGL_framebuffer_destroy(g_State.bloom_framebuffer);
+#ifndef CGL_WASM
+    CGL_bloom_destroy(g_State.bloom);
+#endif
+    CGL_widgets_shutdown();
+    CGL_gl_shutdown();
+    CGL_window_destroy(g_State.window);
+    CGL_shutdown();
+}
+
+EM_BOOL loop(double time, void* userData) {
+    (void)time;
+    (void)userData;
+
+    g_State.curr_time = CGL_utils_get_time();
+    CGL_float delta_time = g_State.curr_time - g_State.prev_time;
+    g_State.prev_time = g_State.curr_time;
+
+    g_State.time += CGL_utils_clamp(delta_time, 0.0f, 0.05f); // to avoid sudden jumps in time due to lag or things like window resizing
 
 
+#ifndef CGL_WASM
+    CGL_window_set_size(g_State.window, 600, 600); // force window size to be 600x600
+#endif
 
-    CGL_float curr_time = CGL_utils_get_time();
-    CGL_float prev_time = CGL_utils_get_time();
-    CGL_float time = 0.0f;
+    CGL_vec2 player_pos_c = player_pos;
 
+    if (CGL_window_get_key(g_State.window, CGL_KEY_RIGHT) == CGL_PRESS) player_pos_c.y += 0.05f;
+    if (CGL_window_get_key(g_State.window, CGL_KEY_LEFT) == CGL_PRESS) player_pos_c.y -= 0.05f;
+    if (CGL_window_get_key(g_State.window, CGL_KEY_UP) == CGL_PRESS) player_pos_c.x -= 0.05f;
+    if (CGL_window_get_key(g_State.window, CGL_KEY_DOWN) == CGL_PRESS) player_pos_c.x += 0.05f;
+    if (CGL_window_get_key(g_State.window, CGL_KEY_Q) == CGL_PRESS) g_State.angle -= 0.1f;
+    if (CGL_window_get_key(g_State.window, CGL_KEY_E) == CGL_PRESS) g_State.angle += 0.1f;
 
-    CGL_float angle = 0.0f;
+    CGL_ivec4 player_cell_c;
+    player_cell_c.x = (CGL_int)(((player_pos_c.x + 2.0f) * 0.5f / 2.0f) * BOARD_SIZE);
+    player_cell_c.y = (CGL_int)(((player_pos_c.y + 2.0f) * 0.5f / 2.0f) * BOARD_SIZE);
 
-    while (!CGL_window_should_close(window))
+    if (player_cell_c.x >= 0 && player_cell_c.x < BOARD_SIZE && player_cell_c.y >= 0 && player_cell_c.y < BOARD_SIZE)
     {
-        curr_time = CGL_utils_get_time();
-        CGL_float delta_time = curr_time - prev_time;
-        prev_time = curr_time;
-
-        time += CGL_utils_clamp(delta_time, 0.0f, 0.05f); // to avoid sudden jumps in time due to lag or things like window resizing
-
-        CGL_window_set_size(window, 600, 600); // force window size to be 600x600
-
-        CGL_vec2 player_pos_c = player_pos;
-
-        if (CGL_window_get_key(window, CGL_KEY_RIGHT) == CGL_PRESS) player_pos_c.y += 0.05f;
-        if (CGL_window_get_key(window, CGL_KEY_LEFT) == CGL_PRESS) player_pos_c.y -= 0.05f;
-        if (CGL_window_get_key(window, CGL_KEY_UP) == CGL_PRESS) player_pos_c.x -= 0.05f;
-        if (CGL_window_get_key(window, CGL_KEY_DOWN) == CGL_PRESS) player_pos_c.x += 0.05f;
-        if (CGL_window_get_key(window, CGL_KEY_Q) == CGL_PRESS) angle -= 0.1f;
-        if (CGL_window_get_key(window, CGL_KEY_E) == CGL_PRESS) angle += 0.1f;
-
-        CGL_ivec4 player_cell_c;
-        player_cell_c.x = (CGL_int)(((player_pos_c.x + 2.0f) * 0.5f / 2.0f) * BOARD_SIZE);
-        player_cell_c.y = (CGL_int)(((player_pos_c.y + 2.0f) * 0.5f / 2.0f) * BOARD_SIZE);
-
-        if (player_cell_c.x >= 0 && player_cell_c.x < BOARD_SIZE && player_cell_c.y >= 0 && player_cell_c.y < BOARD_SIZE)
+        if (board[player_cell_c.x][player_cell_c.y] != 0)
         {
-            if (board[player_cell_c.x][player_cell_c.y] != 0)
-            {
-                player_pos = player_pos_c;
-                player_cell = player_cell_c;
-            }
+            player_pos = player_pos_c;
+            player_cell = player_cell_c;
         }
-        CGL_byte vl = board[player_cell.x][player_cell.y];
-        if (vl > 3)
-        {
-            lights[vl].claimed = true;
-            lights[vl].color = CGL_vec3_init(0.0f, 1.0f, 0.0f);
-        }
-
-
-
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-        CGL_framebuffer_bind(bloom_framebuffer);
-        CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
-        CGL_shader_bind(primary_shader);
-        // bind lights
-        CGL_shader_set_uniform_int(primary_shader, CGL_shader_get_uniform_location(primary_shader, "light_count"), num_lights);
-        for (CGL_int i = 0; i < num_lights; i++)
-        {
-            static CGL_byte uniform_name[64];
-            sprintf(uniform_name, "light_positions[%d]", i);
-            CGL_shader_set_uniform_vec4v(primary_shader, CGL_shader_get_uniform_location(primary_shader, uniform_name), lights[i].position.x, lights[i].position.y, lights[i].position.z, lights[i].intensity);
-            sprintf(uniform_name, "light_colors[%d]", i);
-            CGL_shader_set_uniform_vec4v(primary_shader, CGL_shader_get_uniform_location(primary_shader, uniform_name), lights[i].color.x, lights[i].color.y, lights[i].color.z, lights[i].radius);
-        }
-        for (int i = 0; i < BOARD_SIZE; i++) for (int j = 0; j < BOARD_SIZE; j++)
-        {
-            static char uniform_name[64];
-            sprintf(uniform_name, "board_piece_pos[%d][%d]", i, j);
-            CGL_int out = board[i][j];
-            CGL_shader_set_uniform_int(primary_shader, CGL_shader_get_uniform_location(primary_shader, uniform_name), out);
-        }
-        CGL_shader_set_uniform_float(primary_shader, CGL_shader_get_uniform_location(primary_shader, "time"), angle);
-        CGL_shader_set_uniform_vec2v(primary_shader, CGL_shader_get_uniform_location(primary_shader, "player_pos"), player_pos.x, player_pos.y);
-        CGL_gl_render_screen_quad();
-
-        CGL_bloom_apply(bloom, CGL_framebuffer_get_color_texture(bloom_framebuffer));
-
-        CGL_framebuffer_bind(default_framebuffer);
-        CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
-        CGL_shader_bind(present_shader);
-        CGL_texture_bind(CGL_framebuffer_get_color_texture(bloom_framebuffer), 0);
-        CGL_shader_set_uniform_int(present_shader, CGL_shader_get_uniform_location(present_shader, "u_tex"), 0);
-        CGL_gl_render_screen_quad();
-
-        CGL_window_poll_events(window);
-        CGL_window_swap_buffers(window);
-
-        if (CGL_window_get_key(window, CGL_KEY_R) == CGL_PRESS)
-        {
-            generate_maze();
-            CGL_utils_sleep(200);
-        }
-
+    }
+    CGL_byte vl = board[player_cell.x][player_cell.y];
+    if (vl > 3)
+    {
+        lights[(CGL_sizei)vl].claimed = true;
+        lights[(CGL_sizei)vl].color = CGL_vec3_init(0.0f, 1.0f, 0.0f);
     }
 
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    CGL_framebuffer_bind(g_State.bloom_framebuffer);
+    CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
+    CGL_shader_bind(g_State.primary_shader);
+    // bind lights
+    CGL_shader_set_uniform_int(g_State.primary_shader, CGL_shader_get_uniform_location(g_State.primary_shader, "light_count"), num_lights);
+    for (CGL_int i = 0; i < num_lights; i++)
+    {
+        static CGL_byte uniform_name[64];
+        sprintf(uniform_name, "light_positions[%d]", i);
+        CGL_shader_set_uniform_vec4v(g_State.primary_shader, CGL_shader_get_uniform_location(g_State.primary_shader, uniform_name), lights[i].position.x, lights[i].position.y, lights[i].position.z, lights[i].intensity);
+        sprintf(uniform_name, "light_colors[%d]", i);
+        CGL_shader_set_uniform_vec4v(g_State.primary_shader, CGL_shader_get_uniform_location(g_State.primary_shader, uniform_name), lights[i].color.x, lights[i].color.y, lights[i].color.z, lights[i].radius);
+    }
+    for (int i = 0; i < BOARD_SIZE; i++) for (int j = 0; j < BOARD_SIZE; j++)
+    {
+        static char uniform_name[64];
+        sprintf(uniform_name, "board_piece_pos[%d]", (i * BOARD_SIZE + j));
+        CGL_int out = board[i][j];
+        CGL_shader_set_uniform_int(g_State.primary_shader, CGL_shader_get_uniform_location(g_State.primary_shader, uniform_name), out);
+    }
+    CGL_shader_set_uniform_float(g_State.primary_shader, CGL_shader_get_uniform_location(g_State.primary_shader, "time"), g_State.angle);
+    CGL_shader_set_uniform_vec2v(g_State.primary_shader, CGL_shader_get_uniform_location(g_State.primary_shader, "player_pos"), player_pos.x, player_pos.y);
+    CGL_gl_render_screen_quad();
 
+#ifndef CGL_WASM
+    CGL_bloom_apply(g_State.bloom, CGL_framebuffer_get_color_texture(g_State.bloom_framebuffer));
+#endif
 
-    CGL_shader_destroy(primary_shader);
-    CGL_shader_destroy(present_shader);
-    CGL_framebuffer_destroy(default_framebuffer);
-    CGL_framebuffer_destroy(bloom_framebuffer);
-    CGL_bloom_destroy(bloom);
-    CGL_gl_shutdown();
-    CGL_window_destroy(window);
-    CGL_shutdown();
+    CGL_framebuffer_bind(g_State.default_framebuffer);
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
+    CGL_shader_bind(g_State.present_shader);
+    CGL_texture_bind(CGL_framebuffer_get_color_texture(g_State.bloom_framebuffer), 0);
+    CGL_shader_set_uniform_int(g_State.present_shader, CGL_shader_get_uniform_location(g_State.present_shader, "u_tex"), 0);
+    CGL_gl_render_screen_quad();
+
+    glDisable(GL_DEPTH_TEST);
+    CGL_widgets_begin();
+    CGL_widgets_add_string("Q or E to rotate", -1.0f, 0.9f, 1.0f, 0.1f);
+    CGL_widgets_add_string("Arrow keys to move", -1.0f, 0.8f, 1.0f, 0.1f);
+    CGL_widgets_end();
+
+    CGL_window_poll_events(g_State.window);
+    CGL_window_swap_buffers(g_State.window);
+
+    if (CGL_window_get_key(g_State.window, CGL_KEY_R) == CGL_PRESS)
+    {
+        generate_maze();
+        CGL_utils_sleep(200);
+    }
+
+    return CGL_TRUE;
+}
+
+int main()
+{
+    if (!init()) return EXIT_FAILURE;
+
+#ifdef CGL_WASM
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else 
+    while (!CGL_window_should_close(g_State.window))
+    {
+        if(!loop(0.0, NULL)) break;
+    }
+    cleanup();
+#endif
     return 0;
 }
