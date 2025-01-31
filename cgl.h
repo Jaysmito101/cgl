@@ -62,6 +62,7 @@ SOFTWARE.
 #define CGL_MSVC
 #endif
 
+
 #ifdef CGL_WASM
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDES_THREADS
@@ -4103,7 +4104,7 @@ CGL_void CGL_logger_log(CGL_int level, const char* log_format, ...)
 {
 	static char buffer1[1024 * 16];
 	static char buffer2[256];
-	static char buffer3[1024 * 16];
+	static char buffer3[1024 * 20];
 	static const char* LOG_LEVEL_STR[] = {
 		"TRACE",
 		"INFO",
@@ -6793,7 +6794,7 @@ const CGL_byte* CGL_utils_get_executable_directory()
 
 	if (path == NULL) return NULL;
 
-	CGL_sizei i = strlen(path) - 1;
+	CGL_int i = (CGL_int)(strlen(path) - 1);
 	while (i >= 0 && path[i] != '/' && path[i] != '\\') i--;
 
 	if (i < 0) return NULL;
@@ -6942,6 +6943,7 @@ static CGL_window* __CGL_window_create(CGL_int width, CGL_int height, const char
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
 	//    glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_CONTEXT_API);
 #else
 	// tell glfw we are going to use opengl api
@@ -8088,9 +8090,10 @@ bool CGL_gl_init()
 {
 #ifdef CGL_WASM
 	CGL_int gles_version = gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
-	return true;
+	CGL_log_internal("OpenGL ES %d\n", gles_version);
+	CGL_bool result = true;
 #else
-	bool result = gladLoadGL();
+	CGL_bool result = gladLoadGL();
 	if (!result) CGL_log_internal("Failed to load OpenGL functions");
 #endif
 	CGL_mesh_cpu* mesh_cpu = CGL_mesh_cpu_quad(
@@ -8694,12 +8697,14 @@ static CGL_vec3 __CGL_mesh_cpu_torus_parametric_function(CGL_float u, CGL_float 
 
 CGL_mesh_cpu* CGL_mesh_cpu_add_torus(CGL_mesh_cpu* mesh, CGL_vec3 center, CGL_float radius0, CGL_float radius1, CGL_int resolution0, CGL_int resolution1, CGL_float elbow_angle)
 {
+	(void)center;
+
     m_r = radius1;
     M_r = radius0;
     
-	return CGL_mesh_cpu_add_from_parametric_function(mesh, resolution0, resolution1, 0.0f, 0.0f, elbow_angle, CGL_2PI, __CGL_mesh_cpu_torus_parametric_function);
-    
+	CGL_mesh_cpu* res = CGL_mesh_cpu_add_from_parametric_function(mesh, resolution0, resolution1, 0.0f, 0.0f, elbow_angle, CGL_2PI, __CGL_mesh_cpu_torus_parametric_function); 
     m_r = 1.0f; M_r = 2.0f;
+	return res;
 }
 
 
