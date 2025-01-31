@@ -1,368 +1,389 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <!-- For proper responsive scaling -->
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project Detail - CGL Interactive Demos (WASM)</title>
-  <style>
-    /* CSS Variables for Themes and Layout */
-    :root {
-      --bg-color: #f0f0f0;
-      --text-color: #222;
-      --card-bg: #fff;
-      --accent-color: #007acc;
-      --header-bg: #ffffff;
-      --input-bg: #e0e0e0;
-      --header-height: 60px;
-    }
-    body.dark {
-      --bg-color: #181818;
-      --text-color: #f0f0f0;
-      --card-bg: #242424;
-      --accent-color: #66afe9;
-      --header-bg: #1f1f1f;
-      --input-bg: #333;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <!-- For proper responsive scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Project Detail - CGL Interactive Demos (WASM)</title>
+    <style>
+      /* CSS Variables for Themes and Layout */
+      :root {
+        --bg-color: #f0f0f0;
+        --text-color: #222;
+        --card-bg: #fff;
+        --accent-color: #007acc;
+        --header-bg: #ffffff;
+        --input-bg: #e0e0e0;
+        --header-height: 60px;
+      }
+      body.dark {
+        --bg-color: #181818;
+        --text-color: #f0f0f0;
+        --card-bg: #242424;
+        --accent-color: #66afe9;
+        --header-bg: #1f1f1f;
+        --input-bg: #333;
+      }
 
-    /* Global Reset */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    /* On desktop we disable overall scrolling so that only the details panel scrolls */
-    body {
-      padding: 10px;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      line-height: 1.6;
-    }
-    /* On mobile, override overflow so that the page scrolls */
-    @media (max-width: 767px) {
+      /* Global Reset */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      /* On desktop we disable overall scrolling so that only the details panel scrolls */
       body {
-        overflow: auto;
+        padding: 10px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
       }
-    }
-    a {
-      color: var(--accent-color);
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-
-    /* Fixed Header */
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: var(--header-height);
-      padding: 0 1rem;
-      background-color: var(--header-bg);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 1000;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-    }
-    .brand img {
-      height: 40px;
-      width: auto;
-    }
-    .brand h1 {
-      font-size: 1.6rem;
-      white-space: nowrap;
-    }
-    .theme-toggle {
-      cursor: pointer;
-      padding: 0.5rem;
-      border: none;
-      background: var(--accent-color);
-      color: #fff;
-      border-radius: 4px;
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Main container: on desktop fills space below header */
-    main {
-      position: absolute;
-      top: var(--header-height);
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-
-    /* Desktop Layout */
-    @media (min-width: 768px) {
-      .container {
-        display: flex;
-        height: 100%;
+      /* On mobile, override overflow so that the page scrolls */
+      @media (max-width: 767px) {
+        body {
+          overflow: auto;
+        }
       }
-      /* Demo panel fixed on the left */
-      .demo {
+      a {
+        color: var(--accent-color);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      /* Fixed Header */
+      header {
         position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-height);
+        padding: 0 1rem;
+        background-color: var(--header-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 1000;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      .brand img {
+        height: 40px;
+        width: auto;
+      }
+      .brand h1 {
+        font-size: 1.6rem;
+        white-space: nowrap;
+      }
+      .theme-toggle {
+        cursor: pointer;
+        padding: 0.5rem;
+        border: none;
+        background: var(--accent-color);
+        color: #fff;
+        border-radius: 4px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Main container: on desktop fills space below header */
+      main {
+        position: absolute;
         top: var(--header-height);
         left: 0;
-        width: 40vw;
-        height: calc(100vh - var(--header-height));
-        background-color: var(--card-bg);
-        padding: 1rem;
-        box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
-        border-right: 1px solid #ddd;
+        right: 0;
+        bottom: 0;
       }
-      .demo iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-      }
-      /* Details panel occupies remaining space and scrolls independently */
-      .details {
-        margin-left: 40vw;
-        width: 60vw;
-        height: calc(100vh - var(--header-height));
-        overflow-y: auto;
-        background-color: var(--card-bg);
-        padding: 1rem;
-      }
-    }
 
-    /* Mobile Layout: Stack panels vertically */
-    @media (max-width: 767px) {
-      .container {
+      /* Desktop Layout */
+      @media (min-width: 768px) {
+        .container {
+          display: flex;
+          height: 100%;
+        }
+        /* Demo panel fixed on the left */
+        .demo {
+          position: fixed;
+          top: var(--header-height);
+          left: 0;
+          width: 40vw;
+          height: calc(100vh - var(--header-height));
+          background-color: var(--card-bg);
+          padding: 1rem;
+          box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+          border-right: 1px solid #ddd;
+        }
+        .demo iframe {
+          width: 100%;
+          height: 100%;
+          border: none;
+        }
+        /* Details panel occupies remaining space and scrolls independently */
+        .details {
+          margin-left: 40vw;
+          width: 60vw;
+          height: calc(100vh - var(--header-height));
+          overflow-y: auto;
+          background-color: var(--card-bg);
+          padding: 1rem;
+        }
+      }
+
+      /* Mobile Layout: Stack panels vertically */
+      @media (max-width: 767px) {
+        .container {
+          display: flex;
+          flex-direction: column;
+          /* Let the container grow naturally */
+          height: auto;
+        }
+        .demo {
+          position: relative;
+          width: 100%;
+          height: auto;
+          padding: 1rem 0;
+        }
+        .demo iframe {
+          width: 100%;
+          min-height: 400px;
+          height: auto;
+        }
+        .details {
+          width: 100%;
+          height: auto;
+          overflow-y: visible;
+          padding-bottom: 1rem;
+        }
+      }
+
+      /* Content Styling */
+      .project-info h2 {
+        margin-bottom: 0.5rem;
+      }
+      .project-meta {
+        font-size: 0.9rem;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+      }
+      .difficulty {
+        font-size: 1rem;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+      }
+      .tags {
         display: flex;
-        flex-direction: column;
-        /* Let the container grow naturally */
-        height: auto;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
       }
-      .demo {
-        position: relative;
-        width: 100%;
-        height: auto;
-        padding: 1rem 0;
+      .tags span {
+        background-color: var(--input-bg);
+        padding: 0.3rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
       }
-      .demo iframe {
-        width: 100%;
-        min-height: 400px;
-        height: auto;
+      .documentation {
+        border: 1px solid #ddd;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: #fafafa;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+        margin-bottom: 1rem;
       }
-      .details {
-        width: 100%;
-        height: auto;
-        overflow-y: visible;
-        padding-bottom: 1rem;
+      .actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
       }
-    }
-
-    /* Content Styling */
-    .project-info h2 {
-      margin-bottom: 0.5rem;
-    }
-    .project-meta {
-      font-size: 0.9rem;
-      color: var(--accent-color);
-      margin-bottom: 0.5rem;
-    }
-    .difficulty {
-      font-size: 1rem;
-      color: var(--accent-color);
-      margin-bottom: 0.5rem;
-    }
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    .tags span {
-      background-color: var(--input-bg);
-      padding: 0.3rem 0.6rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
-    }
-    .documentation {
-      border: 1px solid #ddd;
-      padding: 0.5rem;
-      border-radius: 4px;
-      background-color: #fafafa;
-      max-height: 300px;
-      overflow-y: auto;
-      font-family: monospace;
-      white-space: pre-wrap;
-      margin-bottom: 1rem;
-    }
-    .actions {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
-    }
-    .actions button {
-      padding: 0.5rem 1rem;
-      border: none;
-      background-color: var(--accent-color);
-      color: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .source-code {
-      margin-bottom: 1rem;
-    }
-    /* Dark theme adjustments for content areas */
-    body.dark .documentation,
-    body.dark .source-code {
-      background-color: #333;
-      color: #f0f0f0;
-      border-color: #555;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="brand">
-      <img src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/images/CGL_logo_low_mid_res.png" alt="CGL Logo" />
-      <h1>CGL Interactive Demos (WASM)</h1>
-    </div>
-    <button class="theme-toggle" id="themeToggle">
-      <!-- Icon will be updated dynamically -->
-    </button>
-  </header>
-  <main>
-    <div class="container">
-      <!-- Demo Panel -->
-      <div class="demo">
-        <iframe id="demoIframe" src=""></iframe>
+      .actions button {
+        padding: 0.5rem 1rem;
+        border: none;
+        background-color: var(--accent-color);
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .source-code {
+        margin-bottom: 1rem;
+      }
+      /* Dark theme adjustments for content areas */
+      body.dark .documentation,
+      body.dark .source-code {
+        background-color: #333;
+        color: #f0f0f0;
+        border-color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <img
+          src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/images/CGL_logo_low_mid_res.png"
+          alt="CGL Logo"
+        />
+        <h1>CGL Interactive Demos (WASM)</h1>
       </div>
-      <!-- Details Panel -->
-      <div class="details">
-        <div class="project-info">
-          <h2 id="projTitle">Project Title</h2>
-          <div class="project-meta" id="projMeta">By AUTHOR · DATE · VIEWS views</div>
-          <div class="difficulty" id="projDifficulty">Difficulty: ★★★☆☆</div>
-          <div class="tags" id="projTags">
-            <!-- Tags will be inserted here -->
+      <button class="theme-toggle" id="themeToggle">
+        <!-- Icon will be updated dynamically -->
+      </button>
+    </header>
+    <main>
+      <div class="container">
+        <!-- Demo Panel -->
+        <div class="demo">
+          <iframe id="demoIframe" src=""></iframe>
+        </div>
+        <!-- Details Panel -->
+        <div class="details">
+          <div class="project-info">
+            <h2 id="projTitle">Project Title</h2>
+            <div class="project-meta" id="projMeta">
+              By AUTHOR · DATE · VIEWS views
+            </div>
+            <div class="difficulty" id="projDifficulty">Difficulty: ★★★☆☆</div>
+            <div class="tags" id="projTags">
+              <!-- Tags will be inserted here -->
+            </div>
+            <p id="projDesc">Project description goes here.</p>
           </div>
-          <p id="projDesc">Project description goes here.</p>
-        </div>
-        <div class="documentation" id="projDoc">
-          Loading documentation...
-        </div>
-        <div class="actions">
-          <button id="copyLinkBtn">Copy Link</button>
-          <!-- More share buttons/icons can be added here -->
-        </div>
-        <!-- Embedded Source Code -->
-        <div class="source-code" id="projSource">
-          Loading source code...
+          <div class="documentation" id="projDoc">Loading documentation...</div>
+          <div class="actions">
+            <button id="copyLinkBtn">Copy Link</button>
+            <!-- More share buttons/icons can be added here -->
+          </div>
+          <!-- Embedded Source Code -->
+          <div class="source-code" id="projSource">Loading source code...</div>
         </div>
       </div>
-    </div>
-  </main>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script>
-    /***************** Theme Logic ******************/
-    function updateThemeToggleIcon() {
-      if (document.body.classList.contains("dark")) {
-        themeToggle.textContent = "☀️"; // Sun icon: click to switch to light
-      } else {
-        themeToggle.textContent = "🌙"; // Moon icon: click to switch to dark
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="./counterAPI.js"></script>
+    <script>
+
+
+      /***************** Theme Logic ******************/
+      function updateThemeToggleIcon() {
+        if (document.body.classList.contains("dark")) {
+          themeToggle.textContent = "☀️"; // Sun icon: click to switch to light
+        } else {
+          themeToggle.textContent = "🌙"; // Moon icon: click to switch to dark
+        }
       }
-    }
-    function applyDefaultTheme() {
-      if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        document.body.classList.add("dark");
-      } else {
-        document.body.classList.remove("dark");
+      function applyDefaultTheme() {
+        if (
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        ) {
+          document.body.classList.add("dark");
+        } else {
+          document.body.classList.remove("dark");
+        }
+        updateThemeToggleIcon();
       }
-      updateThemeToggleIcon();
-    }
-    const themeToggle = document.getElementById("themeToggle");
-    themeToggle.addEventListener("click", () => {
-      document.body.classList.toggle("dark");
-      updateThemeToggleIcon();
-    });
-    applyDefaultTheme();
-    /*************** End Theme Logic ****************/
-
-    // Helper: Generate star rating for difficulty (0-5)
-    function getStarRating(difficulty) {
-      const maxStars = 5;
-      let stars = "";
-      for (let i = 0; i < maxStars; i++) {
-        stars += i < difficulty ? "★" : "☆";
-      }
-      return stars;
-    }
-
-    // Parse the project JSON from the "data" query parameter
-    const queryParams = new URLSearchParams(window.location.search);
-    const projectDataEncoded = queryParams.get("data");
-    if (!projectDataEncoded) {
-      document.body.innerHTML = "<p>Error: No project data provided.</p>";
-      throw new Error("No project data provided.");
-    }
-    let project;
-    try {
-      project = JSON.parse(decodeURIComponent(projectDataEncoded));
-    } catch (err) {
-      document.body.innerHTML = "<p>Error: Invalid project data.</p>";
-      throw err;
-    }
-
-    // Populate project details
-    document.getElementById("projTitle").textContent = project.name;
-    document.getElementById("projMeta").textContent =
-      `By ${project.author} · ${new Date(project.published_date).toLocaleDateString()} · ${project.views} views`;
-    document.getElementById("projDifficulty").textContent =
-      "Difficulty: " + getStarRating(project.difficulty);
-    document.getElementById("projDesc").textContent = project.description;
-    const tagsEl = document.getElementById("projTags");
-    project.tags.forEach(tag => {
-      const span = document.createElement("span");
-      span.textContent = tag;
-      tagsEl.appendChild(span);
-    });
-
-    // Set the demo iframe's URL to "./{project.path}/index.html"
-    const demoIframe = document.getElementById("demoIframe");
-    demoIframe.src = `${project.path}/index.html`;
-
-    // Attempt to load documentation from "./{project.path}/doc.md"
-    const docEl = document.getElementById("projDoc");
-    fetch(`${project.path}/doc.md`)
-      .then(response => {
-        if (!response.ok) throw new Error("No doc found");
-        return response.text();
-      })
-      .then(text => {
-        docEl.innerHTML = marked.parse(text);
-      })
-      .catch(() => {
-        docEl.innerHTML = "Accompanying blog coming soon";
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+        updateThemeToggleIcon();
       });
+      applyDefaultTheme();
+      /*************** End Theme Logic ****************/
 
-    // Share / Copy Link button functionality
-    document.getElementById("copyLinkBtn").addEventListener("click", () => {
-      navigator.clipboard.writeText(window.location.href)
-        .then(() => alert("Link copied!"))
-        .catch(() => alert("Failed to copy link."));
-    });
+      // Helper: Generate star rating for difficulty (0-5)
+      function getStarRating(difficulty) {
+        const maxStars = 5;
+        let stars = "";
+        for (let i = 0; i < maxStars; i++) {
+          stars += i < difficulty ? "★" : "☆";
+        }
+        return stars;
+      }
 
-    // Embed the source code using an iframe.
-    // Encode the project.source_code URL and inject into the embed URL.
-    const encodedSource = encodeURIComponent(project.source_code);
-    const sourceIframeHTML = `<iframe frameborder="0" scrolling="no" style="width:100%; height:2515px;" allow="clipboard-write" src="https://emgithub.com/iframe.html?target=${encodedSource}&style=tokyo-night-dark&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></iframe>`;
-    document.getElementById("projSource").innerHTML = sourceIframeHTML;
-  </script>
-</body>
+      // Parse the project JSON from the "data" query parameter
+      const queryParams = new URLSearchParams(window.location.search);
+      const projectDataEncoded = queryParams.get("data");
+      if (!projectDataEncoded) {
+        document.body.innerHTML = "<p>Error: No project data provided.</p>";
+        throw new Error("No project data provided.");
+      }
+      let project;
+      try {
+        project = JSON.parse(decodeURIComponent(projectDataEncoded));
+      } catch (err) {
+        document.body.innerHTML = "<p>Error: Invalid project data.</p>";
+        throw err;
+      }
+
+    
+      async function main() {
+        // Increment the view count
+        const views = await pageHit(project.path);
+
+        // Populate project details
+        document.getElementById("projTitle").textContent = project.name;
+        document.getElementById("projMeta").textContent = `By ${
+          project.author
+        } · ${new Date(project.published_date).toLocaleDateString()} · ${
+          views
+        } views`;
+        document.getElementById("projDifficulty").textContent =
+          "Difficulty: " + getStarRating(project.difficulty);
+        document.getElementById("projDesc").textContent = project.description;
+        const tagsEl = document.getElementById("projTags");
+        project.tags.forEach((tag) => {
+          const span = document.createElement("span");
+          span.textContent = tag;
+          tagsEl.appendChild(span);
+        });
+
+        // Set the demo iframe's URL to "./{project.path}/index.html"
+        const demoIframe = document.getElementById("demoIframe");
+        demoIframe.src = `${project.path}/index.html`;
+
+        // Attempt to load documentation from "./{project.path}/doc.md"
+        const docEl = document.getElementById("projDoc");
+        fetch(`${project.path}/doc.md`)
+          .then((response) => {
+            if (!response.ok) throw new Error("No doc found");
+            return response.text();
+          })
+          .then((text) => {
+            docEl.innerHTML = marked.parse(text);
+          })
+          .catch(() => {
+            docEl.innerHTML = "Accompanying blog coming soon";
+          });
+
+        // Share / Copy Link button functionality
+        document.getElementById("copyLinkBtn").addEventListener("click", () => {
+          navigator.clipboard
+            .writeText(window.location.href)
+            .then(() => alert("Link copied!"))
+            .catch(() => alert("Failed to copy link."));
+        });
+
+        // Embed the source code using an iframe.
+        // Encode the project.source_code URL and inject into the embed URL.
+        const encodedSource = encodeURIComponent(project.source_code);
+        const sourceIframeHTML = `<iframe frameborder="0" scrolling="no" style="width:100%; height:2515px;" allow="clipboard-write" src="https://emgithub.com/iframe.html?target=${encodedSource}&style=tokyo-night-dark&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></iframe>`;
+        document.getElementById("projSource").innerHTML = sourceIframeHTML;
+      }
+
+      
+
+      main();
+    </script>
+  </body>
 </html>

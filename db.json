@@ -31,19 +31,19 @@
       "views": 789,
       "description": "A dynamic particle system built with JavaScript and canvas.",
       "image": "https://placehold.co/300?text=Particles",
-      "published_date": "2022-11-05",
+      "published_date": "2024-02-01",
       "author": "Jaysmito101",
       "difficulty": 3
     },
     {
-      "name": "3D Maze Generator",
-      "path": "builds/maze_generator",
-      "source_code": "https://github.com/Jaysmito101/maze_generator",
-      "tags": ["3d", "maze", "algorithm", "creative"],
+      "name": "3D Maze Game",
+      "path": "builds/3d_maze_game",
+      "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/3d_maze_game.c",
+      "tags": ["3d", "maze", "algorithm", "creative", "game", "procedural"],
       "views": 321,
-      "description": "A 3D maze generator showcasing procedural content generation.",
-      "image": "https://placehold.co/300?text=Maze",
-      "published_date": "2023-02-10",
+      "description": "A 3D maze game with procedurally generated levels.",
+      "image": "builds/3d_maze_game/thumb.png",
+      "published_date": "2024-02-01",
       "author": "Jaysmito101",
       "difficulty": 5
     }

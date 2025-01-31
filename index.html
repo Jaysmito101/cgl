@@ -286,6 +286,7 @@
       </div>
     </main>
 
+    <script src="./counterAPI.js"></script>
     <script>
       // Sample projects data
       let projectsData;
@@ -422,6 +423,17 @@
         );
       }
 
+      async function loadViews() {
+        try {
+          for (let proj of projectsData) {
+            proj.views = await getHitCount(proj.path);
+          }
+        } catch (err) {
+          console.error("Failed to fetch hit counts:", err);
+        }
+        renderProjects();
+      }
+
       // Render projects as cards
       function renderProjects() {
         projectsGrid.innerHTML = "";
@@ -545,10 +557,13 @@
             console.error("Failed to fetch projects data:", err);
             return [];
           });
+        
         // Initial setup
         applyDefaultTheme();
         renderTags();
         renderProjects();
+
+        loadViews();
       }
 
       main();
