@@ -1,0 +1,67 @@
+cmake_minimum_required(VERSION 3.0)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON) # Use folders for IDE
+
+project(cglweb)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REUIRED True)
+
+include_directories(
+    ./include
+    ./lib/glad/include
+    ./lib/glfw/include
+)
+
+set( GLFW_BUILD_DOCS OFF CACHE BOOL  "GLFW lib only" )
+set( GLFW_INSTALL OFF CACHE BOOL  "GLFW lib only" )
+
+add_subdirectory(lib/glad)
+
+if (NOT DEFINED EMSCRIPTEN)
+    add_subdirectory(lib/glfw)
+endif()
+
+if (MSVC)
+    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup" )
+endif()
+
+if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
+
+if( MSVC )
+    if(${CMAKE_VERSION} VERSION_LESS "3.6.0") 
+        message( "\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n" )
+    else()
+        set_property( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT sandbox)
+    endif()
+endif()
+
+file(GLOB SOURCES
+    "./include/*.hpp" # Mainly for IDEs to include the header files
+    "./src/main.c"
+)
+
+add_executable(cglweb ${SOURCES})
+
+
+
+if (DEFINED EMSCRIPTEN) 
+    set(CMAKE_EXECUTABLE_SUFFIX ".js")
+    set_target_properties(cglweb PROPERTIES COMPILE_FLAGS "-O2 -g2")
+    set_target_properties(cglweb PROPERTIES LINK_FLAGS "-O2 -g2 -s USE_GLFW=3 -s FULL_ES3  -sALLOW_MEMORY_GROWTH=1 -sEXPORTED_RUNTIME_METHODS=ccall,cwrap -sEXPORTED_FUNCTIONS=_main")
+endif()
+
+target_link_libraries(cglweb
+    glfw
+    ${GLFW_LIBRARIES}
+    glad
+)
+
+if (MSVC) 
+    target_compile_options(cglweb PRIVATE /W4 /WX)
+else()
+    target_compile_options(cglweb PRIVATE -Wall -Wextra -pedantic -Werror -Woverlength-strings)
+endif()
+
