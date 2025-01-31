@@ -11410,7 +11410,7 @@ static const char* __CGL_WIDGETS_VERTEX_SHADER_SOURCE =
 "	TexID = texids.x;\n"
 "	UsingFontTexture = texids.y;\n"
 "	TexCoordScaleOffset = texcoordscaleoffset;\n"
-"	Color = vec4(position.w, texcoord.zw, normal.w);\n"
+"	Color = vec4(position.w, texcoord.zw, 1.0);\n"
 "}";
 
 static const char* __CGL_WIDGETS_FRAGMENT_SHADER_SOURCE = 
