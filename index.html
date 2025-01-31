@@ -1,75 +1,557 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Documentation Buttons</title>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CGL Interactive Demos (WebAssembly)</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 50px;
-            background-color: #f1f1f1;
-            color: #333333;
+      /* CSS Variables for Themes */
+      :root {
+        --bg-color: #f0f0f0;
+        --text-color: #222;
+        --card-bg: #fff;
+        --accent-color: #007acc;
+        --header-bg: #ffffff;
+        --input-bg: #e0e0e0;
+      }
+      body.dark {
+        --bg-color: #181818;
+        --text-color: #f0f0f0;
+        --card-bg: #242424;
+        --accent-color: #66afe9;
+        --header-bg: #1f1f1f;
+        --input-bg: #333;
+      }
+
+      /* Global Styles */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      a {
+        color: var(--accent-color);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      /* Header */
+      header {
+        background-color: var(--header-bg);
+        padding: 0.5rem 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap; /* prevent wrapping */
+        overflow: hidden;
+        width: 100%;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        overflow: hidden;
+        width: 50%;
+      }
+      .brand img {
+        height: 40px;
+        width: auto;
+        margin-right: 0.8rem;
+      }
+      .brand h1 {
+        font-size: 1.6rem;
+        margin: 0;
+        white-space: nowrap;
+      }
+      .controls {
+        display: flex;
+        gap: 1rem;
+        /* align-items: left; */
+        /* flex-shrink: 0; */
+        width: 50%;
+      }
+      .controls input[type="text"] {
+        padding: 0.5rem;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--input-bg);
+        color: var(--text-color);
+        /* min-width: 150px; */
+        width: 60%;
+      }
+      .controls select {
+        padding: 0.5rem;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--input-bg);
+        color: var(--text-color);
+      }
+      .theme-toggle {
+        cursor: pointer;
+        padding: 0.5rem;
+        border: none;
+        background: var(--accent-color);
+        color: #fff;
+        border-radius: 4px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Tags Bar */
+      .tags-bar {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: scroll;
+        white-space: nowrap;
+        padding: 0.5rem 0;
+        /* Hide scrollbar for Webkit browsers */
+      }
+      .tags-bar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for Firefox */
+      .tags-bar {
+        scrollbar-width: none;
+      }
+      .tag {
+        flex: 0 0 auto;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        background-color: var(--input-bg);
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.3s;
+        font-size: 0.9rem;
+      }
+      .tag.selected {
+        background-color: var(--accent-color);
+        color: #fff;
+      }
+
+      /* Projects Grid */
+      .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        padding: 0 1rem 1rem;
+        flex: 1;
+      }
+
+      /* Project Card */
+      .card {
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s;
+      }
+      .card:hover {
+        transform: translateY(-4px);
+      }
+      .card img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+      }
+      .card-content {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+      .card h3 {
+        margin-bottom: 0.5rem;
+        font-size: 1.3rem;
+      }
+      .card .info {
+        font-size: 0.8rem;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+      }
+      .card p {
+        flex: 1;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+      .difficulty {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+        color: var(--accent-color);
+      }
+      .card .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+      }
+      .card .tags span {
+        background-color: var(--input-bg);
+        padding: 0.3rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+      }
+
+      .card .actions {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .card .actions button {
+        padding: 0.4rem 0.8rem;
+        border: none;
+        background-color: var(--accent-color);
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 900px) {
+        .controls {
+          gap: 0.5rem;
         }
-
-        h1 {
-            margin-bottom: 30px;
+        .controls input[type="text"] {
+          min-width: 120px;
         }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .brand h1 {
+          display: none;
         }
-
-        .button {
-            display: inline-block;
-            width: 250px; /* Set the width of the buttons */
-            padding: 20px 40px; /* Increase the padding */
-            font-size: 20px; /* Increase the font size */
-            background-color: #3498db;
-            color: #ffffff;
-            text-decoration: none;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
+        .brand img {
+          width: auto;
         }
-
-        .button:hover {
-            background-color: #2980b9;
+        .controls {
+          width: 70%;
         }
-
-        /* Dark mode styles */
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: #333333;
-                color: #f1f1f1;
-            }
-
-            .button {
-                background-color: #555555;
-            }
-
-            .button:hover {
-                background-color: #444444;
-            }
-        }
-
-        /* Mobile-friendly styles */
-        @media (max-width: 600px) {
-            .container {
-                margin: 20px;
-            }
-        }
+      }
     </style>
-</head>
-<body>
-    <h1>CGL Documentation Links</h1>
-    <div class="container">
-        <a href="./rust/cgl_rs"><button class="button">Rust Documentation</button></a>
-        <a href="./c"><button class="button">C Documentation</button></a>
-        <button class="button" onclick="alert('todo')">Python Documentation</button>
-    </div>
+  </head>
+  <body>
+    <header>
+      <div class="header-top">
+        <div class="brand">
+          <img
+            src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/images/CGL_logo_low_mid_res.png"
+            alt="CGL Logo"
+          />
+          <h1>CGL Interactive Demos (WASM)</h1>
+        </div>
+        <div class="controls">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search projects..."
+          />
+          <select id="sortSelect">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="most_viewed">Most Viewed</option>
+            <option value="least_viewed">Least Viewed</option>
+            <option value="difficulty">Difficulty</option>
+          </select>
+          <button class="theme-toggle" id="themeToggle">
+            <!-- Icon will be updated dynamically -->
+          </button>
+        </div>
+      </div>
+      <div class="tags-bar" id="tagsBar">
+        <!-- Tags will be generated dynamically -->
+      </div>
+    </header>
 
-</body>
+    <main>
+      <div class="projects-grid" id="projectsGrid">
+        <!-- Project cards will be rendered here -->
+      </div>
+    </main>
+
+    <script>
+      // Sample projects data
+      let projectsData;
+
+      // Global state for filters
+      let selectedTags = new Set();
+      let searchQuery = "";
+      let sortOption = "newest";
+
+      // DOM Elements
+      const projectsGrid = document.getElementById("projectsGrid");
+      const searchInput = document.getElementById("searchInput");
+      const sortSelect = document.getElementById("sortSelect");
+      const tagsBar = document.getElementById("tagsBar");
+      const themeToggle = document.getElementById("themeToggle");
+
+      // Update the theme toggle icon based on current theme
+      function updateThemeToggleIcon() {
+        // If body has "dark" class, show sun icon (to switch to light)
+        if (document.body.classList.contains("dark")) {
+          themeToggle.textContent = "☀️";
+        } else {
+          themeToggle.textContent = "🌙";
+        }
+      }
+
+      // Set theme based on device preference; if not available, default to dark.
+      function applyDefaultTheme() {
+        if (window.matchMedia) {
+          if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            document.body.classList.add("dark");
+          } else {
+            document.body.classList.remove("dark");
+          }
+        } else {
+          document.body.classList.add("dark");
+        }
+        updateThemeToggleIcon();
+      }
+
+      // Helper: Get unique tags from projectsData
+      function getUniqueTags() {
+        const tagSet = new Set();
+        projectsData.forEach((proj) => {
+          proj.tags.forEach((tag) => tagSet.add(tag));
+        });
+        return Array.from(tagSet).sort();
+      }
+
+      // Render tags in the tags bar
+      function renderTags() {
+        tagsBar.innerHTML = "";
+        getUniqueTags().forEach((tag) => {
+          const tagElem = document.createElement("div");
+          tagElem.classList.add("tag");
+          tagElem.textContent = tag;
+          if (selectedTags.has(tag)) tagElem.classList.add("selected");
+          tagElem.addEventListener("click", () => {
+            if (selectedTags.has(tag)) {
+              selectedTags.delete(tag);
+            } else {
+              selectedTags.add(tag);
+            }
+            renderTags();
+            renderProjects();
+          });
+          tagsBar.appendChild(tagElem);
+        });
+      }
+
+      // Filter projects based on search and selected tags
+      function filterProjects(projects) {
+        return projects.filter((proj) => {
+          // Search filter: check if query is in name or description (case-insensitive)
+          if (
+            searchQuery &&
+            !proj.name.toLowerCase().includes(searchQuery) &&
+            !proj.description.toLowerCase().includes(searchQuery)
+          ) {
+            return false;
+          }
+          // Tags filter: if any tags are selected, project must include ALL selected tags
+          for (let tag of selectedTags) {
+            if (!proj.tags.includes(tag)) return false;
+          }
+          return true;
+        });
+      }
+
+      // Sort projects based on sortOption
+      function sortProjects(projects) {
+        const sorted = [...projects];
+        switch (sortOption) {
+          case "newest":
+            sorted.sort(
+              (a, b) => new Date(b.published_date) - new Date(a.published_date)
+            );
+            break;
+          case "oldest":
+            sorted.sort(
+              (a, b) => new Date(a.published_date) - new Date(b.published_date)
+            );
+            break;
+          case "most_viewed":
+            sorted.sort((a, b) => b.views - a.views);
+            break;
+          case "least_viewed":
+            sorted.sort((a, b) => a.views - b.views);
+            break;
+          case "difficulty":
+            sorted.sort((a, b) => a.difficulty - b.difficulty);
+            break;
+          default:
+            break;
+        }
+        return sorted;
+      }
+
+      // Helper: Generate star rating for difficulty (0-5)
+      function getStarRating(difficulty) {
+        const maxStars = 5;
+        let stars = "";
+        for (let i = 0; i < maxStars; i++) {
+          stars += i < difficulty ? "★" : "☆";
+        }
+        return stars;
+      }
+
+      // Helper: Generate a URL for the detail page with the project JSON encoded as query param "data"
+      function generateDetailURL(project) {
+        // Encode the JSON string so it can be safely passed as a query param
+        return (
+          "detail.html?data=" + encodeURIComponent(JSON.stringify(project))
+        );
+      }
+
+      // Render projects as cards
+      function renderProjects() {
+        projectsGrid.innerHTML = "";
+        let filtered = filterProjects(projectsData);
+        filtered = sortProjects(filtered);
+
+        if (filtered.length === 0) {
+          projectsGrid.innerHTML = "<p>No projects match your criteria.</p>";
+          return;
+        }
+
+        filtered.forEach((proj) => {
+          const card = document.createElement("div");
+          card.classList.add("card");
+
+          const detailURL = generateDetailURL(proj);
+          const imageLink = document.createElement("a");
+          imageLink.href = detailURL;
+
+          // Card image
+          const img = document.createElement("img");
+          img.src = proj.image;
+          img.alt = proj.name;
+          imageLink.appendChild(img);
+          card.appendChild(imageLink);
+
+          // Card content
+          const content = document.createElement("div");
+          content.classList.add("card-content");
+
+          const title = document.createElement("h3");
+          title.textContent = proj.name;
+          content.appendChild(title);
+
+          const info = document.createElement("div");
+          info.classList.add("info");
+          info.textContent = `By ${proj.author} · ${new Date(
+            proj.published_date
+          ).toLocaleDateString()} · ${proj.views} views`;
+          content.appendChild(info);
+
+          // Difficulty as star rating
+          const difficultyElem = document.createElement("div");
+          difficultyElem.classList.add("difficulty");
+          difficultyElem.textContent = getStarRating(proj.difficulty);
+          content.appendChild(difficultyElem);
+
+          const desc = document.createElement("p");
+          desc.textContent = proj.description;
+          content.appendChild(desc);
+
+          // Tags for each project
+          const tagsDiv = document.createElement("div");
+          tagsDiv.classList.add("tags");
+          proj.tags.forEach((tag) => {
+            const tagSpan = document.createElement("span");
+            tagSpan.textContent = tag;
+            tagSpan.classList.add("tag");
+            tagSpan.addEventListener("click", (ev) => {
+              const tag = ev.target.textContent;
+              if (selectedTags.has(tag)) {
+                selectedTags.delete(tag);
+              } else {
+                selectedTags.add(tag);
+              }
+              renderTags();
+              renderProjects();
+            });
+            tagsDiv.appendChild(tagSpan);
+          });
+          content.appendChild(tagsDiv);
+
+          // Action buttons area
+          const actionsDiv = document.createElement("div");
+          actionsDiv.classList.add("actions");
+
+          // "Source Code" link (existing)
+          const sourceLink = document.createElement("a");
+          sourceLink.href = proj.source_code;
+          sourceLink.target = "_blank";
+          sourceLink.textContent = "Source Code";
+          actionsDiv.appendChild(sourceLink);
+
+          // "Open Live Demo" button
+          const demoBtn = document.createElement("button");
+          demoBtn.textContent = "Open Live Demo";
+          demoBtn.addEventListener("click", (e) => {
+            // Prevent card click events from firing if necessary
+            e.stopPropagation();
+            window.location.href = detailURL;
+          });
+          actionsDiv.appendChild(demoBtn);
+
+          content.appendChild(actionsDiv);
+
+          card.appendChild(content);
+          projectsGrid.appendChild(card);
+        });
+      }
+
+      // Event Listeners
+      searchInput.addEventListener("input", (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        renderProjects();
+      });
+
+      sortSelect.addEventListener("change", (e) => {
+        sortOption = e.target.value;
+        renderProjects();
+      });
+
+      themeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+        updateThemeToggleIcon();
+      });
+
+      async function main() {
+        projectsData = await fetch("./db.json")
+          .then((res) => res.json())
+          .catch((err) => {
+            console.error("Failed to fetch projects data:", err);
+            return [];
+          });
+        // Initial setup
+        applyDefaultTheme();
+        renderTags();
+        renderProjects();
+      }
+
+      main();
+    </script>
+  </body>
 </html>
