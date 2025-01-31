@@ -22,75 +22,95 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#define CGL_LOGGING_ENABLED
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#else
+#define EMSCRIPTEN_KEEPALIVE
+#endif
+
+#include <stdio.h>
+
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_NETWORKING
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
-static struct {
-    float delta_x;
-    float delta_y;
-    float prev_x;
-    float prev_y;
-} mouse_input;
 
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
 
-void input_scroll_callback(CGL_window* window, double x, double y)
-{
-}
+struct {
+    CGL_window* window;
+    CGL_framebuffer* framebuffer;
+} g_State;
 
 void input_mouse_pos_callback(CGL_window* window, double x, double y)
 {
-    mouse_input.delta_x = ((float)x - mouse_input.prev_x);
-    mouse_input.delta_y = ((float)y - mouse_input.prev_y);
-    mouse_input.prev_x = (float)x;
-    mouse_input.prev_y = (float)y;
+    (void)window;    
+    CGL_info("Mouse pos: %f, %f", x, y);
+}
+
+void input_mouse_button_callback(CGL_window* window, CGL_int button, CGL_int action, CGL_int mods)
+{
+    (void)window;
+    CGL_info("Mouse button: %d, %d, %d", button, action, mods);
 }
 
 
-int main()
-{
-    srand((uint32_t)time(NULL));
-    if(!CGL_init()) return -1;
-    CGL_window* main_window = CGL_window_create(640, 480, "Hello World");
-    if(!main_window) return -1;
-    CGL_window_make_context_current(main_window);
-    if(!CGL_gl_init()) return -1;
-    CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(main_window);   
-    mouse_input.delta_x = 0.0f;
-    mouse_input.delta_y = 0.0f;
-    mouse_input.prev_x = 0.0f;
-    mouse_input.prev_y = 0.0f;
-    CGL_window_set_mouse_scroll_callback(main_window, input_scroll_callback);
-    CGL_window_set_mouse_position_callback(main_window, input_mouse_pos_callback);
-    CGL_window_resecure_callbacks(main_window);
+CGL_bool init() {
+    srand((CGL_uint)time(NULL));
+    if(!CGL_init()) return CGL_FALSE;
 
-    while(!CGL_window_should_close(main_window))
-    { 
-        {
-            CGL_framebuffer_bind(default_framebuffer);
-            CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
-            int rx = 0, ry = 0;
-            CGL_framebuffer_get_size(default_framebuffer, &rx, &ry);
-            // render here
-        }
+    g_State.window = CGL_window_create(640, 480, "Hello, World!");
+    CGL_window_make_context_current(g_State.window);  
+    if(!CGL_gl_init()) return CGL_FALSE;
 
-        CGL_window_poll_events(main_window);
+    CGL_window_set_mouse_position_callback(g_State.window, input_mouse_pos_callback);
+    CGL_window_set_mouse_button_callback(g_State.window, input_mouse_button_callback);  
 
-        CGL_window_swap_buffers(main_window);
-        if(CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_MIDDLE) == CGL_PRESS)
-        {            
-        }
-        else if(CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_RIGHT) == CGL_PRESS)
-        {
 
-        }
-        mouse_input.delta_x = mouse_input.delta_y = 0.0f;
-        if(CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
-    }
+    g_State.framebuffer = CGL_framebuffer_create_from_default(g_State.window);
+    return true;
+}
 
-    CGL_framebuffer_destroy(default_framebuffer);
+void cleanup() {
+    CGL_framebuffer_destroy(g_State.framebuffer);
     CGL_gl_shutdown();
-    CGL_window_destroy(main_window);
+    CGL_window_destroy(g_State.window);
     CGL_shutdown();
+}
+
+EM_BOOL loop(double time, void* userData) {
+    (void)time;
+    (void)userData;
+
+    CGL_window_poll_events(g_State.window);
+
+    CGL_framebuffer_bind(g_State.framebuffer);
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
+
+    CGL_window_swap_buffers(g_State.window);    
+    return true;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int main() {    
+    if(!init()) return 1;
+
+#ifdef CGL_WASM        
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    while (!CGL_window_should_close(g_State.window)) {
+        loop(0, NULL);
+    }
+    cleanup();
+#endif
     return 0;
 }
