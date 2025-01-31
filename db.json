@@ -6,7 +6,7 @@
       "tags": ["cgl", "basics", "window", "simple"],
       "views": 123,
       "description": "A project to show how to create a basic window.",
-      "image": "https://placehold.co/300?text=Window",
+      "image": "builds/window_creation/thumb.png",
       "published_date": "2023-01-15",
       "author": "Jaysmito101",
       "difficulty": 2
