@@ -23,6 +23,8 @@ SOFTWARE.
 */
 
 #define CGL_EXCLUDE_TEXT_RENDER
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_NETWORKING
 #define CGL_LOGGING_ENABLED
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
@@ -33,6 +35,7 @@ static CGL_int max_text_length = (CGL_int)(1.6f / 0.05f);
 
 void key_callback(CGL_window* window, CGL_int key, CGL_int scancode, CGL_int action, CGL_int mods)
 {
+    (void)window; (void)scancode; (void)mods;
     if(action == CGL_RELEASE)
     {
         if(((key >= CGL_KEY_A && key <= CGL_KEY_Z) || (key >= CGL_KEY_0 && key <= CGL_KEY_9) || key == CGL_KEY_SPACE) && current_text_cursor <= max_text_length)
@@ -46,7 +49,7 @@ void key_callback(CGL_window* window, CGL_int key, CGL_int scancode, CGL_int act
 }
 
 // extract 0s and 1s from the hash to the output buffer
-static calculate_hash_binary(CGL_uint hash, CGL_byte* hash_binary)
+static CGL_void calculate_hash_binary(CGL_uint hash, CGL_byte* hash_binary)
 {
     CGL_byte* hash_bytes = (CGL_byte*)&hash;
     for(CGL_int i = 0, j = 0; i < 4; i++)
