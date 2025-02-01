@@ -239,6 +239,18 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 3
+    },
+    {
+        "name": "Interactive Content Aware Crop",
+        "path": "builds/interactive_content_aware_crop",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/interactive_content_aware_crop.c",
+        "tags": ["cgl", "interactive", "content aware", "crop", "creative", "tutorial"],
+        "views": 121,
+        "description": "An interactive example of how to use CGL's content aware crop API to create a content aware crop system.",
+        "image": "builds/interactive_content_aware_crop/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 5
     }
 
 ]
