@@ -215,5 +215,30 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 3
+    },
+    { 
+        "name": "Flappy Bird AI",
+        "path": "builds/flappy_bird_ai",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/flappy_bird_ai.c",
+        "tags": ["cgl", "flappy", "bird", "game", "ai", "neural network", "genetic algorithm", "creative", "tutorial"],
+        "views": 121,
+        "description": "A creative coding example of a flappy bird game using CGL with AI (neural networks trained with genetic algorithms).",
+        "image": "builds/flappy_bird_ai/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 5
+    },
+    {
+        "name": "Interactive 2D Triangulation",
+        "path": "builds/interactive_2d_triangulation",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/interactive_2d_triangulation.c",
+        "tags": ["cgl", "2d", "triangulation", "interactive", "creative", "tutorial"],
+        "views": 121,
+        "description": "An interactive example of how to use CGL's 2D triangulation API to create a 2D triangulation system.",
+        "image": "builds/interactive_2d_triangulation/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 3
     }
+
 ]
