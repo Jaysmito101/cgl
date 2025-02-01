@@ -227,6 +227,15 @@
         font-size: 0.9rem;
       }
 
+      /* Notice Banner */
+      .notice-banner {
+        background-color: var(--card-bg);
+        padding: 0.8rem 1rem;
+        text-align: center;
+        border-bottom: 1px solid var(--input-bg);
+        font-size: 0.9rem;
+      }
+
       /* Responsive adjustments */
       @media (max-width: 900px) {
         .controls {
@@ -246,6 +255,22 @@
         }
       }
     </style>
+    <!-- Hotjar Tracking Code for CGL Web Demos -->
+    <script>
+      (function (h, o, t, j, a, r) {
+        h.hj =
+          h.hj ||
+          function () {
+            (h.hj.q = h.hj.q || []).push(arguments);
+          };
+        h._hjSettings = { hjid: 5288873, hjsv: 6 };
+        a = o.getElementsByTagName("head")[0];
+        r = o.createElement("script");
+        r.async = 1;
+        r.src = t + h._hjSettings.hjid + j + h._hjSettings.hjsv;
+        a.appendChild(r);
+      })(window, document, "https://static.hotjar.com/c/hotjar-", ".js?sv=");
+    </script>
   </head>
   <body>
     <header>
@@ -279,6 +304,16 @@
         <!-- Tags will be generated dynamically -->
       </div>
     </header>
+
+    <div class="notice-banner">
+      More examples can be found in the
+      <a
+        href="https://github.com/Jaysmito101/cgl/tree/main/examples"
+        target="_blank"
+        >GitHub repository</a
+      >
+      that haven't been ported to WebAssembly yet.
+    </div>
 
     <main>
       <div class="projects-grid" id="projectsGrid">
@@ -562,7 +597,7 @@
             console.error("Failed to fetch projects data:", err);
             return [];
           });
-        
+
         shuffleProjects();
 
         // Initial setup
