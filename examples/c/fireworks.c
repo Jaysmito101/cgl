@@ -28,14 +28,35 @@ SOFTWARE.
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDE_RAY_CASTER
 #define CGL_EXCLUDE_NODE_EDITOR
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_EXCLUDE_WIDGETS
 #include "cgl.h"
 
-static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
+
+// Update shaders for WebGL compatibility
+static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE =
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec2 TexCoord;\n"
@@ -47,7 +68,13 @@ static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	TexCoord = texcoord.xy;\n"
 "}";
 
-static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -75,11 +102,22 @@ static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "}";
 
 
-static const char* TRAIL_VERTEX_SHADER = "#version 430 core\n"
+static const char* TRAIL_VERTEX_SHADER =
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"\n"
+"in vec4 position;\n" // w is lifespan
+"in vec4 normal;\n" // w is distance
+"in vec4 texcoord;\n" // zw is reserved for future use
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n" // w is lifespan
 "layout (location = 1) in vec4 normal;\n" // w is distance
 "layout (location = 2) in vec4 texcoord;\n" // zw is reserved for future use
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec2 TexCoord;\n"
@@ -88,7 +126,7 @@ static const char* TRAIL_VERTEX_SHADER = "#version 430 core\n"
 "\n"
 "uniform mat4 projection;\n"
 "uniform mat4 view;\n"
-"uniform mat4 model = mat4(1.0f);\n"
+"uniform mat4 model;\n"
 "\n"
 "void main()\n"
 "{\n"
@@ -99,7 +137,13 @@ static const char* TRAIL_VERTEX_SHADER = "#version 430 core\n"
 "   Life = position.w;\n"
 "}\n";
 
-static const char* TRAIL_FRAGMENT_SHADER = "#version 430 core\n"
+static const char* TRAIL_FRAGMENT_SHADER =
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -111,7 +155,7 @@ static const char* TRAIL_FRAGMENT_SHADER = "#version 430 core\n"
 "uniform vec3 color;\n"
 "uniform float total_length;\n"
 "uniform float total_life;\n"
-"uniform float LifeFactor = 0.0f;\n"
+"uniform float LifeFactor;\n"
 "\n"
 "void main()\n"
 "{\n"
@@ -234,6 +278,10 @@ void render_small_firework(Firework* firework, CGL_shader* shader, CGL_mat4* vie
         CGL_vec3_init(1.5f, 0.2f+ 0.3f, 0.0f),
         CGL_vec3_init(1.5f, 0.1f+ 0.3f, 0.0f)
     };
+    CGL_mat4 model = CGL_mat4_identity();
+    CGL_shader_set_uniform_float(shader, CGL_shader_get_uniform_location(shader, "LifeFactor"), 0.0f);
+    CGL_shader_set_uniform_mat4(shader, CGL_shader_get_uniform_location(shader, "model"), &model);
+
     if(firework->timer >= 0)
     {
         for(CGL_int i = 0 ; i < 5 ; i ++)
@@ -261,63 +309,141 @@ void destroy_small_firework(Firework* firework)
     for(CGL_int i = 0 ; i < firework->particle_trails_count ; i ++) CGL_trail_destroy(firework->particle_trails[i]);
 }
 
-int main()
+// Global state structure
+struct {
+    CGL_window* window;
+    CGL_framebuffer* default_framebuffer;
+    CGL_framebuffer* bloom_framebuffer;
+    CGL_shader* present_shader;
+    CGL_shader* trail_shader;
+    CGL_mat4 view;
+    CGL_mat4 projection;
+    CGL_float curr_time;
+    CGL_float prev_time;
+    CGL_float time;
+    CGL_bool started;
+    Firework smaller_fireworks[SMALL_FIRE_WORKS_COUNT];
+
+#ifndef CGL_WASM
+    CGL_bloom* bloom;
+#endif
+} g_state;
+
+CGL_bool init()
 {
     srand((uint32_t)time(NULL));
-    CGL_init();
-    CGL_window* window = CGL_window_create(600, 600, "Fireworks - Jaysmito Mukherjee");
-    if(!window) return 1;
-    CGL_window_make_context_current(window);
-    CGL_gl_init();
-    CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(window);
-    CGL_framebuffer* bloom_framebuffer = CGL_framebuffer_create(600, 600);
-    CGL_shader* present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
-    CGL_shader* trail_shader = CGL_shader_create(TRAIL_VERTEX_SHADER, TRAIL_FRAGMENT_SHADER, NULL);
-    CGL_bloom* bloom = CGL_bloom_create(600, 600, 3);
-    CGL_float curr_time = CGL_utils_get_time();
-    CGL_float prev_time = CGL_utils_get_time();
-    CGL_float time = 0.0f;
-    CGL_bool started = false;
-    for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) allocate_small_firework(&smaller_fireworks[i]);
-    for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) setup_small_firework(&smaller_fireworks[i], 32 * (float)i / SMALL_FIRE_WORKS_COUNT - 32*0.5f);
-    CGL_mat4 view, projection;
-    projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.01f, 100.0f);
-    view = CGL_mat4_identity();
-    while(!CGL_window_should_close(window))
-    {
-        curr_time = CGL_utils_get_time();
-        CGL_float delta_time = curr_time - prev_time;
-        delta_time = CGL_utils_clamp(delta_time, 0.0f, 0.03f); // to avoid sudden jumps in time due to lag or things like window resizing
-        prev_time = curr_time;
-        time += delta_time; 
-        CGL_window_set_size(window, 600, 600); // force window size to be 600x600
-        view = CGL_mat4_look_at(CGL_vec3_init(60.0f * cosf(time*0.3f), 15.0f, 60.0f * sinf(time*0.3f)), CGL_vec3_init(0.0f, 16.0f, 0.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
-        if(started)for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) update_small_firework(&smaller_fireworks[i], delta_time);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-        CGL_framebuffer_bind(bloom_framebuffer);
-        CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
-        CGL_shader_bind(trail_shader);
-        for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) render_small_firework(&smaller_fireworks[i], trail_shader, &view, &projection);
-        CGL_bloom_apply(bloom, CGL_framebuffer_get_color_texture(bloom_framebuffer));
-        CGL_framebuffer_bind(default_framebuffer);
-        CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
-        CGL_shader_bind(present_shader);
-        CGL_texture_bind(CGL_framebuffer_get_color_texture(bloom_framebuffer), 0);
-        CGL_shader_set_uniform_int(present_shader, CGL_shader_get_uniform_location(present_shader, "u_tex"), 0);
-        CGL_gl_render_screen_quad();
-        CGL_window_poll_events(window);
-        CGL_window_swap_buffers(window);
-        if(!started) if(CGL_window_get_key(window, CGL_KEY_SPACE) == CGL_PRESS) started = true;
-    }
-    for(int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) destroy_small_firework(&smaller_fireworks[i]);
-    CGL_shader_destroy(trail_shader);
-    CGL_shader_destroy(present_shader);
-    CGL_framebuffer_destroy(default_framebuffer);
-    CGL_framebuffer_destroy(bloom_framebuffer);
-    CGL_bloom_destroy(bloom);
+    if(!CGL_init()) return false;
+    
+    g_state.window = CGL_window_create(600, 600, "Fireworks - Jaysmito Mukherjee");
+    if(!g_state.window) return false;
+    
+    CGL_window_make_context_current(g_state.window);
+    if(!CGL_gl_init()) return false;
+
+    g_state.default_framebuffer = CGL_framebuffer_create_from_default(g_state.window);
+    g_state.bloom_framebuffer = CGL_framebuffer_create_basic(600, 600);
+    g_state.present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
+    g_state.trail_shader = CGL_shader_create(TRAIL_VERTEX_SHADER, TRAIL_FRAGMENT_SHADER, NULL);
+
+#ifndef CGL_WASM
+    g_state.bloom = CGL_bloom_create(600, 600, 3);
+#endif
+
+    g_state.curr_time = CGL_utils_get_time();
+    g_state.prev_time = CGL_utils_get_time();
+    g_state.time = 0.0f;
+    g_state.started = false;
+
+    for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) allocate_small_firework(&g_state.smaller_fireworks[i]);
+    for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) setup_small_firework(&g_state.smaller_fireworks[i], 32 * (float)i / SMALL_FIRE_WORKS_COUNT - 32*0.5f);
+
+    g_state.projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.01f, 100.0f);
+    g_state.view = CGL_mat4_identity();
+
+    return true;
+}
+
+void cleanup()
+{
+    for(int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) destroy_small_firework(&g_state.smaller_fireworks[i]);
+    CGL_shader_destroy(g_state.trail_shader);
+    CGL_shader_destroy(g_state.present_shader);
+    CGL_framebuffer_destroy(g_state.default_framebuffer);
+    CGL_framebuffer_destroy(g_state.bloom_framebuffer);
+#ifndef CGL_WASM    
+    CGL_bloom_destroy(g_state.bloom);
+#endif
     CGL_gl_shutdown();
-    CGL_window_destroy(window);    
+    CGL_window_destroy(g_state.window);    
     CGL_shutdown();
+}
+
+EM_BOOL loop(double time, void* userData)
+{
+    (void)time;
+    (void)userData;
+
+    g_state.curr_time = CGL_utils_get_time();
+    CGL_float delta_time = g_state.curr_time - g_state.prev_time;
+    delta_time = CGL_utils_clamp(delta_time, 0.0f, 0.03f);
+    g_state.prev_time = g_state.curr_time;
+    g_state.time += delta_time;
+
+    CGL_window_set_size(g_state.window, 600, 600);
+    g_state.view = CGL_mat4_look_at(
+        CGL_vec3_init(60.0f * cosf(g_state.time*0.3f), 15.0f, 60.0f * sinf(g_state.time*0.3f)), 
+        CGL_vec3_init(0.0f, 16.0f, 0.0f), 
+        CGL_vec3_init(0.0f, 1.0f, 0.0f)
+    );
+
+    if(g_state.started) {
+        for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) 
+            update_small_firework(&g_state.smaller_fireworks[i], delta_time);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    // Render to bloom framebuffer
+    CGL_framebuffer_bind(g_state.bloom_framebuffer);
+    CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
+    CGL_shader_bind(g_state.trail_shader);
+    for(CGL_int i = 0; i < SMALL_FIRE_WORKS_COUNT; i++) 
+        render_small_firework(&g_state.smaller_fireworks[i], g_state.trail_shader, &g_state.view, &g_state.projection);
+#ifndef CGL_WASM
+    // Apply bloom and render to screen
+    CGL_bloom_apply(g_state.bloom, CGL_framebuffer_get_color_texture(g_state.bloom_framebuffer));
+#endif
+    
+    CGL_framebuffer_bind(g_state.default_framebuffer);
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
+    CGL_shader_bind(g_state.present_shader);
+    CGL_texture_bind(CGL_framebuffer_get_color_texture(g_state.bloom_framebuffer), 0);
+    CGL_shader_set_uniform_int(g_state.present_shader, CGL_shader_get_uniform_location(g_state.present_shader, "u_tex"), 0);
+    CGL_gl_render_screen_quad();
+
+    CGL_window_poll_events(g_state.window);
+    CGL_window_swap_buffers(g_state.window);
+
+    if(!g_state.started && CGL_window_get_key(g_state.window, CGL_KEY_SPACE) == CGL_PRESS) 
+        g_state.started = true;
+
+    return !CGL_window_should_close(g_state.window);
+}
+
+int main()
+{
+    if(!init()) return 1;
+
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    while (!CGL_window_should_close(g_state.window)) {
+        loop(0, NULL);
+    }
+    cleanup();
+#endif
+
     return 0;
 }
