@@ -311,5 +311,17 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 2
+    },
+    {
+        "name": "Noise Generator",
+        "path": "builds/noise_generator",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/noise_generator.c",
+        "tags": ["cgl", "perlin", "noise", "interactive", "creative", "procedural"],
+        "views": 0,
+        "description": "An interactive noise generator with adjustable parameters. Features different noise types and fractal patterns.",
+        "image": "builds/noise_generator/thumb.png",
+        "published_date": "2024-02-02",
+        "author": "Jaysmito101",
+        "difficulty": 2
     }
 ]
