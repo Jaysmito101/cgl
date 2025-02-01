@@ -25,10 +25,13 @@ SOFTWARE.
 #define CGL_LOGGING_ENABLED
 #define CGL_EXCLUDE_AUDIO
 #define CGL_EXCLUDE_NETWORKING
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
+#ifndef CGL_WASM
 #include "omp.h"
+#endif
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -134,14 +137,23 @@ CGL_void resize_normal(ci_Image* image, ci_Image* original_image, CGL_int target
 typedef CGL_void(*ci_resize_func)(ci_Image*, ci_Image*, CGL_int, CGL_int);
 
 
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#define TMP_BUFFER_SIZE 3000
+#else 
+#define TMP_BUFFER_SIZE 6000
+#define EM_BOOL int
+#endif
 
 struct {
-	ci_Image original;
-	ci_Image resized;
-	ci_resize_func resize_func;
-	CGL_bool loaded;
-
-	CGL_int current;
+    CGL_window* window;
+    CGL_framebuffer* framebuffer;
+    ci_Image original;
+    ci_Image resized;
+    ci_resize_func resize_func;
+    CGL_int current;
+    CGL_bool loaded;
 } g_state;
 
 
@@ -254,15 +266,14 @@ CGL_float* ci_calculate_energy_map(ci_Image* image, CGL_float* energy_map, CGL_b
 	return energy_map;
 }
 
-CGL_float* ci_calculate_h_energy_map(ci_Image* image)
-{
-	static CGL_float energy_map[6000 * 6000] = { 0 };
+CGL_float* ci_calculate_h_energy_map(ci_Image* image) {
+	static CGL_float energy_map[TMP_BUFFER_SIZE * TMP_BUFFER_SIZE] = { 0 };
 	return ci_calculate_energy_map(image, energy_map, CGL_TRUE);
 }
 
 CGL_float* ci_calculate_v_energy_map(ci_Image* image)
 {
-	static CGL_float energy_map[6000 * 6000] = { 0 };
+	static CGL_float energy_map[TMP_BUFFER_SIZE * TMP_BUFFER_SIZE] = { 0 };
 	return ci_calculate_energy_map(image, energy_map, CGL_FALSE);
 }
 
@@ -311,16 +322,15 @@ CGL_int* ci_calculate_seam_map(CGL_float* energy_map, CGL_int* seam, CGL_int wid
 	for (CGL_int i = (h_or_v ? height : width) - 1; i >= 0; i--)
 	{
 		seam[i] = current_index;
-		CGL_float current_energy = SAMPLE_EMAP(current_index, i);
 		CGL_float left_energy = FLT_MAX;
 		CGL_float center_energy = FLT_MAX;
 		CGL_float right_energy = FLT_MAX;
 		if (current_index > 0) left_energy = SAMPLE_EMAP(current_index - 1, i);
 		center_energy = SAMPLE_EMAP(current_index, i);
 		if (current_index < (h_or_v ? width : height) - 1) right_energy = SAMPLE_EMAP(current_index + 1, i);
-		CGL_float min_energy = CGL_utils_min(CGL_utils_min(left_energy, center_energy), right_energy);
-		if (min_energy == left_energy) current_index--;
-		else if (min_energy == right_energy) current_index++;
+		CGL_float min_energy2 = CGL_utils_min(CGL_utils_min(left_energy, center_energy), right_energy);
+		if (min_energy2 == left_energy) current_index--;
+		else if (min_energy2 == right_energy) current_index++;
 	}
 
 	return seam;
@@ -362,7 +372,9 @@ CGL_void resize_ci(ci_Image* image, ci_Image* original_image, CGL_int target_wid
 	// loop through each row and remove the seam
 	// if new width is smaller than original width, remove vertical seam
 	// if new height is smaller than original height, remove horizontal seam
+#ifndef CGL_WASM
 	#pragma omp parallel for collapse(2)
+#endif
 	for (CGL_int i = 0; i < new_height; i++)
 	{
 		CGL_int h_seam = h_seam_map[i];
@@ -435,6 +447,7 @@ CGL_void resize_ci(ci_Image* image, ci_Image* original_image, CGL_int target_wid
 // a drag and drop callback
 CGL_void CGL_window_drop_callback(CGL_window* window, const CGL_byte** paths, CGL_int count)
 {
+    (void)window;
 	if (count > 0)
 	{
 		if (g_state.original.data)
@@ -456,112 +469,137 @@ CGL_void CGL_window_drop_callback(CGL_window* window, const CGL_byte** paths, CG
 	}
 }
 
-CGL_int main() 
+CGL_bool init()
 {
-    if (!CGL_init()) return 1;
-    CGL_window* window = CGL_window_create(WINDOW_SIZE, WINDOW_SIZE, "Content Aware Image Resize - Jaysmito Mukherjee");
-    if (!window) return EXIT_FAILURE;
-	CGL_window_make_context_current(window);
-    CGL_gl_init();
-	CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(window);
-	CGL_window_set_drag_n_drop_callback(window, CGL_window_drop_callback);
+    if (!CGL_init()) return CGL_FALSE;
+    g_state.window = CGL_window_create(WINDOW_SIZE, WINDOW_SIZE, "Content Aware Image Resize - Jaysmito Mukherjee");
+    if (!g_state.window) return CGL_FALSE;
+    CGL_window_make_context_current(g_state.window);
+    if (!CGL_gl_init()) return CGL_FALSE;
 
-	// g_state.resize_func = resize_normal;
-	g_state.resize_func = resize_ci;
+    g_state.framebuffer = CGL_framebuffer_create_from_default(g_state.window);
+    CGL_window_set_drag_n_drop_callback(g_state.window, CGL_window_drop_callback);
 
-	g_state.current = 1;
-	g_state.loaded = CGL_FALSE;
+    g_state.resize_func = resize_ci;
+    g_state.current = 1;
+    g_state.loaded = CGL_FALSE;
 
-	CGL_widgets_init();
+    CGL_widgets_init();
+    return CGL_TRUE;
+}
 
-    while (!CGL_window_should_close(window))
-    {
-		CGL_window_set_size(window, WINDOW_SIZE, WINDOW_SIZE);
+void cleanup()
+{
+    if (g_state.loaded) {
+        ci_free_image(g_state.original);
+        ci_free_image(g_state.resized);
+    }
+    CGL_framebuffer_destroy(g_state.framebuffer);
+    CGL_widgets_shutdown();
+    CGL_gl_shutdown();
+    CGL_window_destroy(g_state.window);
+    CGL_shutdown();
+}
 
+EM_BOOL loop(double time, void* userData)
+{
+    (void)time;
+    (void)userData;
+    
+    CGL_window_set_size(g_state.window, WINDOW_SIZE, WINDOW_SIZE);
 
-
-		CGL_int delta = 1;
-		// W + up arrow or down arrow to change width
-		if (CGL_window_is_key_pressed(window, CGL_KEY_W) && CGL_window_is_key_pressed(window, CGL_KEY_UP)) {
-			PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width + delta, g_state.resized.height));
-		}
-		else if (CGL_window_is_key_pressed(window, CGL_KEY_W) && CGL_window_is_key_pressed(window, CGL_KEY_DOWN)) {
-			PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width - delta, g_state.resized.height));
-		}
-
-		// H + up arrow or down arrow to change height
-		if (CGL_window_is_key_pressed(window, CGL_KEY_H) && CGL_window_is_key_pressed(window, CGL_KEY_UP)) {
-			PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width, g_state.resized.height + delta));
-		}
-		else if (CGL_window_is_key_pressed(window, CGL_KEY_H) && CGL_window_is_key_pressed(window, CGL_KEY_DOWN)) {
-			PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width, g_state.resized.height - delta));
-		}
-
-		CGL_framebuffer_bind(default_framebuffer);
-		CGL_gl_clear(0.1f, 0.1f, 0.1f, 1.0f);
-
-		CGL_widgets_begin();
-
-		if (g_state.loaded)
-		{
-			ci_Image* image = g_state.current == 0 ? &g_state.original : &g_state.resized;
-
-			CGL_widgets_set_texture(image->texture);
-
-			CGL_float width = 1.0, height = 1.0, offset_x = 0.0, offset_y = 0.0;
-			if ( image->aspect_ratio > 1.0)
-			{
-				height = 1.0 / image->aspect_ratio;
-				offset_y = (1.0 - height) / 2.0;
-			}
-			else
-			{
-				width = image->aspect_ratio;
-				offset_x = (1.0 - width) / 2.0;
-			}
-
-			offset_x = offset_x * 2.0 - 1.0;
-			offset_y = offset_y * 2.0 - 1.0;
-
-			height *= 2.0;
-			width *= 2.0;
-
-			CGL_widgets_add_rect2f(offset_x, offset_y, width, height);
-
-			// Set texture details as titile of the window
-			static CGL_byte title[256];
-			sprintf(title, "Content Aware Image Resize - [Image : %dx%d] [%s] - Jaysmito Mukherjee", image->width, image->height, g_state.current == 0 ? "Original" : "Resized");
-			CGL_window_set_title(window, title);
-		}
-		else {
-			CGL_window_set_title(window, "Content Aware Image Resize - Jaysmito Mukherjee");
-		}
-
-		if (CGL_window_is_key_pressed(window, CGL_KEY_O)) {
-			g_state.current = 0;
-		} else if (CGL_window_is_key_pressed(window, CGL_KEY_R)) {
-			g_state.current = 1;
-		}
-
-		// reset on space
-		if (CGL_window_is_key_pressed(window, CGL_KEY_SPACE)) {
-			g_state.resize_func = resize_normal;
-			memcpy(g_state.resized.data, g_state.original.data, g_state.original.width * g_state.original.height * 3);
-			g_state.resized.width = g_state.original.width;
-			g_state.resized.height = g_state.original.height;
-			ci_upload_image(&g_state.resized);
-		}
-
-		CGL_widgets_end();
-
-        CGL_window_swap_buffers(window);
-        CGL_window_poll_events(window);
+    CGL_int delta = 1;
+    // W + up arrow or down arrow to change width
+    if (CGL_window_is_key_pressed(g_state.window, CGL_KEY_W) && CGL_window_is_key_pressed(g_state.window, CGL_KEY_UP)) {
+        PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width + delta, g_state.resized.height));
+    }
+    else if (CGL_window_is_key_pressed(g_state.window, CGL_KEY_W) && CGL_window_is_key_pressed(g_state.window, CGL_KEY_DOWN)) {
+        PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width - delta, g_state.resized.height));
     }
 
+    // H + up arrow or down arrow to change height
+    if (CGL_window_is_key_pressed(g_state.window, CGL_KEY_H) && CGL_window_is_key_pressed(g_state.window, CGL_KEY_UP)) {
+        PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width, g_state.resized.height + delta));
+    }
+    else if (CGL_window_is_key_pressed(g_state.window, CGL_KEY_H) && CGL_window_is_key_pressed(g_state.window, CGL_KEY_DOWN)) {
+        PREF("Resize", g_state.resize_func(&g_state.resized, &g_state.original, g_state.resized.width, g_state.resized.height - delta));
+    }
 
-	CGL_framebuffer_destroy(default_framebuffer);
-	CGL_widgets_shutdown();
-    CGL_gl_shutdown();
-	CGL_window_destroy(window);
-    CGL_shutdown();
+    CGL_framebuffer_bind(g_state.framebuffer);
+    CGL_gl_clear(0.1f, 0.1f, 0.1f, 1.0f);
+
+    CGL_widgets_begin();
+
+    if (g_state.loaded)
+    {
+        ci_Image* image = g_state.current == 0 ? &g_state.original : &g_state.resized;
+
+        CGL_widgets_set_texture(image->texture);
+
+        CGL_float width = 1.0f, height = 1.0f, offset_x = 0.0f, offset_y = 0.0f;
+        if ( image->aspect_ratio > 1.0)
+        {
+            height = 1.0f / image->aspect_ratio;
+            offset_y = (1.0f - height) / 2.0f;
+        }
+        else
+        {
+            width = image->aspect_ratio;
+            offset_x = (1.0f - width) / 2.0f;
+        }
+
+        offset_x = offset_x * 2.0f - 1.0f;
+        offset_y = offset_y * 2.0f - 1.0f;
+
+        height *= 2.0f;
+        width *= 2.0f;
+
+        CGL_widgets_add_rect2f(offset_x, offset_y, width, height);
+
+        // Set texture details as titile of the window
+        static CGL_byte title[256];
+        sprintf(title, "Content Aware Image Resize - [Image : %dx%d] [%s] - Jaysmito Mukherjee", image->width, image->height, g_state.current == 0 ? "Original" : "Resized");
+        CGL_window_set_title(g_state.window, title);
+    }
+    else {
+        CGL_window_set_title(g_state.window, "Content Aware Image Resize - Jaysmito Mukherjee");
+    }
+
+    if (CGL_window_is_key_pressed(g_state.window, CGL_KEY_O)) {
+        g_state.current = 0;
+    } else if (CGL_window_is_key_pressed(g_state.window, CGL_KEY_R)) {
+        g_state.current = 1;
+    }
+
+    // reset on space
+    if (CGL_window_is_key_pressed(g_state.window, CGL_KEY_SPACE)) {
+        g_state.resize_func = resize_normal;
+        memcpy(g_state.resized.data, g_state.original.data, g_state.original.width * g_state.original.height * 3);
+        g_state.resized.width = g_state.original.width;
+        g_state.resized.height = g_state.original.height;
+        ci_upload_image(&g_state.resized);
+    }
+
+    CGL_widgets_end();
+
+    CGL_window_swap_buffers(g_state.window);
+    CGL_window_poll_events(g_state.window);
+
+    return !CGL_window_should_close(g_state.window);
+}
+
+int main()
+{
+    if (!init()) return 1;
+
+#ifdef CGL_WASM
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    while (!CGL_window_should_close(g_state.window)) {
+        loop(0, NULL);
+    }
+    cleanup();
+#endif
+
+    return 0;
 }
