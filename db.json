@@ -179,5 +179,30 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 2
+    },
+    {
+        "name": "Climate Spiral",
+        "path": "builds/climate_spiral",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/climate_spiral.c",
+        "tags": ["cgl", "climate", "spiral", "creative", "tutorial"],
+        "views": 121,
+        "description": "A creative coding example of a climate spiral that visualizes the change in temperature over time from 1880 to 2023.",
+        "image": "builds/climate_spiral/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    },
+    {
+        "name": "Fireworks",
+        "path": "builds/fireworks",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/fireworks.c",
+        "tags": ["cgl", "fireworks", "creative", "tutorial"],
+        "views": 121,
+        "description": "A creative coding example of a fireworks simulation using CGL.",
+        "image": "builds/fireworks/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
     }
+
 ]
