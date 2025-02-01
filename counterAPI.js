@@ -19,15 +19,7 @@ const pageHit = async (name) => {
     const nameHash = cyrb53(name);
     const url = `https://api.counterapi.dev/v1/cgl_web_demos/${nameHash}/up`;
     
-    const response = await fetch(url, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Origin': 'jaysmito101.github.io',
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-        },
-    });
+    const response = await fetch(url);
 
     const data = await response.json();
 
@@ -39,15 +31,7 @@ const getHitCount = async (name) => {
     const url = `https://api.counterapi.dev/v1/cgl_web_demos/${nameHash}`;
 
     // fix cors
-    const response = await fetch(url,
-        {
-            mode: 'cors',
-            headers: {
-                'Origin': 'jaysmito101.github.io',
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-        });
+    const response = await fetch(url);
     const data = await response.json();
 
     return data.count;

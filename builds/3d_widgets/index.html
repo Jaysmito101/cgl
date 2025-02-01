@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CGL-Web</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+      }
+      canvas {
+        border: 1px solid #000;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      canvas {
+        width: 100vmin;
+        height: 100vmin;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="cglCanvas" width="800" height="600"></canvas>
+    <script>
+      var Module = {
+        onRuntimeInitialized: function () { 
+          console.log("WASM Module Loaded");
+        },
+        canvas: document.getElementById("cglCanvas"),
+      };
+    </script>
+    <script src="./cglweb.js"></script>
+  </body>
+</html>
