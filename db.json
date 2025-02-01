@@ -251,6 +251,29 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 5
+    },
+    {
+        "name": "Interactive Linear Regression",
+        "path": "builds/interactive_linear_regression",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/interactive_linear_regression.c",
+        "tags": ["cgl", "interactive", "linear regression", "creative", "ai", "tutorial"],
+        "views": 121,
+        "description": "An interactive example of how to use CGL's linear regression API to create a linear regression system.",
+        "image": "builds/interactive_linear_regression/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    },
+    {
+        "name": "Interactive Polynomial Regression",
+        "path": "builds/interactive_polynomial_regression",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/interactive_polynomial_regression.c",
+        "tags": ["cgl", "interactive", "polynomial regression", "creative", "ai", "tutorial"],
+        "views": 121,
+        "description": "An interactive example of how to use CGL's polynomial regression API to create a polynomial regression system.",
+        "image": "builds/interactive_polynomial_regression/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
     }
-
 ]
