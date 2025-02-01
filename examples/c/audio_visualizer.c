@@ -24,18 +24,35 @@ SOFTWARE.
 
 
 #define CGL_LOGGING_ENABLED
+#define CGL_EXCLUDE_TEXT_RENDER
+#define CGL_EXCLUDE_NETWORKING
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
-static CGL_wav_file g_wav_file = {0};
-static CGL_bool g_is_playing = false;
-static CGL_bool g_is_loaded = false;
 
-static const char* VS_main_source = "#version 430 core\n"
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
+
+
+static const char* VS_main_source = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "in layout(location = 0) vec4 position;\n"
 "in layout(location = 1) vec4 normal;\n"
 "in layout(location = 2) vec4 texcoord;\n"
+#endif
 "\n"
 "\n"
 "uniform mat4 projection;\n"
@@ -90,8 +107,8 @@ static const char* VS_main_source = "#version 430 core\n"
 "{\n"
 "    int x_id = gl_InstanceID % 100;\n"
 "    int y_id = gl_InstanceID / 100;\n"
-"    float x_o = (x_id - 50) / 50.0f;\n"
-"    float y_o = (y_id - 50) / 50.0f;\n"
+"    float x_o = float(x_id - 50) / 50.0f;\n"
+"    float y_o = float(y_id - 50) / 50.0f;\n"
 "    vec3 offset = vec3(x_o, 0.0f, y_o);\n"
 "    float disto = (x_o * x_o + y_o * y_o);\n"
 "    float dist = pow((1.0f - disto) * 0.6f, 5.0f);\n"
@@ -107,7 +124,13 @@ static const char* VS_main_source = "#version 430 core\n"
 "    Position = offset;\n"
 "}";
 
-static const char* FS_main_source = "#version 430 core\n"
+static const char* FS_main_source = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -125,11 +148,21 @@ static const char* FS_main_source = "#version 430 core\n"
 "    FragColor = vec4(color * 1.5f, Disto);\n"
 "}";
 
-static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec2 TexCoord;\n"
@@ -141,7 +174,13 @@ static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	TexCoord = texcoord.xy;\n"
 "}";
 
-static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE =
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -168,131 +207,202 @@ static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "	FragColor = vec4(color, 1.0f);\n"
 "}";
 
+struct {
+    CGL_wav_file current_wav_file;
+    CGL_bool is_playing;
+    CGL_bool is_loaded;
+
+    CGL_window* window;
+
+    CGL_framebuffer* default_framebuffer;
+    CGL_framebuffer* bloom_framebuffer;
+
+    CGL_audio_context* audio_context;
+    CGL_audio_source* audio_source;
+    CGL_audio_buffer* audio_buffer;
+
+    CGL_mesh_gpu* mesh_gpu;
+
+    CGL_shader* shader;
+    CGL_shader* present_shader;
+
+    CGL_mat4 projection;
+    CGL_mat4 view;
+
+    CGL_float start_time;
+    CGL_float current_sound_level;
+
+#ifndef CGL_WASM
+    CGL_bloom* bloom;
+#endif
+} g_State;
+
+#ifdef CGL_WASM
+EMSCRIPTEN_KEEPALIVE
+#endif
+CGL_bool load_file(const CGL_byte* path) {
+    if(g_State.is_loaded) {
+        CGL_wav_file_destroy(&g_State.current_wav_file);
+    }
+    g_State.is_loaded = false;
+
+    if(!CGL_wav_file_load(&g_State.current_wav_file, path)) {
+        CGL_error("Failed to load wav file: %s", path);
+        return CGL_FALSE;
+    } else {
+        CGL_info("Loaded wav file: %s", path);
+    }
+    g_State.is_loaded = true;
+    g_State.is_playing = false;
+    return CGL_TRUE;
+}
 
 
 void on_drop_file(CGL_window* window, const CGL_byte** paths, CGL_int count)
 {
-    if(g_is_loaded) CGL_wav_file_destroy(&g_wav_file);
-    g_is_loaded = false;
-    if(!CGL_wav_file_load(&g_wav_file, paths[0]))
-    {
-        CGL_error("Failed to load wav file: %s", paths[0]);
-        return;
+    (void)window;
+    (void)count;
+
+    if(!load_file(paths[0])) {
+        CGL_error("Failed to load file: %s", paths[0]);
     }
-    else CGL_info("Loaded wav file: %s", paths[0]);
-    g_is_loaded = true;
-    g_is_playing = false;
 }
 
-int main()
-{
+CGL_bool init() {
     srand((uint32_t)time(NULL));
-    CGL_init();
-    CGL_window* window = CGL_window_create(600, 600, "Audio Visualizer - Jaysmito Mukherjee");
-    if(!window) return 1;
-    CGL_window_make_context_current(window);
-    CGL_gl_init();
-    CGL_window_set_drag_n_drop_callback(window, on_drop_file);
-    CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(window);
-    CGL_framebuffer* bloom_framebuffer = CGL_framebuffer_create(600, 600);
+    if(!CGL_init()) return CGL_FALSE;
+    g_State.window = CGL_window_create(600, 600, "Audio Visualizer - Jaysmito Mukherjee");
+    if(!g_State.window) return 1;
+    CGL_window_make_context_current(g_State.window);
+    if(!CGL_gl_init()) return CGL_FALSE;
+    CGL_window_set_drag_n_drop_callback(g_State.window, on_drop_file);
+
+    g_State.default_framebuffer = CGL_framebuffer_create_from_default(g_State.window);
+    g_State.bloom_framebuffer = CGL_framebuffer_create_basic(600, 600);
  
-    CGL_audio_context* audio_context = CGL_audio_context_create(NULL);
-    CGL_audio_make_context_current(audio_context);
+    g_State.audio_context = CGL_audio_context_create(NULL);
+    CGL_audio_make_context_current(g_State.audio_context);
  
-    CGL_audio_source* audio_source = CGL_audio_source_create();
-    CGL_audio_buffer* audio_buffer = CGL_audio_buffer_create();
+    g_State.audio_source = CGL_audio_source_create();
+    g_State.audio_buffer = CGL_audio_buffer_create();
 
     CGL_mesh_cpu* mesh = CGL_mesh_cpu_sphere(8, 8);
-    CGL_mesh_gpu* mesh_gpu = CGL_mesh_gpu_create();
-    CGL_mesh_gpu_upload(mesh_gpu, mesh, false);
+    g_State.mesh_gpu = CGL_mesh_gpu_create();
+    CGL_mesh_gpu_upload(g_State.mesh_gpu, mesh, false);
     CGL_mesh_cpu_destroy(mesh);
 
-    CGL_shader* shader = CGL_shader_create(VS_main_source, FS_main_source, NULL);
-    CGL_shader* present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
+    g_State.shader = CGL_shader_create(VS_main_source, FS_main_source, NULL);
+    g_State.present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
 
-    CGL_mat4 projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.01f, 100.0f);
-    CGL_mat4 view = CGL_mat4_identity();
+    g_State.projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.01f, 100.0f);
+    g_State.view = CGL_mat4_identity();
 
-    CGL_bloom* bloom = CGL_bloom_create(600, 600, 3);
+#ifndef CGL_WASM
+    g_State.bloom = CGL_bloom_create(600, 600, 3);
+#endif
 
-    CGL_float start_time = CGL_utils_get_time();
-    CGL_float current_sound_level = 0.0f;
+    g_State.start_time = CGL_utils_get_time();
+    g_State.current_sound_level = 0.0f;
 
-    while(!CGL_window_should_close(window))
-    {
-        CGL_float time = CGL_utils_get_time() - start_time;
-        CGL_window_set_size(window, 600, 600); // force window size to be 600x600
+    return CGL_TRUE;
+}
 
-        view = CGL_mat4_look_at(CGL_vec3_init(0.0f, 8.0f, 8.0f), CGL_vec3_init(0.0f, 0.0f, 0.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
+CGL_void cleanup() {
+    if(g_State.is_loaded) {
+        CGL_wav_file_destroy(&g_State.current_wav_file);
+    }
+    CGL_shader_destroy(g_State.shader);
+    CGL_shader_destroy(g_State.present_shader);
+    CGL_mesh_gpu_destroy(g_State.mesh_gpu);
+    CGL_audio_buffer_destroy(g_State.audio_buffer);
+    CGL_audio_source_destroy(g_State.audio_source);
+    CGL_audio_make_context_current(NULL);
+    CGL_audio_context_destroy(g_State.audio_context);
+    CGL_framebuffer_destroy(g_State.default_framebuffer);
+    CGL_framebuffer_destroy(g_State.bloom_framebuffer);
+#ifndef CGL_WASM
+    CGL_bloom_destroy(g_State.bloom);
+#endif
+    CGL_gl_shutdown();
+    CGL_window_destroy(g_State.window);    
+    CGL_shutdown();
+}
 
-        CGL_framebuffer_bind(bloom_framebuffer);
-        CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
-        CGL_shader_bind(shader);
-        CGL_shader_set_uniform_mat4(shader, CGL_shader_get_uniform_location(shader, "projection"), &projection);
-        CGL_shader_set_uniform_mat4(shader, CGL_shader_get_uniform_location(shader, "view"), &view);
-        CGL_shader_set_uniform_float(shader, CGL_shader_get_uniform_location(shader, "time"), time);
-        CGL_shader_set_uniform_float(shader, CGL_shader_get_uniform_location(shader, "sound_level"), current_sound_level);
-        CGL_mesh_gpu_render_instanced(mesh_gpu, 10000);
-
-        CGL_bloom_apply(bloom, CGL_framebuffer_get_color_texture(bloom_framebuffer));
-
-        CGL_framebuffer_bind(default_framebuffer);
-        CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
-        CGL_shader_bind(present_shader);
-        CGL_texture_bind(CGL_framebuffer_get_color_texture(bloom_framebuffer), 0);
-        CGL_shader_set_uniform_int(present_shader, CGL_shader_get_uniform_location(present_shader, "u_tex"), 0);
-        CGL_gl_render_screen_quad();
+EM_BOOL loop(double time, void* userData) {
+    (void)time;
+    (void)userData;
 
 
-        current_sound_level = 0.0f;
-        if(g_is_loaded && !g_is_playing)
-        {
-            if(CGL_audio_source_is_playing(audio_source)) CGL_audio_source_stop(audio_source);
-            CGL_audio_buffer_destroy(audio_buffer);
-            audio_buffer = CGL_audio_buffer_create();
-            CGL_audio_buffer_set_data_from_wav_file(audio_buffer, &g_wav_file);
-            CGL_audio_source_set_buffer(audio_source, audio_buffer);
-            CGL_audio_source_play(audio_source);
-            g_is_playing = true;
-            CGL_info("Started Playing");
-        }
+    CGL_float curr_time = CGL_utils_get_time() - g_State.start_time;
+    CGL_window_set_size(g_State.window, 600, 600); // force window size to be 600x600
 
-        if(g_is_loaded && g_is_playing)
-        {
-            if(!CGL_audio_source_is_playing(audio_source))
-            {
-                CGL_info("Finished playing");
-                CGL_wav_file_destroy(&g_wav_file);
-                g_is_loaded = false;
-                g_is_playing = false;
-            }
-            else
-            {
-                CGL_float time_offset = CGL_audio_source_get_seconds_offset(audio_source);
-                CGL_int sd = CGL_wav_file_sample_at_time(&g_wav_file, 0, time_offset);
-                float volume = (float)sd / SHRT_MAX;
-                current_sound_level = fabsf(volume * 2.0f);
-            }
-        }
+    g_State.view = CGL_mat4_look_at(CGL_vec3_init(0.0f, 8.0f, 8.0f), CGL_vec3_init(0.0f, 0.0f, 0.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
 
-        CGL_window_poll_events(window);
-        CGL_window_swap_buffers(window);
+    CGL_framebuffer_bind(g_State.bloom_framebuffer);
+    CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
+    CGL_shader_bind(g_State.shader);
+    CGL_shader_set_uniform_mat4(g_State.shader, CGL_shader_get_uniform_location(g_State.shader, "projection"), &g_State.projection);
+    CGL_shader_set_uniform_mat4(g_State.shader, CGL_shader_get_uniform_location(g_State.shader, "view"), &g_State.view);
+    CGL_shader_set_uniform_float(g_State.shader, CGL_shader_get_uniform_location(g_State.shader, "time"), curr_time);
+    CGL_shader_set_uniform_float(g_State.shader, CGL_shader_get_uniform_location(g_State.shader, "sound_level"), g_State.current_sound_level);
+    CGL_mesh_gpu_render_instanced(g_State.mesh_gpu, 10000);
+#ifndef CGL_WASM
+    CGL_bloom_apply(g_State.bloom, CGL_framebuffer_get_color_texture(g_State.bloom_framebuffer));
+#endif
+
+    CGL_framebuffer_bind(g_State.default_framebuffer);
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
+    CGL_shader_bind(g_State.present_shader);
+    CGL_texture_bind(CGL_framebuffer_get_color_texture(g_State.bloom_framebuffer), 0);
+    CGL_shader_set_uniform_int(g_State.present_shader, CGL_shader_get_uniform_location(g_State.present_shader, "u_tex"), 0);
+    CGL_gl_render_screen_quad();
+
+
+    g_State.current_sound_level = 0.0f;
+    if(g_State.is_loaded && !g_State.is_playing) {
+        if(CGL_audio_source_is_playing(g_State.audio_source)) CGL_audio_source_stop(g_State.audio_source);
+        CGL_audio_buffer_destroy(g_State.audio_buffer);
+        g_State.audio_buffer = CGL_audio_buffer_create();
+        CGL_audio_buffer_set_data_from_wav_file(g_State.audio_buffer, &g_State.current_wav_file);
+        CGL_audio_source_set_buffer(g_State.audio_source, g_State.audio_buffer);
+        CGL_audio_source_play(g_State.audio_source);
+        g_State.is_playing = true;
+        CGL_info("Started Playing");
     }
 
+    if(g_State.is_loaded && g_State.is_playing) {
+        if(!CGL_audio_source_is_playing(g_State.audio_source)) {
+            CGL_info("Finished playing");
+            CGL_wav_file_destroy(&g_State.current_wav_file);
+            g_State.is_loaded = false;
+            g_State.is_playing = false;
+        } else {
+            CGL_float time_offset = CGL_audio_source_get_seconds_offset(g_State.audio_source);
+            CGL_int sd = CGL_wav_file_sample_at_time(&g_State.current_wav_file, 0, time_offset);
+            float volume = (float)sd / SHRT_MAX;
+            g_State.current_sound_level = fabsf(volume * 2.0f);
+        }
+    }
 
-    if(g_is_loaded) CGL_wav_file_destroy(&g_wav_file);
-    CGL_shader_destroy(shader);
-    CGL_shader_destroy(present_shader);
-    CGL_mesh_gpu_destroy(mesh_gpu);
-    CGL_audio_buffer_destroy(audio_buffer);
-    CGL_audio_source_destroy(audio_source);
-    CGL_audio_make_context_current(NULL);
-    CGL_audio_context_destroy(audio_context);
-    CGL_framebuffer_destroy(default_framebuffer);
-    CGL_framebuffer_destroy(bloom_framebuffer);
-    CGL_bloom_destroy(bloom);
-    CGL_gl_shutdown();
-    CGL_window_destroy(window);    
-    CGL_shutdown();
-    return 0;
+    CGL_window_poll_events(g_State.window);
+    CGL_window_swap_buffers(g_State.window);
+
+    return CGL_TRUE;
+}
+
+
+CGL_int main()
+{
+    if(!init()) return EXIT_FAILURE;
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    while(!CGL_window_should_close(g_State.window))
+    {
+        if(!loop(0.0, NULL)) break;
+    }
+    cleanup();
+#endif
+    return EXIT_SUCCESS;
 }
