@@ -287,5 +287,18 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 2
+    },
+    {
+        "name": "Neopeed",
+        "path": "builds/neopeed",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/neopeed.c",
+        "tags": ["cgl", "game", "creative", "tutorial"],
+        "views": 121,
+        "description": "A full fledged infinite runner game made from scratch using CGL.",
+        "image": "builds/neopeed/thumb.png",
+        "published_date": "2024-02-02",
+        "author": "Jaysmito101",
+        "difficulty": 5
     }
+
 ]
