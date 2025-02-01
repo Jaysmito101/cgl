@@ -203,6 +203,17 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 2
+    },
+    {
+        "name": "Flappy Bird",
+        "path": "builds/flappy_bird",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/flappy_bird.c",
+        "tags": ["cgl", "flappy", "bird", "game", "creative", "tutorial"],
+        "views": 121,
+        "description": "A creative coding example of a flappy bird game using CGL.",
+        "image": "builds/flappy_bird/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 3
     }
-
 ]
