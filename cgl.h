@@ -10476,13 +10476,18 @@ CGL_void CGL_phong_render_end(CGL_phong_pipeline* pipeline, CGL_camera* camera)
 static const char* __CGL_TILEMAP_VERTEX_SHADER =
 #ifdef CGL_WASM
 "#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
 #else
 "#version 430 core\n"
-#endif
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "void main()\n"
 "{\n"
@@ -10492,6 +10497,8 @@ static const char* __CGL_TILEMAP_VERTEX_SHADER =
 static const char* __CGL_TILEMAP_FRAGENT_SHADER =
 #ifdef CGL_WASM
 "#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
 #else
 "#version 430 core\n"
 #endif
@@ -10631,7 +10638,11 @@ CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, ui
 	tilemap->tile_count_y = tile_count_y;
 	tilemap->tile_size_x = tile_size_x;
 	tilemap->tile_size_y = tile_size_y;
+
+	CGL_info("tile_count_x: %d, tile_count_y: %d, tile_size_x: %d, tile_size_y: %d", tile_count_x, tile_count_y, tile_size_x, tile_size_y);
 	tilemap->ssbo = CGL_ssbo_create(ssbo_binding);
+	CGL_info("ssbo_binding: %d", ssbo_binding);
+
 	CGL_mesh_cpu* screen_quad_mesh_cpu = CGL_mesh_cpu_quad(CGL_vec3_init(1.0, 1.0, 0.0),
 		CGL_vec3_init(1.0, -1.0, 0.0),
 		CGL_vec3_init(-1.0, -1.0, 0.0),
