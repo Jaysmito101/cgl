@@ -24,6 +24,7 @@ SOFTWARE.
 
 #define CGL_LOGGING_ENABLED
 #define CGL_EXCLUDE_TEXT_RENDER
+#define CGL_EXCLUDE_AUDIO
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
@@ -31,11 +32,29 @@ SOFTWARE.
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
+
+
+static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec2 TexCoord;\n"
@@ -47,7 +66,14 @@ static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	TexCoord = texcoord.xy;\n"
 "}";
 
-static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -137,7 +163,7 @@ static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 #define NUM_TILE_TEXTURES    20
 #define TEXTURE_TILE_WIDTH   0.2f
 #define TEXTURE_TILE_HEIGHT  0.25f
-#define PLAYER_FOV			 CGL_deg_to_rad( 45.0 )
+#define PLAYER_FOV			 CGL_deg_to_rad( 45.0f )
 
 #define SAMPLE_MAP(x, y)	 ( MAP[ ( ( y ) * MAP_SIZE ) + ( x ) ] )
 
@@ -200,7 +226,7 @@ static CGL_float g_TilemapOffset[NUM_TILE_TEXTURES][2] = {
 };
 
 static CGL_window* g_Window = NULL;
-
+static CGL_framebuffer* g_Framebuffer = NULL;
 static CGL_float g_RayCastResult[GAME_WIDTH * 4] = {0.0f};
 
 static struct {
@@ -372,11 +398,16 @@ static CGL_void upload_tilemap_data()
 static CGL_bool setup_map()
 {
 	// Create tilemap
+    CGL_info("Setting up map");
 	g_TilemapTexture = load_texture("assets/doomtilemap.png"); // https://i.ibb.co/jDvNj9f/doomtilemap.png
+    CGL_info("Loaded tilemap texture");
 	g_SkyTexture = load_texture("assets/skylowres.png"); // https://i.ibb.co/ZWBghVy/skylowres.png
+    CGL_info("Loaded sky texture");
 	g_MapEditor.tilemap = CGL_tilemap_create(MAP_SIZE, MAP_SIZE, MAP_EDITOR_TILE_SIZE, MAP_EDITOR_TILE_SIZE, 1);
+    CGL_info("Created tilemap...");
 	CGL_tilemap_set_auto_upload(g_MapEditor.tilemap, CGL_FALSE);
 	upload_tilemap_data();
+    CGL_info("Uploaded initial tilemap data");
 	return true;
 }
 
@@ -403,7 +434,7 @@ static void update_map_editor(CGL_float mx, CGL_float my)
 
 		if (CGL_window_get_mouse_button(g_Window, CGL_MOUSE_BUTTON_LEFT) == CGL_PRESS)
 		{
-			SAMPLE_MAP(tileX, tileY) = g_MapEditor.selectedTile;
+			SAMPLE_MAP(tileX, tileY) = (CGL_byte)g_MapEditor.selectedTile;
 		}
 		else if (CGL_window_get_mouse_button(g_Window, CGL_MOUSE_BUTTON_RIGHT) == CGL_PRESS)
 		{
@@ -427,26 +458,28 @@ static void update_map_editor(CGL_float mx, CGL_float my)
 	CGL_float dst = 1.0f;
 	// add 2 more rays at +- FOV/2
 	CGL_widgets_set_stroke_thickness(0.002f);
-	CGL_widgets_set_fill_colorf(0.8, 0.3, 0.3, 1.0);
+	CGL_widgets_set_fill_colorf(0.8f, 0.3f, 0.3f, 1.0f);
 
 	CGL_float startAngle = g_Game.direction - PLAYER_FOV * 0.5f;
 	CGL_int numRays = 8;
-	CGL_widgets_set_stroke_colorf(0.3, 0.3, 0.3, 1.0);
+	CGL_widgets_set_stroke_colorf(0.3f, 0.3f, 0.3f, 1.0f);
 	for ( CGL_int i = 0; i < numRays; i++ )
 	{
 		CGL_float angle = startAngle + (CGL_float)i / (CGL_float)(numRays - 1) * PLAYER_FOV;
 		CGL_bool hit = raycast_single(startPos.x, startPos.y, angle, &wx, &wy, &dst, NULL);
+        (void)hit;
 		direction = CGL_vec2_from_angle(angle);
 		CGL_vec2 endPos = CGL_vec2_add_(startPos, CGL_vec2_scale_(direction, dst));
-		CGL_widgets_set_stroke_colorf(0.3, 0.3, 0.3, 1.0);
+		CGL_widgets_set_stroke_colorf(0.3f, 0.3f, 0.3f, 1.0f);
 		CGL_widgets_add_line2f(startPos.x, startPos.y, endPos.x, endPos.y);
 		CGL_widgets_add_circle2fr(startPos.x, startPos.y, 0.01f, 8);
 	}
 	
 	direction = CGL_vec2_from_angle(g_Game.direction);
 	CGL_bool hit = raycast_single(startPos.x, startPos.y, g_Game.direction, &wx, &wy, &dst, NULL);
+    (void)hit;
 	CGL_vec2 endPos = CGL_vec2_add_(startPos, CGL_vec2_scale_(direction, dst));
-	CGL_widgets_set_stroke_colorf(0.8, 0.3, 0.3, 1.0);
+	CGL_widgets_set_stroke_colorf(0.8f, 0.3f, 0.3f, 1.0f);
 	CGL_widgets_add_line2f(startPos.x, startPos.y, endPos.x, endPos.y);
 	CGL_widgets_add_circle2fr(startPos.x, startPos.y, 0.01f, 8);
 
@@ -485,16 +518,16 @@ static void render_map_editor(CGL_float mx, CGL_float my)
 			if (CGL_window_get_mouse_button(g_Window, CGL_MOUSE_BUTTON_LEFT) == CGL_PRESS) {
 				g_MapEditor.selectedTile = i;
 			}
-			CGL_widgets_set_fill_colorf(0.9, 0.5, 0.9, 1.0);
+			CGL_widgets_set_fill_colorf(0.9f, 0.5f, 0.9f, 1.0f);
 			CGL_widgets_add_rect2f(xStart - 0.005f, yStart - 0.005f, 0.11f, 0.11f);
 		}
 
 		if (i == g_MapEditor.selectedTile) {
-			CGL_widgets_set_fill_colorf(0.9, 0.9, 0.9, 1.0);
+			CGL_widgets_set_fill_colorf(0.9f, 0.9f, 0.9f, 1.0f);
 			CGL_widgets_add_rect2f(xStart - 0.005f, yStart - 0.005f, 0.11f, 0.11f);
 		}
 
-		if (i == 0) CGL_widgets_set_fill_colorf(0.6, 0.6, 0.6, 1.0);
+		if (i == 0) CGL_widgets_set_fill_colorf(0.6f, 0.6f, 0.6f, 1.0f);
 		else {
 			CGL_widgets_set_texture(g_TilemapTexture);
 			CGL_float* offset = g_TilemapOffset[i - 1];
@@ -666,7 +699,7 @@ CGL_void render_game()
 	height *=  (CGL_float)WINDOW_WIDTH / (CGL_float)WINDOW_HEIGHT;
 
 	CGL_widgets_set_texture(CGL_framebuffer_get_color_texture(g_Game.gameView));
-	CGL_widgets_add_rect2f(-0.05, -1.0 + height * 0.25, 1.0, height);
+	CGL_widgets_add_rect2f(-0.05f, -1.0f + height * 0.25f, 1.0f, height);
 
 	CGL_widgets_end();
 
@@ -691,57 +724,85 @@ CGL_void render_game()
 // ---------------------------------------------------------------
 
 
-int main(int argc, char** argv, char** envp)
-{
-	srand((uint32_t)time(NULL));
-	CGL_init();
+
+CGL_bool init() {
+    srand((uint32_t)time(NULL));
+	if(!CGL_init()) return CGL_FALSE;
 	g_Window = CGL_window_create(WINDOW_WIDTH, WINDOW_HEIGHT, "CGL Raycaster 3D - Jaysmito Mukherjee");
-	if (g_Window == NULL) return false;
+	if (g_Window == NULL) return CGL_FALSE;
 	CGL_window_make_context_current(g_Window);
-	CGL_gl_init();
-	CGL_widgets_init();
-	CGL_framebuffer* default_framebuffer = CGL_framebuffer_create_from_default(g_Window);
+	if(!CGL_gl_init()) return CGL_FALSE;
+	if(!CGL_widgets_init()) return CGL_FALSE;
+	g_Framebuffer = CGL_framebuffer_create_from_default(g_Window);
+	if (!setup_map()) return CGL_FALSE;
+	if (!setup_game()) return CGL_FALSE;
 
-	if (!setup_map()) return EXIT_FAILURE;
-	if (!setup_game()) return EXIT_FAILURE;
+    return CGL_TRUE;
+}
 
-	while (!CGL_window_should_close(g_Window))
-	{
-		CGL_window_set_size(g_Window, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-		static int frame_count = 0;
-		frame_count++;
-		int wx, wy;
-		double mxp, myp;
-		CGL_window_get_framebuffer_size(g_Window, &wx, &wy);
-		CGL_window_get_mouse_position(g_Window, &mxp, &myp);
-		mxp = (mxp / wx);
-		myp = (myp / wy);
-
-		static CGL_byte buffer[2048];
-
-		CGL_framebuffer_bind(default_framebuffer);
-		CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
-
-		render_map_editor(mxp, myp);
-		render_game();
-
-
-		if (CGL_window_is_key_pressed(g_Window, CGL_KEY_ESCAPE)) break;
-
-		CGL_window_swap_buffers(g_Window);
-		CGL_window_poll_events(g_Window);
-	}
-
+void cleanup() {
 	CGL_shader_destroy(g_Game.raycastShader);
 	CGL_framebuffer_destroy(g_Game.gameView);
 	CGL_texture_destroy(g_Game.raycastData);
 	CGL_texture_destroy(g_TilemapTexture);
 	CGL_texture_destroy(g_SkyTexture);	
-	CGL_framebuffer_destroy(default_framebuffer);
+	CGL_framebuffer_destroy(g_Framebuffer);
 	CGL_widgets_shutdown();
 	CGL_gl_shutdown();
 	CGL_window_destroy(g_Window);
 	CGL_shutdown();
+}
+
+
+EM_BOOL loop(double time, void* userData)
+{
+    (void)time;
+    (void)userData;
+
+
+#ifndef CGL_WASM
+    CGL_window_set_size(g_Window, WINDOW_WIDTH, WINDOW_HEIGHT);
+#endif
+
+	static int frame_count = 0;
+	frame_count++;
+	int wx, wy;
+	double mxp, myp;
+	CGL_window_get_framebuffer_size(g_Window, &wx, &wy);
+	CGL_window_get_mouse_position(g_Window, &mxp, &myp);
+	mxp = (mxp / wx);
+	myp = (myp / wy);
+
+	CGL_framebuffer_bind(g_Framebuffer);
+	CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
+
+	render_map_editor((CGL_float)mxp, (CGL_float)myp);
+	render_game();
+
+	if (CGL_window_is_key_pressed(g_Window, CGL_KEY_ESCAPE)) return CGL_FALSE;
+
+	CGL_window_swap_buffers(g_Window);
+	CGL_window_poll_events(g_Window);
+    
+    return CGL_TRUE;
+}
+
+
+// NOTE: This will not work with WASM for now as SSBOs are not supported in WebGL
+int main()
+{
+    if (!init()) return EXIT_FAILURE;
+
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+	while (!CGL_window_should_close(g_Window))
+	{
+        if (!loop(0.0, NULL)) break;		
+	}
+    cleanup();
+#endif
 	return EXIT_SUCCESS;
 }
+
