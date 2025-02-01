@@ -335,5 +335,17 @@
       "published_date": "2024-02-02",
       "author": "Jaysmito101",
       "difficulty": 5
+    },
+    {
+      "name": "Trail Renderer",
+      "path": "builds/trail_renderer",
+      "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/trail_renderer.c",
+      "tags": ["cgl", "3d", "trails", "creative", "render"],
+      "views": 42,
+      "description": "A mesmerizing trail renderer with floating trails in 3D space.",
+      "image": "builds/trail_renderer/thumb.png",
+      "published_date": "2024-02-01",
+      "author": "Jaysmito101",
+      "difficulty": 3
     }
 ]
