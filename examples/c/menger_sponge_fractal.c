@@ -25,15 +25,34 @@ SOFTWARE.
 #define CGL_LOGGING_ENABLED
 #define CGL_IMPLEMENTATION
 #define CGL_EXCLUDE_NETWORKING
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_EXCLUDE_RAY_CASTER
 #define CGL_EXCLUDE_NODE_EDITOR
 #include "cgl.h"
 
-static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
+
+static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec2 TexCoord;\n"
@@ -45,7 +64,14 @@ static const char* PASS_THROUGH_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "	TexCoord = texcoord.xy;\n"
 "}";
 
-static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -72,11 +98,22 @@ static const char* PASS_THROUGH_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "	FragColor = vec4(color, 1.0f);\n"
 "}";
 
-const CGL_byte* DIFFUSE_VERTEX_SHADER_SOURCE = "#version 430 core\n"
+const CGL_byte* DIFFUSE_VERTEX_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec3 Normal;\n"
@@ -103,7 +140,14 @@ const CGL_byte* DIFFUSE_VERTEX_SHADER_SOURCE = "#version 430 core\n"
 "   Color *= 0.6f;\n"
 "}";
 
-const CGL_byte* DIFFUSE_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
+const CGL_byte* DIFFUSE_FRAGMENT_SHADER_SOURCE = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
@@ -125,9 +169,28 @@ const CGL_byte* DIFFUSE_FRAGMENT_SHADER_SOURCE = "#version 430 core\n"
 "}";
 
 
-static CGL_framebuffer *default_framebuffer, *bloom_framebuffer;
-static CGL_shader *present_shader, *diffuse_shader;
-static CGL_mesh_gpu *mesh;
+// Game state structure
+struct {
+    CGL_window* window;
+    CGL_framebuffer *default_framebuffer, *bloom_framebuffer;
+    CGL_shader *present_shader, *diffuse_shader;
+    CGL_mesh_gpu *mesh;
+    CGL_float curr_time;
+    CGL_float prev_time;
+    CGL_float delta_time;
+    CGL_float time;
+    CGL_float frame_time;
+    CGL_float obj_scale;
+    CGL_int frames;
+    CGL_int fps;
+    CGL_int subdiv_level;
+    CGL_bool inverted_menger;
+    CGL_mat4 projection;
+    CGL_mat4 view;
+#ifndef CGL_WASM
+    CGL_bloom* bloom;
+#endif
+} g_State;
 
 CGL_mesh_cpu* generate_menger_unit(CGL_mesh_cpu* base_mesh, CGL_bool invert)
 {
@@ -173,128 +236,156 @@ CGL_mesh_gpu* generate_menger_item(CGL_int sub_div, CGL_bool invert)
     return mesh_gpu;    
 }
 
+CGL_bool init()
+{
+    srand((uint32_t)time(NULL));
+    if(!CGL_init()) return CGL_FALSE;
+    
+    g_State.window = CGL_window_create(700, 700, "Meneger Sponge Fractal - Jaysmito Mukherjee");
+    if(!g_State.window) return CGL_FALSE;
+    
+    CGL_window_make_context_current(g_State.window);
+    if(!CGL_gl_init()) return CGL_FALSE;
+    CGL_widgets_init();
+
+    g_State.default_framebuffer = CGL_framebuffer_create_from_default(g_State.window);
+    g_State.bloom_framebuffer = CGL_framebuffer_create_basic(700, 700);
+
+    g_State.present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
+    g_State.diffuse_shader = CGL_shader_create(DIFFUSE_VERTEX_SHADER_SOURCE, DIFFUSE_FRAGMENT_SHADER_SOURCE, NULL);
+
+    g_State.mesh = generate_menger_item(0, false);
+
+#ifndef CGL_WASM
+    g_State.bloom = CGL_bloom_create(700, 700, 3);
+    CGL_bloom_set_threshold(g_State.bloom, 1.0f);
+    CGL_bloom_set_offset(g_State.bloom, 3.0f, 3.0f);
+#endif
+
+    // Initialize state variables
+    g_State.curr_time = CGL_utils_get_time();
+    g_State.prev_time = CGL_utils_get_time();
+    g_State.delta_time = 0.0f;
+    g_State.time = 0.0f;
+    g_State.frame_time = 0.0f;
+    g_State.obj_scale = 3.0f;
+    g_State.frames = 0;
+    g_State.fps = 0;
+    g_State.subdiv_level = 0;
+    g_State.inverted_menger = false;
+    
+    g_State.projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.01f, 100.0f);
+    g_State.view = CGL_mat4_identity();
+
+    return CGL_TRUE;
+}
+
+void cleanup()
+{
+#ifndef CGL_WASM
+    CGL_bloom_destroy(g_State.bloom);
+#endif
+    CGL_shader_destroy(g_State.diffuse_shader);
+    CGL_shader_destroy(g_State.present_shader);
+    CGL_mesh_gpu_destroy(g_State.mesh);
+    CGL_framebuffer_destroy(g_State.bloom_framebuffer);
+    CGL_framebuffer_destroy(g_State.default_framebuffer);
+    CGL_widgets_shutdown();
+    CGL_gl_shutdown();
+    CGL_window_destroy(g_State.window);    
+    CGL_shutdown();
+}
+
+EM_BOOL loop(double time, void* userData)
+{
+    (void)time;
+    (void)userData;
+
+    CGL_window_set_size(g_State.window, 700, 700);
+
+    CGL_vec3 camera_position = CGL_vec3_init(sinf(g_State.time * 0.3f) * 20.0f, 
+        (cosf(g_State.time * 0.3f) + sinf(g_State.time * 0.3f)) / 1.414f * 20.0f, 
+        cosf(g_State.time * 0.3f) * 20.0f);
+    g_State.view = CGL_mat4_look_at(camera_position, CGL_vec3_init(0.0f, 0.0f, 0.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
+    g_State.view = CGL_mat4_mul(g_State.projection, g_State.view);
+
+    g_State.curr_time = CGL_utils_get_time();
+    g_State.delta_time = g_State.curr_time - g_State.prev_time;
+    g_State.prev_time = g_State.curr_time;
+    g_State.time += g_State.delta_time;
+    g_State.frame_time += g_State.delta_time;
+    g_State.frames++;
+    if(g_State.frame_time >= 1.0f) { 
+        g_State.fps = g_State.frames; 
+        g_State.frames = 0; 
+        g_State.frame_time = 0.0f; 
+    }
+
+    static CGL_bool prev_inv = false;
+    static CGL_int prev_subdiv = 0;
+    if(g_State.inverted_menger != prev_inv || g_State.subdiv_level != prev_subdiv)
+    {
+        CGL_mesh_gpu_destroy(g_State.mesh);
+        g_State.mesh = generate_menger_item(g_State.subdiv_level, g_State.inverted_menger);
+        prev_inv = g_State.inverted_menger;
+        prev_subdiv = g_State.subdiv_level;
+    }
+
+    // Render scene
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    // ... rest of rendering code ...
+    CGL_framebuffer_bind(g_State.bloom_framebuffer);
+    CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
+    CGL_shader_bind(g_State.diffuse_shader);
+    CGL_shader_set_uniform_mat4(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "view_proj"), &g_State.view);
+    CGL_shader_set_uniform_vec3v(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "u_light_pos"), camera_position.x, camera_position.y, camera_position.z);
+    CGL_shader_set_uniform_float(g_State.diffuse_shader, CGL_shader_get_uniform_location(g_State.diffuse_shader, "u_scale"), g_State.obj_scale);
+    CGL_mesh_gpu_render(g_State.mesh);
+
+#ifndef CGL_WASM
+    CGL_bloom_apply(g_State.bloom, CGL_framebuffer_get_color_texture(g_State.bloom_framebuffer));
+#endif
+
+    // ... rest of rendering and UI code ...
+    CGL_framebuffer_bind(g_State.default_framebuffer);
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
+    CGL_shader_bind(g_State.present_shader);
+    CGL_texture_bind(CGL_framebuffer_get_color_texture(g_State.bloom_framebuffer), 0);
+    CGL_shader_set_uniform_int(g_State.present_shader, CGL_shader_get_uniform_location(g_State.present_shader, "u_tex"), 0);
+    CGL_gl_render_screen_quad();
+
+    // Handle input and UI
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_UP)) { g_State.subdiv_level++; CGL_utils_sleep(300); }
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_DOWN)) { g_State.subdiv_level--; CGL_utils_sleep(300); }
+    g_State.subdiv_level = CGL_utils_clamp(g_State.subdiv_level, 0, 8);
+
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_SPACE)) { g_State.inverted_menger = !g_State.inverted_menger; CGL_utils_sleep(100); }
+
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_RIGHT)) { g_State.obj_scale += 0.01f;}
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_LEFT)) { g_State.obj_scale -= 0.01f;}
+    g_State.obj_scale = CGL_utils_clamp(g_State.obj_scale, 0.01f, 10.0f);
+
+    CGL_window_poll_events(g_State.window);
+    CGL_window_swap_buffers(g_State.window);
+
+    return !CGL_window_should_close(g_State.window);
+}
 
 int main()
 {
-    srand((uint32_t)time(NULL));
-    CGL_init();
-    CGL_window* window = CGL_window_create(700, 700, "Meneger Sponge Fractal - Jaysmito Mukherjee");
-    if(!window) return 1;
-    CGL_window_make_context_current(window);
-    CGL_gl_init();
-    CGL_widgets_init();
+    if(!init()) return 1;
 
-    default_framebuffer = CGL_framebuffer_create_from_default(window);
-    bloom_framebuffer = CGL_framebuffer_create(700, 700);
-
-    present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER_SOURCE, PASS_THROUGH_FRAGMENT_SHADER_SOURCE, NULL);
-    diffuse_shader = CGL_shader_create(DIFFUSE_VERTEX_SHADER_SOURCE, DIFFUSE_FRAGMENT_SHADER_SOURCE, NULL);
-
-    mesh = generate_menger_item(0, false);
-
-    CGL_float curr_time = CGL_utils_get_time();
-    CGL_float prev_time = CGL_utils_get_time();
-    CGL_float delta_time = 0.0f;
-    CGL_float time = 0.0f, frame_time = 0.0f;
-    CGL_float obj_scale = 3.0f;
-    CGL_int frames = 0, fps = 0;
-    CGL_int subdiv_level = 0;
-    CGL_bool inverted_menger = false;
-    
-    CGL_mat4 projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.01f, 100.0f);
-    CGL_mat4 view = CGL_mat4_identity();
-
-    CGL_bloom* bloom = CGL_bloom_create(700, 700, 3);
-    CGL_bloom_set_threshold(bloom, 1.0f);
-    CGL_bloom_set_offset(bloom, 3.0f, 3.0f);
-
-    while(!CGL_window_should_close(window))
-    {
-        CGL_window_set_size(window, 700, 700); // force window size to be 600x600
-
-        CGL_vec3 camera_position = CGL_vec3_init(sinf(time * 0.3f) * 20.0f, (cosf(time * 0.3f) + sinf(time * 0.3f)) / 1.414f * 20.0f, cosf(time * 0.3f) * 20.0f);
-        view = CGL_mat4_look_at(camera_position, CGL_vec3_init(0.0f, 0.0f, 0.0f), CGL_vec3_init(0.0f, 1.0f, 0.0f));
-        view = CGL_mat4_mul(projection, view);
-
-        curr_time = CGL_utils_get_time();
-        delta_time = curr_time - prev_time;
-        prev_time = curr_time;
-        time += delta_time; frame_time += delta_time;
-        frames++;
-        if(frame_time >= 1.0f) { fps = frames; frames = 0; frame_time = 0.0f; }
-
-        static CGL_bool prev_inv = false;
-        static CGL_int prev_subdiv = 0;
-        if(inverted_menger != prev_inv || subdiv_level != prev_subdiv)
-        {
-            CGL_mesh_gpu_destroy(mesh);
-            mesh = generate_menger_item(subdiv_level, inverted_menger);
-            prev_inv = inverted_menger;
-            prev_subdiv = subdiv_level;
-        }
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-
-        CGL_framebuffer_bind(bloom_framebuffer);
-        CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
-        CGL_shader_bind(diffuse_shader);
-        CGL_shader_set_uniform_mat4(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "view_proj"), &view);
-        CGL_shader_set_uniform_vec3v(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "u_light_pos"), camera_position.x, camera_position.y, camera_position.z);
-        CGL_shader_set_uniform_float(diffuse_shader, CGL_shader_get_uniform_location(diffuse_shader, "u_scale"), obj_scale);
-        CGL_mesh_gpu_render(mesh);
-
-        CGL_bloom_apply(bloom, CGL_framebuffer_get_color_texture(bloom_framebuffer));
-
-        CGL_framebuffer_bind(default_framebuffer);
-        CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
-        CGL_shader_bind(present_shader);
-        CGL_texture_bind(CGL_framebuffer_get_color_texture(bloom_framebuffer), 0);
-        CGL_shader_set_uniform_int(present_shader, CGL_shader_get_uniform_location(present_shader, "u_tex"), 0);
-        CGL_gl_render_screen_quad();
-
-
-        glDisable(GL_DEPTH_TEST);
-
-        CGL_widgets_begin();
-
-        static CGL_byte buffer[1024];
-        sprintf(buffer, "Framerate: %d", fps);
-        CGL_widgets_add_string(buffer, -1.0f, 0.95f, 1.0f, 0.05f);
-        sprintf(buffer, "Frametime: %f", delta_time);
-        CGL_widgets_add_string(buffer, -1.0f, 0.90f, 1.0f, 0.05f);
-        sprintf(buffer, "Subdivision: %d", subdiv_level);
-        CGL_widgets_add_string(buffer, -1.0f, 0.85f, 1.0f, 0.05f);
-        sprintf(buffer, "Inverted: %s", inverted_menger ? "True" : "False");
-        CGL_widgets_add_string(buffer, -1.0f, 0.80f, 1.0f, 0.05f);
-        sprintf(buffer, "Scale: %f", obj_scale);
-        CGL_widgets_add_string(buffer, -1.0f, 0.75f, 1.0f, 0.05f);
-
-        CGL_widgets_end();
-
-        CGL_window_poll_events(window);
-        CGL_window_swap_buffers(window);
-
-        if(CGL_window_is_key_pressed(window, CGL_KEY_UP)) { subdiv_level++; CGL_utils_sleep(300); }
-        if(CGL_window_is_key_pressed(window, CGL_KEY_DOWN)) { subdiv_level--; CGL_utils_sleep(300); }
-        subdiv_level = CGL_utils_clamp(subdiv_level, 0, 8);
-
-        if(CGL_window_is_key_pressed(window, CGL_KEY_SPACE)) { inverted_menger = !inverted_menger; CGL_utils_sleep(100); }
-
-        if(CGL_window_is_key_pressed(window, CGL_KEY_RIGHT)) { obj_scale += 0.01f;}
-        if(CGL_window_is_key_pressed(window, CGL_KEY_LEFT)) { obj_scale -= 0.01f;}
-        obj_scale = CGL_utils_clamp(obj_scale, 0.01f, 10.0f);
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    while (!CGL_window_should_close(g_State.window)) {
+        loop(0, NULL);
     }
+    cleanup();
+#endif
 
-    CGL_bloom_destroy(bloom);
-    CGL_shader_destroy(diffuse_shader);
-    CGL_shader_destroy(present_shader);
-    CGL_mesh_gpu_destroy(mesh);
-    CGL_framebuffer_destroy(bloom_framebuffer);
-    CGL_framebuffer_destroy(default_framebuffer);
-    CGL_widgets_shutdown();
-    CGL_gl_shutdown();
-    CGL_window_destroy(window);    
-    CGL_shutdown();
     return 0;
 }
