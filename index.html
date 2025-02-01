@@ -550,6 +550,11 @@
         updateThemeToggleIcon();
       });
 
+      function shuffleProjects() {
+        projectsData.sort(() => Math.random() - 0.5);
+        renderProjects();
+      }
+
       async function main() {
         projectsData = await fetch("./db.json")
           .then((res) => res.json())
@@ -558,6 +563,8 @@
             return [];
           });
         
+        shuffleProjects();
+
         // Initial setup
         applyDefaultTheme();
         renderTags();

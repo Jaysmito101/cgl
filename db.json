@@ -47,5 +47,101 @@
       "author": "Jaysmito101",
       "difficulty": 3,
       "youtube": "https://www.youtube.com/shorts/QNfG7SoRcog"
-    }
+    },
+    {
+        "name": "3D Pipes",
+        "path": "builds/3d_pipes",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/3d_pipes.c",
+        "tags": ["3d", "pipes", "oldschool", "windows", "screensaver", "creative"],
+        "views": 121,
+        "description": "The 3D pipes screensaver from old windows versions.",
+        "image": "builds/3d_pipes/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "s-mackeo",
+        "difficulty": 4
+    },
+    {
+        "name": "3D Widgets",
+        "path": "builds/3d_widgets",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/3d_widgets.c",
+        "tags": ["3d", "widgets", "simple", "creative", "tutorial"],
+        "views": 121,
+        "description": "A simple example of how to render 3D meshes using CGL widgets API.",
+        "image": "builds/3d_widgets/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 1
+    },
+    {
+        "name": "Advanced Widgets",
+        "path": "builds/advanced_widgets",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/advanced_widgets.c",
+        "tags": ["cgl", "advanced", "widgets", "creative", "tutorial"],
+        "views": 121,
+        "description": "An example of some advanced usage of the CGL widgets API.",
+        "image": "builds/advanced_widgets/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    },
+    {
+        "name": "Approximating Pi",
+        "path": "builds/approximating_pi",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/approximating_pi.c",
+        "tags": ["cgl", "math", "monte carlo", "pi", "creative", "tutorial"],
+        "views": 121,
+        "description": "A creative coding and interesting mathematical challenge to approximate pi using monte carlo method.",
+        "image": "builds/approximating_pi/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    },
+    {
+        "name": "Audio Visualizer",
+        "path": "builds/audio_visualizer",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/audio_visualizer.c",
+        "tags": ["cgl", "audio", "visualizer", "creative", "tutorial"],
+        "views": 121,
+        "description": "An creative application that visualized a audio file using brilliant looking visuals.",
+        "image": "builds/audio_visualizer/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 3
+    },
+    {
+        "name": "Barnsley Fern",
+        "path": "builds/barnsley_fern",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/barnsley_fern.c",
+        "tags": ["cgl", "math", "fractal", "fern", "creative", "tutorial"],
+        "views": 121,
+        "description": "An example of how to render the barnsley fern fractal using CGL.",
+        "image": "builds/barnsley_fern/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    },
+    {
+        "name": "Basic Node Editor",
+        "path": "builds/basic_node_editor",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/basic_node_editor.c",
+        "tags": ["cgl", "node_editor", "simple", "creative", "tutorial"],
+        "views": 121,
+        "description": "A simple example of how to create a basic node editor using CGL's node editor API.",
+        "image": "builds/basic_node_editor/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 5
+    },
+    {
+        "name": "Basic Plotting",
+        "path": "builds/basic_plotting",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/basic_plotting.c",
+        "tags": ["cgl", "math", "plotting", "simple", "creative", "tutorial"],
+        "views": 121,
+        "description": "A simple example of how to use CGL's plotting API to plot graphs, curves, chats, scatter plots.",
+        "image": "builds/basic_plotting/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    }    
 ]
