@@ -225,17 +225,87 @@
         color: #f0f0f0;
         border-color: #555;
       }
+      .github-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica,
+          Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 20px;
+        color: white;
+        background-color: #2da44e;
+        border: 1px solid rgba(27, 31, 36, 0.15);
+        border-radius: 6px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+
+      .github-btn:hover {
+        background-color: #2a9142;
+        box-shadow: 0 1px 0 rgba(27, 31, 36, 0.1);
+      }
+
+      .github-btn:active {
+        background-color: #298640;
+        transform: scale(0.98);
+      }
+
+      .github-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        fill: white;
+      }
+      .youtube-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        font-family: Roboto, Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 20px;
+        color: white;
+        background-color: #ff0000; /* YouTube red */
+        border: none;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+
+      .youtube-btn:hover {
+        background-color: #cc0000; /* Darker red on hover */
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+      }
+
+      .youtube-btn:active {
+        background-color: #b30000; /* Even darker red on click */
+        transform: scale(0.98);
+      }
+
+      .youtube-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        fill: white;
+      }
     </style>
+    <link href="prism.css" rel="stylesheet" />
   </head>
   <body>
     <header>
-      <div class="brand">
-        <img
-          src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/images/CGL_logo_low_mid_res.png"
-          alt="CGL Logo"
-        />
-        <h1>CGL Interactive Demos (WASM)</h1>
-      </div>
+      <a href="./index.html" style="text-decoration: none; color: inherit;">
+        <div class="brand">
+          <img
+            src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/images/CGL_logo_low_mid_res.png"
+            alt="CGL Logo"
+          />
+          <h1>CGL Interactive Demos (WASM)</h1>
+        </div>
+      </a>
       <button class="theme-toggle" id="themeToggle">
         <!-- Icon will be updated dynamically -->
       </button>
@@ -257,6 +327,42 @@
             <div class="tags" id="projTags">
               <!-- Tags will be inserted here -->
             </div>
+            <!-- a button called star in github -->
+
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              class="github-btn"
+              id="github-btn"
+            >
+              <svg
+                class="github-icon"
+                viewBox="0 0 16 16"
+                version="1.1"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                ></path>
+              </svg>
+              Open in GitHub
+            </a>
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              class="youtube-btn"
+              id="youtube-btn"
+            >
+              <svg class="youtube-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                />
+              </svg>
+              Open in YouTube
+            </a>
+
+            <br />
             <p id="projDesc">Project description goes here.</p>
           </div>
           <div class="documentation" id="projDoc">Loading documentation...</div>
@@ -265,15 +371,14 @@
             <!-- More share buttons/icons can be added here -->
           </div>
           <!-- Embedded Source Code -->
-          <div class="source-code" id="projSource">Loading source code...</div>
+          <pre><code class="language-c" id="projSource">// Loading source code...</code></pre>
         </div>
       </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="./counterAPI.js"></script>
+    <script src="./prism.js"></script>
     <script>
-
-
       /***************** Theme Logic ******************/
       function updateThemeToggleIcon() {
         if (document.body.classList.contains("dark")) {
@@ -326,7 +431,12 @@
         throw err;
       }
 
-    
+      function getRawGithubUserContentURL(url) {
+        url = url.replace("github.com", "raw.githubusercontent.com");
+        url = url.replace("/blob/", "/refs/heads/");
+        return url;
+      }
+
       async function main() {
         // Increment the view count
         let views = 0;
@@ -337,12 +447,20 @@
         }
 
         // Populate project details
+        document.getElementById("github-btn").href = project.source_code;
+
+        if (project.youtube) {
+          document.getElementById("youtube-btn").href = project.youtube;
+        } else {
+          document.getElementById("youtube-btn").style.display = "none";
+        }
+
         document.getElementById("projTitle").textContent = project.name;
         document.getElementById("projMeta").textContent = `By ${
           project.author
-        } · ${new Date(project.published_date).toLocaleDateString()} · ${
-          views
-        } views`;
+        } · ${new Date(
+          project.published_date
+        ).toLocaleDateString()} · ${views} views`;
         document.getElementById("projDifficulty").textContent =
           "Difficulty: " + getStarRating(project.difficulty);
         document.getElementById("projDesc").textContent = project.description;
@@ -381,12 +499,29 @@
 
         // Embed the source code using an iframe.
         // Encode the project.source_code URL and inject into the embed URL.
-        const encodedSource = encodeURIComponent(project.source_code);
-        const sourceIframeHTML = `<iframe frameborder="0" scrolling="no" style="width:100%; height:2515px;" allow="clipboard-write" src="https://emgithub.com/iframe.html?target=${encodedSource}&style=tokyo-night-dark&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></iframe>`;
-        document.getElementById("projSource").innerHTML = sourceIframeHTML;
+        // const encodedSource = encodeURIComponent(project.source_code);
+        try {
+          const sourceURL = getRawGithubUserContentURL(project.source_code);
+          fetch(sourceURL)
+            .then((response) => {
+              if (!response.ok) throw new Error("Failed to fetch source code");
+              return response.text();
+            })
+            .then((sourceCode) => {
+              document.getElementById("projSource").textContent = sourceCode;
+              Prism.highlightAll();
+            })
+            .catch((err) => {
+              console.error("Failed to embed source code:", err);
+              document.getElementById("projSource").textContent =
+                "// Failed to load source code.";
+            });
+        } catch (err) {
+          console.error("Failed to embed source code:", err);
+          document.getElementById("projSource").textContent =
+            "// Failed to load source code.";
+        }
       }
-
-      
 
       main();
     </script>
