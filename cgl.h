@@ -9860,13 +9860,19 @@ struct CGL_phong_light
 static const char* __CGL_PHONG_VERTEX_SHADER =
 #ifdef CGL_WASM
 "#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
 #else
 "#version 430 core\n"
-#endif
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec3 Normal;\n"
@@ -9889,6 +9895,8 @@ static const char* __CGL_PHONG_VERTEX_SHADER =
 static const char* __CGL_PHONG_FRAGMENT_SHADER =
 #ifdef CGL_WASM
 "#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
 #else
 "#version 430 core\n"
 #endif
@@ -10031,7 +10039,7 @@ static const char* __CGL_PHONG_FRAGMENT_SHADER =
 "{\n"
 "    vec4 color = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
 "    vec4 light_output = vec4(0.0f);\n"
-"    for ( CGL_int i = 0 ; i < u_light_count ; i++)\n"
+"    for ( int i = 0 ; i < u_light_count ; i++)\n"
 "    {\n"
 "        if(LIGHT_TYPE(i) < LIGHT_TYPE_DIRECTIONAL)\n"
 "            light_output += calculate_directional_light(i);\n"
@@ -10639,9 +10647,7 @@ CGL_tilemap* CGL_tilemap_create(uint32_t tile_count_x, uint32_t tile_count_y, ui
 	tilemap->tile_size_x = tile_size_x;
 	tilemap->tile_size_y = tile_size_y;
 
-	CGL_info("tile_count_x: %d, tile_count_y: %d, tile_size_x: %d, tile_size_y: %d", tile_count_x, tile_count_y, tile_size_x, tile_size_y);
 	tilemap->ssbo = CGL_ssbo_create(ssbo_binding);
-	CGL_info("ssbo_binding: %d", ssbo_binding);
 
 	CGL_mesh_cpu* screen_quad_mesh_cpu = CGL_mesh_cpu_quad(CGL_vec3_init(1.0, 1.0, 0.0),
 		CGL_vec3_init(1.0, -1.0, 0.0),
@@ -10830,13 +10836,18 @@ struct CGL_sky
 static const char* __CGL_SKY_VERTEX_SHADER =
 #ifdef CGL_WASM
 "#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"in vec4 position;\n"
+"in vec4 normal;\n"
+"in vec4 texcoord;\n"
 #else
 "#version 430 core\n"
-#endif
 "\n"
 "layout (location = 0) in vec4 position;\n"
 "layout (location = 1) in vec4 normal;\n"
 "layout (location = 2) in vec4 texcoord;\n"
+#endif
 "\n"
 "out vec3 Position;\n"
 "\n"
@@ -10853,6 +10864,8 @@ static const char* __CGL_SKY_VERTEX_SHADER =
 static const char* __CGL_SKY_CUBEMAP_FRAGMENT_SHADER =
 #ifdef CGL_WASM
 "#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
 #else
 "#version 430 core\n"
 #endif
@@ -10872,14 +10885,16 @@ static const char* __CGL_SKY_CUBEMAP_FRAGMENT_SHADER =
 static const char* __CGL_SKY_PROCEDURAL_FRAGMENT_SHADER =
 #ifdef CGL_WASM
 "#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
 #else
 "#version 430 core\n"
 #endif
-"uniform vec3 fsun = vec3(0, 0.2, 0.1);\n"
-"uniform CGL_float time = 0.0;\n"
-"uniform CGL_float cirrus = 0.4;\n"
-"uniform CGL_float cumulus = 0.8;\n"
-"uniform CGL_float upf = 0.35;\n"
+"uniform vec3 fsun;\n"
+"uniform float time;\n"
+"uniform float cirrus;\n"
+"uniform float cumulus;\n"
+"uniform float upf;\n"
 "\n"
 "in vec3 Position;"
 "\n"
@@ -15706,7 +15721,6 @@ CGL_void CGL_csv_destroy(CGL_csv* csv)
 CGL_bool CGL_csv_load_from_buffer(CGL_csv* csv, const CGL_byte* buffer, const CGL_byte* seperator)
 {
 	CGL_sizei seperator_length = strlen(seperator);
-	CGL_csv_clear(csv);
 	CGL_sizei line_start_index = 0, current_index = 0, line_end_index = 0, line_number = 0, column_count = 0, prev_column_start = 0, seperator_count = 0, line_iterator = 0;
 	while (buffer[current_index])
 	{
