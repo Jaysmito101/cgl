@@ -143,5 +143,41 @@
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
         "difficulty": 2
-    }    
+    },
+    {
+        "name": "Basic Raycast 2D Lighting",
+        "path": "builds/basic_raycast_2d_lighting",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/basic_raycast_2d_lighting.c",
+        "tags": ["cgl", "2d", "raycast", "lighting", "creative", "tutorial"],
+        "views": 121,
+        "description": "A simple example of how to use CGL's 2D raycasting API to create a 2D lighting system.",
+        "image": "builds/basic_raycast_2d_lighting/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 4
+    },
+    {
+        "name": "Bezier Curve Widget",
+        "path": "builds/bezier_curve_widget",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/bezier_curve_widget.c",
+        "tags": ["cgl", "bezier", "curve", "widget", "creative", "tutorial"],
+        "views": 121,
+        "description": "A special widget called a Curve Editor that gives an interactive experience of the cgl bezier_curve_widget API.",
+        "image": "builds/bezier_curve_widget/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    },
+    {
+        "name": "Christmas Tree",
+        "path": "builds/christmas_tree01",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/christmas_tree01.c",
+        "tags": ["cgl", "christmas", "tree", "creative", "tutorial"],
+        "views": 121,
+        "description": "A creative coding example of a christmas tree using CGL.",
+        "image": "builds/christmas_tree01/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
+    }
 ]
