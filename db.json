@@ -299,6 +299,17 @@
         "published_date": "2024-02-02",
         "author": "Jaysmito101",
         "difficulty": 5
+    },
+    {
+        "name": "Newton Equation Root Approximator",
+        "path": "builds/newton_equation_root_appximator",
+        "source_code": "https://github.com/Jaysmito101/cgl/blob/main/examples/c/newton_equation_root_appximator.c",
+        "tags": ["cgl", "math", "newton", "equation", "root", "creative", "tutorial"],
+        "views": 121,
+        "description": "An example of how to approximate the root of an equation using newton's method.",
+        "image": "builds/newton_equation_root_appximator/thumb.png",
+        "published_date": "2024-02-01",
+        "author": "Jaysmito101",
+        "difficulty": 2
     }
-
 ]
