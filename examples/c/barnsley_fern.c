@@ -25,8 +25,18 @@ SOFTWARE.
 
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_LOGGING_ENABLED
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
+
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
+
 
 typedef struct
 {
@@ -42,7 +52,8 @@ static struct
     CGL_int window_height;
     CGL_int window_width;
     CGL_framebuffer* framebuffer;
-} g_context;
+    CGL_double scale_xy, offset_x, offset_y;
+} g_State;
 
 CGL_double rotation_matrices[4][4] = {
     {0.0, 0.0, 0.0, 0.16},
@@ -62,7 +73,6 @@ CGL_float probabilities[4] = {0.01f, 0.85f, 0.07f, 0.07f};
 
 CGL_dvec2 next_point_barnsley(CGL_dvec2 prev_point)
 {
-    CGL_float random = CGL_utils_random_float();
     CGL_dvec2 next_point = CGL_dvec2_init(0.0, 0.0);
     CGL_sizei index = CGL_utils_get_random_with_probability(probabilities, 4);
     next_point.x = rotation_matrices[index][0] * prev_point.x + rotation_matrices[index][1] * prev_point.y + translation_vectors[index][0];
@@ -70,72 +80,102 @@ CGL_dvec2 next_point_barnsley(CGL_dvec2 prev_point)
     return next_point;    
 }
 
+CGL_bool init() {
+    srand((uint32_t)time(NULL));
+    if(!CGL_init()) return CGL_FALSE;
+    g_State.window_height = g_State.window_width = 700;
+    g_State.window = CGL_window_create(g_State.window_width, g_State.window_height, "Barnsley Fern - Jaysmito Mukherjee"); // create the window
+    CGL_window_make_context_current(g_State.window); // make the opengl context for the window current
+    if(!CGL_gl_init()) return CGL_FALSE; // initialize the opengl functions
+    g_State.framebuffer = CGL_framebuffer_create_from_default(g_State.window); // load the default framebuffer (0) into CGL_framebuffer object
+    if(!CGL_widgets_init()) return CGL_FALSE;
+
+
+
+    // These values are for the best view of the fern
+    g_State.scale_xy = 0.179262f;
+    g_State.offset_x = 0.0f;
+    g_State.offset_y = -0.947767;
+
+    return CGL_TRUE;
+}
+
+CGL_void cleanup() {
+    CGL_widgets_shutdown();
+    CGL_framebuffer_destroy(g_State.framebuffer); // destory framebuffer object
+    CGL_gl_shutdown(); // shutdown cgl opengl module
+    CGL_window_destroy(g_State.window); // destroy window
+    CGL_shutdown(); // shutdown cgl and clean up resources allocated by CGL internally (if any)
+}
+
+EM_BOOL loop(double time, void* userData) {
+    (void)time;
+    (void)userData;
+
+    const CGL_float point_size = 0.01f;
+    static CGL_float prev_time = 0.0f, curr_time = 0.0f, delta_time = 0.0f, frame_time = 0.0f;
+    static CGL_int frame_count = 0, frame_rate = 60;
+    static CGL_dvec2 turtle_position = {0.0f, 0.0f};
+
+
+    curr_time = CGL_utils_get_time();
+    delta_time = curr_time - prev_time; prev_time = curr_time; frame_time += delta_time; frame_count++;
+    if(frame_time >= 1.0f) { frame_rate = frame_count; frame_time = 0.0f; frame_count = 0; }
+
+    CGL_window_set_size(g_State.window, g_State.window_width, g_State.window_height); // set the window size
+    // rendering
+    CGL_framebuffer_bind(g_State.framebuffer); // bind default framebuffer and also adjust viewport size and offset
+    //CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f); // clear screen with a dark gray color
+    CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f);
+
+    CGL_widgets_begin_int((CGL_float)g_State.scale_xy, (CGL_float)g_State.scale_xy, (CGL_float)g_State.offset_x, (CGL_float)g_State.offset_y);
+
+    CGL_widgets_set_fill_colorf(0.0f, 0.8f, 0.0f, 1.0f);
+
+    for(CGL_sizei i = 0; i < 50000; i++)
+    {
+        turtle_position = next_point_barnsley(turtle_position);        
+        CGL_widgets_add_rect2f((CGL_float)turtle_position.x, (CGL_float)turtle_position.y, point_size, point_size);
+    }
+        
+    CGL_widgets_end();       
+
+    CGL_widgets_begin();
+    CGL_widgets_add_string("Arrow keys to move", -0.9f, 0.9f, 0.8f, 0.05f);
+    CGL_widgets_add_string("W/S to zoom in/out", -0.9f, 0.85f, 0.8f, 0.05f);
+    CGL_widgets_end();       
+
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_W)) { g_State.scale_xy *= 1.01f; }
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_S)) { g_State.scale_xy *= 0.99f; } 
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_LEFT)) { g_State.offset_x -= 2.0f * delta_time; }
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_RIGHT)) { g_State.offset_x += 2.0f * delta_time; }
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_UP)) { g_State.offset_y += 2.0f * delta_time; } 
+    if(CGL_window_is_key_pressed(g_State.window, CGL_KEY_DOWN)) { g_State.offset_y -= 2.0f * delta_time; }
+
+    CGL_window_swap_buffers(g_State.window); // swap framebuffers
+    CGL_window_poll_events(g_State.window); // poll events (if this is not called every frame window will stop responding)
+
+    if(CGL_window_get_key(g_State.window, CGL_KEY_ESCAPE) == CGL_PRESS) return CGL_FALSE;
+
+    static CGL_byte title[256];
+    sprintf(title, "Barnsley Fern - Jaysmito Mukherjee | FPS: %d", frame_rate);
+    CGL_window_set_title(g_State.window, title);
+
+    return CGL_TRUE;
+}
+
 int main()
 {
-    srand((uint32_t)time(NULL));
-    if(!CGL_init()) return EXIT_FAILURE; // initialize CGL (required for setting up internals of CGL)
-    g_context.window_height = g_context.window_width = 700;
-    g_context.window = CGL_window_create(g_context.window_width, g_context.window_height, "Barnsley Fern - Jaysmito Mukherjee"); // create the window
-    CGL_window_make_context_current(g_context.window); // make the opengl context for the window current
-    if(!CGL_gl_init()) return EXIT_FAILURE; // initialize cgl opengl module    
-    g_context.framebuffer = CGL_framebuffer_create_from_default(g_context.window); // load the default framebuffer (0) into CGL_framebuffer object
-    if(!CGL_widgets_init()) return EXIT_FAILURE; 
-
-    CGL_float prev_time = CGL_utils_get_time(), curr_time = 0.0f, delta_time = 0.0f, frame_time = 0.0f;
-    CGL_int frame_count = 0, frame_rate = 60;
-
-    CGL_dvec2 turtle_position = CGL_dvec2_init(0.0f, 0.0f);
-    CGL_float point_size = 0.01f;
-
-    CGL_double scale_xy = 1.0, offset_x = 0.0, offset_y = 0.0;
-
-    // the main loop
-    while(!CGL_window_should_close(g_context.window)) // run till the close button is clicked
+    if(!init()) return EXIT_FAILURE;
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    while(!CGL_window_should_close(g_State.window)) // run till the close button is clicked
     {
-        curr_time = CGL_utils_get_time();
-        delta_time = curr_time - prev_time; prev_time = curr_time; frame_time += delta_time; frame_count++;
-        if(frame_time >= 1.0f) { frame_rate = frame_count; frame_time = 0.0f; frame_count = 0; }
-
-        CGL_window_set_size(g_context.window, g_context.window_width, g_context.window_height); // set the window size
-        // rendering
-        CGL_framebuffer_bind(g_context.framebuffer); // bind default framebuffer and also adjust viewport size and offset
-        //CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f); // clear screen with a dark gray color
-
-
-        CGL_widgets_begin_int((CGL_float)scale_xy, (CGL_float)scale_xy, (CGL_float)offset_x, (CGL_float)offset_y);
-
-        CGL_widgets_set_fill_colorf(0.0f, 0.8f, 0.0f, 1.0f);
-
-        for(CGL_sizei i = 0; i < 20000; i++)
-        {
-            turtle_position = next_point_barnsley(turtle_position);        
-            CGL_widgets_add_rect2f((CGL_float)turtle_position.x, (CGL_float)turtle_position.y, point_size, point_size);
-        }
-        
-        CGL_widgets_end();
-        
-
-
-        CGL_bool tmp = false, tmp2 = false;
-        if(tmp = CGL_window_is_key_pressed(g_context.window, CGL_KEY_W)) scale_xy *= 1.01; tmp2 |= tmp;
-        if(tmp = CGL_window_is_key_pressed(g_context.window, CGL_KEY_S)) scale_xy *= 0.99; tmp2 |= tmp;
-        if(tmp = CGL_window_is_key_pressed(g_context.window, CGL_KEY_LEFT)) offset_x -= 0.005; tmp2 |= tmp;
-        if(tmp = CGL_window_is_key_pressed(g_context.window, CGL_KEY_RIGHT)) offset_x += 0.005; tmp2 |= tmp;
-        if(tmp = CGL_window_is_key_pressed(g_context.window, CGL_KEY_UP)) offset_y += 0.005; tmp2 |= tmp;
-        if(tmp = CGL_window_is_key_pressed(g_context.window, CGL_KEY_DOWN)) offset_y -= 0.005; tmp2 |= tmp;
-        if(tmp2) CGL_gl_clear(0.0f, 0.0f, 0.0f, 1.0f); // clear screen with a dark gray color
-
-        CGL_window_swap_buffers(g_context.window); // swap framebuffers
-        CGL_window_poll_events(g_context.window); // poll events (if this is not called every frame window will stop responding)
-
-        if(CGL_window_get_key(g_context.window, CGL_KEY_ESCAPE) == CGL_PRESS) break; // quit on pressing escape
+        if(!loop(0.0, NULL)) break; 
     }
-
-    // cleanup
-    CGL_widgets_shutdown();
-    CGL_framebuffer_destroy(g_context.framebuffer); // destory framebuffer object
-    CGL_gl_shutdown(); // shutdown cgl opengl module
-    CGL_window_destroy(g_context.window); // destroy window
-    CGL_shutdown(); // shutdown cgl and clean up resources allocated by CGL internally (if any)
+    cleanup();
+#endif
     return EXIT_SUCCESS;
 }
