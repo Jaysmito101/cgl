@@ -14350,11 +14350,22 @@ struct CGL_trail_point
 };
 */
 
-static const char* __CGL_TRAIL_DEFAULT_VERTEX_SHADER = "#version 430 core\n"
+static const char* __CGL_TRAIL_DEFAULT_VERTEX_SHADER =
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+"\n"
+"in vec4 position;\n" // w is lifespan
+"in vec4 normal;\n" // w is distance
+"in vec4 texcoord;\n" // zw is reserved for future use
+#else
+"#version 430 core\n"
 "\n"
 "layout (location = 0) in vec4 position;\n" // w is lifespan
 "layout (location = 1) in vec4 normal;\n" // w is distance
 "layout (location = 2) in vec4 texcoord;\n" // zw is reserved for future use
+#endif
 "\n"
 "out vec3 Position;\n"
 "out vec2 TexCoord;\n"
@@ -14371,7 +14382,14 @@ static const char* __CGL_TRAIL_DEFAULT_VERTEX_SHADER = "#version 430 core\n"
 "   Distance = normal.w;\n"
 "}\n";
 
-static const char* __CGL_TRAIL_DEFAULT_FRAGMENT_SHADER = "#version 430 core\n"
+static const char* __CGL_TRAIL_DEFAULT_FRAGMENT_SHADER = 
+#ifdef CGL_WASM
+"#version 300 es\n"
+"precision highp float;\n"
+"precision highp int;\n"
+#else
+"#version 430 core\n"
+#endif
 "\n"
 "out vec4 FragColor;\n"
 "\n"
