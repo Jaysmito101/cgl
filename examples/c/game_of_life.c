@@ -23,6 +23,9 @@ SOFTWARE.
 */
 
 #define CGL_LOGGING_ENABLED
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_TEXT_RENDER
+#define CGL_EXCLUDE_NETWORKING
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
@@ -67,17 +70,19 @@ CGL_ubyte sample_from_board(int i, int j)
 
 CGL_ubyte get_neighbour_count(int x, int y)
 {
-    CGL_ubyte count = 0, val = 0, spx = 0, spy = 0;
+    CGL_int count = 0, val = 0, spx = 0, spy = 0;
     for(int i = -1 ; i <= 1 ; i ++) for(int j = -1 ; j <= 1 ; j ++)
     {
         spx = x + i; spy = y + j;
         if(i == 0 && j == 0) continue;
-        if(spx < 0) spx = TILE_COUNT_X - 1;  if(spx >= TILE_COUNT_X) spx = 0;
-        if(spy < 0) spy = TILE_COUNT_Y - 1; if(spy >= TILE_COUNT_Y) spy = 0;
-        val = sample_from_board(spx, spy);
+        if (spx < 0) spx = TILE_COUNT_X - 1;
+        if (spx >= TILE_COUNT_X) spx = 0;
+        if (spy < 0) spy = TILE_COUNT_Y - 1;
+        if (spy >= TILE_COUNT_Y) spy = 0;
+        val = (CGL_int)sample_from_board(spx, spy);
         if(val == 2) count ++;
     }
-    return count;
+    return (CGL_ubyte)count;
 }
 
 void update_board()
