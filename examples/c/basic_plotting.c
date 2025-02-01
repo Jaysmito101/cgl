@@ -23,9 +23,20 @@ SOFTWARE.
 */
 
 #define CGL_EXCLUDE_NETWORKING
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_LOGGING_ENABLED
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
+
+
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else 
+#define EM_BOOL int
+#endif
+
 
 static struct
 {
@@ -188,59 +199,77 @@ void draw_bar_plot_widgets()
         false
     );
 
-
-
 }
 
-int main()
-{
+CGL_bool init() {
+    
     srand((uint32_t)time(NULL));
-    if(!CGL_init()) return EXIT_FAILURE; // initialize CGL (required for setting up internals of CGL)
+    if(!CGL_init()) return CGL_FALSE;
     g_context.window_height = 600;
     g_context.window_width = 600;
     g_context.window = CGL_window_create(g_context.window_width, g_context.window_height, "Plotting - Jaysmito Mukherjee"); // create the window
-    if(g_context.window == NULL) return false; // window creation failed
+    if(g_context.window == NULL) return CGL_FALSE; // window creation failed
     CGL_window_make_context_current(g_context.window); // make the opengl context for the window current
-    if(!CGL_gl_init()) return EXIT_FAILURE; // initialize cgl opengl module    
+    if(!CGL_gl_init()) return CGL_FALSE; // initialize cgl opengl module    
     g_context.framebuffer = CGL_framebuffer_create_from_default(g_context.window); // load the default framebuffer (0) into CGL_framebuffer object
-    if(g_context.framebuffer == NULL) return false; // failed
-    if(!CGL_widgets_init()) return EXIT_FAILURE; 
+    if(g_context.framebuffer == NULL) return CGL_FALSE; // failed
+    if(!CGL_widgets_init()) return CGL_FALSE; 
 
-    CGL_int mode = 1;
+    return CGL_TRUE;
+}
 
-    // the main loop
-    while(!CGL_window_should_close(g_context.window)) // run till the close button is clicked
-    {
-        CGL_window_set_size(g_context.window, g_context.window_width, g_context.window_height); // set window size
-        // rendering
-        CGL_framebuffer_bind(g_context.framebuffer); // bind default framebuffer and also adjust viewport size and offset
-        CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f); // clear screen with a dark gray color
-
-        CGL_widgets_begin();
-
-        
-        if(mode == 1) draw_function_plot_widgets();
-        else if(mode == 2) draw_array_plot_widgets();
-        else if(mode == 3) draw_pie_chart_plot_widgets();
-        else if(mode == 4) draw_bar_plot_widgets();
-
-        CGL_widgets_end();
-
-        CGL_window_swap_buffers(g_context.window); // swap framebuffers
-        CGL_window_poll_events(g_context.window); // poll events (if this is not called every frame window will stop responding)
-
-
-
-        if(CGL_window_get_key(g_context.window, CGL_KEY_ESCAPE) == CGL_PRESS) break; // quit on pressing escape
-        for(CGL_int i = 1 ; i < 9 ; i++) if(CGL_window_get_key(g_context.window, CGL_KEY_0 + i) == CGL_PRESS) mode = i;
-        
-    }
-
-    // cleanup
+CGL_void cleanup() {
     CGL_widgets_shutdown();
     CGL_framebuffer_destroy(g_context.framebuffer); // destory framebuffer object
     CGL_gl_shutdown(); // shutdown cgl opengl module
     CGL_window_destroy(g_context.window); // destroy window
     CGL_shutdown(); // shutdown cgl and clean up resources allocated by CGL internally (if any)
+}
+
+EM_BOOL loop(double time, void* userData) {
+    (void)time;
+    (void)userData;
+
+    static CGL_int mode = 1;
+
+    CGL_window_set_size(g_context.window, g_context.window_width, g_context.window_height); // set window size
+        // rendering
+    CGL_framebuffer_bind(g_context.framebuffer); // bind default framebuffer and also adjust viewport size and offset
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f); // clear screen with a dark gray color
+
+    CGL_widgets_begin();
+
+        
+    if(mode == 1) draw_function_plot_widgets();
+    else if(mode == 2) draw_array_plot_widgets();
+    else if(mode == 3) draw_pie_chart_plot_widgets();
+    else if(mode == 4) draw_bar_plot_widgets();
+
+    CGL_widgets_end();
+
+    CGL_window_swap_buffers(g_context.window); // swap framebuffers
+    CGL_window_poll_events(g_context.window); // poll events (if this is not called every frame window will stop responding)
+
+
+
+    if(CGL_window_get_key(g_context.window, CGL_KEY_ESCAPE) == CGL_PRESS) return CGL_FALSE;
+    for(CGL_int i = 1 ; i < 9 ; i++) if(CGL_window_get_key(g_context.window, CGL_KEY_0 + i) == CGL_PRESS) mode = i;
+
+    return CGL_TRUE;
+}
+
+int main()
+{
+    if (!init()) return EXIT_FAILURE;
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+    // run till the close button is clicked
+    while(!CGL_window_should_close(g_context.window)) {
+        if(!loop(0, NULL)) break; // run the loop function
+    }
+    cleanup();
+#endif    
     return EXIT_SUCCESS;
 }
