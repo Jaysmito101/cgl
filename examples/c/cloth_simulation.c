@@ -26,8 +26,8 @@ SOFTWARE.
  * Cloth Simulation Example for CGL
  * 
  * This example demonstrates a real-time cloth simulation using:
- * - Compute shaders for physics calculations
- * - Verlet integration for stable particle dynamics
+ * - CPU-based physics calculations with Verlet integration
+ * - Triangular mesh rendering with Phong shading
  * - Spring constraints for cloth structure
  * - Interactive parameter control
  * 
@@ -36,7 +36,7 @@ SOFTWARE.
  * - Structural and shear spring constraints
  * - Gravity, wind, and damping forces
  * - Ground collision detection
- * - Real-time normal calculation for lighting
+ * - Triangular mesh with proper lighting
  * 
  * Controls:
  * - SPACE: Pause/Resume simulation
@@ -48,6 +48,7 @@ SOFTWARE.
  */
 
 #include <stdlib.h>
+#include <math.h>
 
 #define CGL_LOGGING_ENABLED
 #define CGL_IMPLEMENTATION
@@ -69,356 +70,42 @@ SOFTWARE.
 #define CLOTH_WIDTH 32      // Number of particles horizontally
 #define CLOTH_HEIGHT 32     // Number of particles vertically
 #define CLOTH_PARTICLES (CLOTH_WIDTH * CLOTH_HEIGHT)  // Total particle count
-// Note: Spring count includes structural (horizontal/vertical) and shear (diagonal) springs
-#define CLOTH_SPRINGS ((CLOTH_WIDTH - 1) * CLOTH_HEIGHT + CLOTH_WIDTH * (CLOTH_HEIGHT - 1) + (CLOTH_WIDTH - 1) * (CLOTH_HEIGHT - 1) * 2)
+#define CLOTH_TRIANGLES ((CLOTH_WIDTH - 1) * (CLOTH_HEIGHT - 1) * 2)  // Two triangles per quad
+#define CLOTH_INDICES (CLOTH_TRIANGLES * 3)  // Three indices per triangle
 
-// Pass through vertex shader for screen quad rendering
-static const char* PASS_THROUGH_VERTEX_SHADER = "#version 430 core\n"
-"\n"
-"layout (location = 0) in vec4 position;\n"
-"layout (location = 1) in vec4 normal;\n"
-"layout (location = 2) in vec4 texcoord;\n"
-"\n"
-"out vec3 Position;\n"
-"out vec2 TexCoord;\n"
-"\n"
-"void main()\n"
-"{\n"
-"	gl_Position = vec4(position.xyz, 1.0f);\n"
-"	Position = position.xyz;\n"
-"	TexCoord = texcoord.xy;\n"
-"}";
+// Particle structure for CPU-based simulation
+typedef struct {
+    CGL_vec3 position;     // Current position
+    CGL_vec3 prev_position; // Previous position for Verlet integration
+    CGL_vec3 velocity;     // Current velocity
+    CGL_vec3 normal;       // Surface normal for lighting
+    CGL_float mass;        // Particle mass
+    CGL_bool pinned;       // Whether particle is fixed in place
+} Particle;
 
-// Pass through fragment shader for screen quad rendering
-static const char* PASS_THROUGH_FRAGMENT_SHADER = "#version 430 core\n"
-"\n"
-"out vec4 FragColor;\n"
-"\n"
-"in vec3 Position;\n"
-"in vec2 TexCoord;\n"
-"\n"
-"uniform sampler2D u_tex;\n"
-"\n"
-"void main()\n"
-"{\n"
-"	vec3 color = texture(u_tex, TexCoord).rgb;\n"
-"	FragColor = vec4(color, 1.0f);\n"
-"}";
-
-// Cloth vertex shader - renders particles as points
-static const char* CLOTH_VERTEX_SHADER = "#version 430 core\n"
-"\n"
-"layout (location = 0) in vec3 position;\n"
-"\n"
-"struct Particle\n"
-"{\n"
-"    vec4 position; // xyz = position, w = mass\n"
-"    vec4 prev_position; // xyz = previous position, w = pinned (1.0 = pinned)\n"
-"    vec4 velocity; // xyz = velocity, w = unused\n"
-"    vec4 normal; // xyz = normal, w = unused\n"
-"};\n"
-"\n"
-"layout(std430, binding = 0) buffer ParticleBuffer\n"
-"{\n"
-"    Particle particles[];\n"
-"};\n"
-"\n"
-"out vec3 Color;\n"
-"out vec3 Normal;\n"
-"\n"
-"uniform mat4 view_proj;\n"
-"uniform vec3 light_pos;\n"
-"uniform vec3 cloth_color;\n"
-"\n"
-"void main()\n"
-"{\n"
-"	int particle_index = gl_VertexID;\n"
-"	vec3 world_pos = particles[particle_index].position.xyz;\n"
-"	vec3 normal = particles[particle_index].normal.xyz;\n"
-"	\n"
-"	gl_Position = view_proj * vec4(world_pos, 1.0);\n"
-"	gl_PointSize = 3.0;\n"
-"	\n"
-"	// Simple lighting calculation\n"
-"	vec3 light_dir = normalize(light_pos - world_pos);\n"
-"	float diffuse = max(dot(normal, light_dir), 0.0);\n"
-"	Color = cloth_color * (0.3 + diffuse * 0.7);\n"
-"	Normal = normal;\n"
-"}";
-
-// Cloth fragment shader
-static const char* CLOTH_FRAGMENT_SHADER = "#version 430 core\n"
-"\n"
-"in vec3 Color;\n"
-"in vec3 Normal;\n"
-"\n"
-"out vec4 FragColor;\n"
-"\n"
-"void main()\n"
-"{\n"
-"	// Make points round\n"
-"	vec2 center = gl_PointCoord - vec2(0.5);\n"
-"	if (dot(center, center) > 0.25)\n"
-"		discard;\n"
-"	\n"
-"	FragColor = vec4(Color, 1.0);\n"
-"}";
-
-// Cloth physics compute shader - this runs on the GPU for high performance
-static const char* CLOTH_COMPUTE_SHADER = "#version 430 core\n"
-"\n"
-"// Compute shader work group size - processes 16x16 particles per dispatch\n"
-"layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;\n"
-"\n"
-"// Simulation control uniforms\n"
-"uniform int mode; // 0: initialize, 1: update physics, 2: calculate normals\n"
-"uniform float dt; // delta time for integration\n"
-"uniform float time; // current simulation time\n"
-"uniform vec3 gravity; // gravity force vector\n"
-"uniform vec3 wind; // wind force vector\n"
-"uniform float damping; // velocity damping factor (0-1)\n"
-"uniform float rest_length; // natural spring length\n"
-"uniform float spring_strength; // spring stiffness constant\n"
-"uniform int cloth_width;\n"
-"uniform int cloth_height;\n"
-"uniform float cloth_size; // world-space size of cloth\n"
-"\n"
-"// Particle data structure - each particle is 4 vec4s (64 bytes)\n"
-"struct Particle\n"
-"{\n"
-"    vec4 position; // xyz = position, w = mass\n"
-"    vec4 prev_position; // xyz = previous position, w = pinned flag (1.0 = pinned)\n"
-"    vec4 velocity; // xyz = velocity, w = unused\n"
-"    vec4 normal; // xyz = surface normal, w = unused\n"
-"};\n"
-"\n"
-"// GPU buffer containing all particle data\n"
-"layout(std430, binding = 0) buffer ParticleBuffer\n"
-"{\n"
-"    Particle particles[];\n"
-"};\n"
-"\n"
-"// Hash function for random number generation\n"
-"float hash(vec2 co)\n"
-"{\n"
-"    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);\n"
-"}\n"
-"\n"
-"// Get particle index from 2D coordinates\n"
-"int getParticleIndex(int x, int y)\n"
-"{\n"
-"    if (x < 0 || x >= cloth_width || y < 0 || y >= cloth_height)\n"
-"        return -1;\n"
-"    return y * cloth_width + x;\n"
-"}\n"
-"\n"
-"// Initialize cloth particles\n"
-"void initialize()\n"
-"{\n"
-"    int x = int(gl_GlobalInvocationID.x);\n"
-"    int y = int(gl_GlobalInvocationID.y);\n"
-"    \n"
-"    if (x >= cloth_width || y >= cloth_height)\n"
-"        return;\n"
-"    \n"
-"    int index = getParticleIndex(x, y);\n"
-"    if (index < 0)\n"
-"        return;\n"
-"    \n"
-"    // Initialize particle position\n"
-"    float fx = float(x) / float(cloth_width - 1);\n"
-"    float fy = float(y) / float(cloth_height - 1);\n"
-"    \n"
-"    vec3 pos = vec3((fx - 0.5) * cloth_size, 2.0, (fy - 0.5) * cloth_size);\n"
-"    \n"
-"    particles[index].position = vec4(pos, 1.0); // mass = 1.0\n"
-"    particles[index].prev_position = vec4(pos, 0.0); // not pinned by default\n"
-"    particles[index].velocity = vec4(0.0, 0.0, 0.0, 0.0);\n"
-"    particles[index].normal = vec4(0.0, 1.0, 0.0, 0.0);\n"
-"    \n"
-"    // Pin top corners\n"
-"    if ((x == 0 || x == cloth_width - 1) && y == 0)\n"
-"    {\n"
-"        particles[index].prev_position.w = 1.0; // pinned\n"
-"    }\n"
-"}\n"
-"\n"
-"// Update cloth physics using Verlet integration\n"
-"void updatePhysics()\n"
-"{\n"
-"    int x = int(gl_GlobalInvocationID.x);\n"
-"    int y = int(gl_GlobalInvocationID.y);\n"
-"    \n"
-"    if (x >= cloth_width || y >= cloth_height)\n"
-"        return;\n"
-"    \n"
-"    int index = getParticleIndex(x, y);\n"
-"    if (index < 0)\n"
-"        return;\n"
-"    \n"
-"    // Skip if particle is pinned\n"
-"    if (particles[index].prev_position.w > 0.5)\n"
-"        return;\n"
-"    \n"
-"    vec3 pos = particles[index].position.xyz;\n"
-"    vec3 prev_pos = particles[index].prev_position.xyz;\n"
-"    vec3 vel = particles[index].velocity.xyz;\n"
-"    float mass = particles[index].position.w;\n"
-"    \n"
-"    // Calculate forces\n"
-"    vec3 force = vec3(0.0);\n"
-"    \n"
-"    // Gravity\n"
-"    force += gravity * mass;\n"
-"    \n"
-"    // Wind (simple)\n"
-"    force += wind * 0.1;\n"
-"    \n"
-"    // Spring forces\n"
-"    vec3 spring_force = vec3(0.0);\n"
-"    \n"
-"    // Check all 8 neighbors for spring connections\n"
-"    for (int dx = -1; dx <= 1; dx++)\n"
-"    {\n"
-"        for (int dy = -1; dy <= 1; dy++)\n"
-"        {\n"
-"            if (dx == 0 && dy == 0)\n"
-"                continue;\n"
-"            \n"
-"            int nx = x + dx;\n"
-"            int ny = y + dy;\n"
-"            int neighbor_index = getParticleIndex(nx, ny);\n"
-"            \n"
-"            if (neighbor_index < 0)\n"
-"                continue;\n"
-"            \n"
-"            vec3 neighbor_pos = particles[neighbor_index].position.xyz;\n"
-"            vec3 diff = neighbor_pos - pos;\n"
-"            float distance = length(diff);\n"
-"            \n"
-"            if (distance > 0.0001)\n"
-"            {\n"
-"                vec3 direction = diff / distance;\n"
-"                float target_length = rest_length;\n"
-"                \n"
-"                // Diagonal springs are longer\n"
-"                if (abs(dx) + abs(dy) == 2)\n"
-"                    target_length *= 1.414; // sqrt(2)\n"
-"                \n"
-"                float spring_force_mag = spring_strength * (distance - target_length);\n"
-"                spring_force += direction * spring_force_mag;\n"
-"            }\n"
-"        }\n"
-"    }\n"
-"    \n"
-"    force += spring_force;\n"
-"    \n"
-"    // Verlet integration\n"
-"    vec3 acceleration = force / mass;\n"
-"    vec3 new_pos = pos + (pos - prev_pos) * (1.0 - damping) + acceleration * dt * dt;\n"
-"    \n"
-"    // Simple ground collision\n"
-"    if (new_pos.y < -1.0)\n"
-"    {\n"
-"        new_pos.y = -1.0;\n"
-"        vel.y = 0.0;\n"
-"    }\n"
-"    \n"
-"    // Update particle\n"
-"    particles[index].prev_position.xyz = pos;\n"
-"    particles[index].position.xyz = new_pos;\n"
-"    particles[index].velocity.xyz = (new_pos - pos) / dt;\n"
-"}\n"
-"\n"
-"// Calculate normals for lighting\n"
-"void calculateNormals()\n"
-"{\n"
-"    int x = int(gl_GlobalInvocationID.x);\n"
-"    int y = int(gl_GlobalInvocationID.y);\n"
-"    \n"
-"    if (x >= cloth_width || y >= cloth_height)\n"
-"        return;\n"
-"    \n"
-"    int index = getParticleIndex(x, y);\n"
-"    if (index < 0)\n"
-"        return;\n"
-"    \n"
-"    vec3 normal = vec3(0.0);\n"
-"    int count = 0;\n"
-"    \n"
-"    // Calculate normal by averaging cross products of adjacent triangles\n"
-"    for (int dx = -1; dx <= 0; dx++)\n"
-"    {\n"
-"        for (int dy = -1; dy <= 0; dy++)\n"
-"        {\n"
-"            int x1 = x + dx;\n"
-"            int y1 = y + dy;\n"
-"            int x2 = x1 + 1;\n"
-"            int y2 = y1 + 1;\n"
-"            \n"
-"            if (x1 >= 0 && x1 < cloth_width && y1 >= 0 && y1 < cloth_height &&\n"
-"                x2 >= 0 && x2 < cloth_width && y2 >= 0 && y2 < cloth_height)\n"
-"            {\n"
-"                vec3 p1 = particles[getParticleIndex(x1, y1)].position.xyz;\n"
-"                vec3 p2 = particles[getParticleIndex(x2, y1)].position.xyz;\n"
-"                vec3 p3 = particles[getParticleIndex(x1, y2)].position.xyz;\n"
-"                vec3 p4 = particles[getParticleIndex(x2, y2)].position.xyz;\n"
-"                \n"
-"                // Two triangles per quad\n"
-"                vec3 n1 = cross(p2 - p1, p3 - p1);\n"
-"                vec3 n2 = cross(p4 - p2, p3 - p2);\n"
-"                \n"
-"                if (length(n1) > 0.0001)\n"
-"                {\n"
-"                    normal += normalize(n1);\n"
-"                    count++;\n"
-"                }\n"
-"                if (length(n2) > 0.0001)\n"
-"                {\n"
-"                    normal += normalize(n2);\n"
-"                    count++;\n"
-"                }\n"
-"            }\n"
-"        }\n"
-"    }\n"
-"    \n"
-"    if (count > 0)\n"
-"    {\n"
-"        normal = normalize(normal / float(count));\n"
-"    }\n"
-"    else\n"
-"    {\n"
-"        normal = vec3(0.0, 1.0, 0.0);\n"
-"    }\n"
-"    \n"
-"    particles[index].normal.xyz = normal;\n"
-"}\n"
-"\n"
-"void main()\n"
-"{\n"
-"    if (mode == 0)\n"
-"    {\n"
-"        initialize();\n"
-"    }\n"
-"    else if (mode == 1)\n"
-"    {\n"
-"        updatePhysics();\n"
-"    }\n"
-"    else if (mode == 2)\n"
-"    {\n"
-"        calculateNormals();\n"
-"    }\n"
-"}";
+// Spring constraint structure
+typedef struct {
+    CGL_int p1, p2;        // Particle indices
+    CGL_float rest_length; // Natural length of spring
+    CGL_float stiffness;   // Spring stiffness
+} Spring;
 
 // Global state structure
 static struct {
     CGL_window* window;
     CGL_framebuffer* default_framebuffer;
-    CGL_shader* present_shader;
-    CGL_shader* cloth_shader;
-    CGL_shader* compute_shader;
-    CGL_ssbo* particle_ssbo;
-    GLuint dummy_vao;
+    CGL_phong_pipeline* phong_pipeline;
+    CGL_phong_mat* cloth_material;
+    CGL_camera* camera;
+    CGL_mesh* cloth_mesh;
+    
+    // Cloth simulation data
+    Particle* particles;
+    Spring* springs;
+    CGL_int spring_count;
+    CGL_float* vertices;     // Vertex data for mesh
+    CGL_float* normals;      // Normal data for mesh
+    CGL_uint* indices;       // Index data for triangulation
     
     // Simulation parameters
     CGL_float delta_time;
@@ -426,8 +113,7 @@ static struct {
     CGL_float gravity_strength;
     CGL_float wind_strength;
     CGL_float damping;
-    CGL_float rest_length;
-    CGL_float spring_strength;
+    CGL_float spring_stiffness;
     CGL_float cloth_size;
     CGL_bool simulation_running;
     
@@ -440,60 +126,315 @@ static struct {
     CGL_float frame_time;
     CGL_int frames;
     CGL_int fps;
+    
+    // Window dimensions for UI scaling
+    CGL_int window_width;
+    CGL_int window_height;
 } g_State;
 
 // Function declarations
 CGL_bool init();
 void initialize_cloth();
+void create_cloth_mesh();
 void update_cloth_physics();
+void update_cloth_mesh();
+void calculate_cloth_normals();
 void render_cloth();
 void cleanup();
 EM_BOOL loop(double time, void* userData);
+CGL_int get_particle_index(CGL_int x, CGL_int y);
+
+// Helper function to get particle index from 2D coordinates
+CGL_int get_particle_index(CGL_int x, CGL_int y)
+{
+    if (x < 0 || x >= CLOTH_WIDTH || y < 0 || y >= CLOTH_HEIGHT)
+        return -1;
+    return y * CLOTH_WIDTH + x;
+}
 
 void initialize_cloth()
 {
-    // Create particle SSBO
-    g_State.particle_ssbo = CGL_ssbo_create(0);
-    CGL_ssbo_set_data(g_State.particle_ssbo, CLOTH_PARTICLES * 4 * 4 * sizeof(CGL_float), NULL, GL_DYNAMIC_DRAW);
+    // Allocate memory for particles
+    g_State.particles = (Particle*)malloc(CLOTH_PARTICLES * sizeof(Particle));
     
-    // Create dummy VAO for rendering
-    glGenVertexArrays(1, &g_State.dummy_vao);
+    // Initialize particle positions and properties
+    for (CGL_int y = 0; y < CLOTH_HEIGHT; y++)
+    {
+        for (CGL_int x = 0; x < CLOTH_WIDTH; x++)
+        {
+            CGL_int index = get_particle_index(x, y);
+            if (index < 0) continue;
+            
+            // Calculate normalized position
+            CGL_float fx = (CGL_float)x / (CGL_float)(CLOTH_WIDTH - 1);
+            CGL_float fy = (CGL_float)y / (CGL_float)(CLOTH_HEIGHT - 1);
+            
+            // Set initial position
+            CGL_vec3 pos = CGL_vec3_init(
+                (fx - 0.5f) * g_State.cloth_size,
+                2.0f,
+                (fy - 0.5f) * g_State.cloth_size
+            );
+            
+            g_State.particles[index].position = pos;
+            g_State.particles[index].prev_position = pos;
+            g_State.particles[index].velocity = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+            g_State.particles[index].normal = CGL_vec3_init(0.0f, 1.0f, 0.0f);
+            g_State.particles[index].mass = 1.0f;
+            g_State.particles[index].pinned = CGL_FALSE;
+            
+            // Pin top corners
+            if ((x == 0 || x == CLOTH_WIDTH - 1) && y == 0)
+            {
+                g_State.particles[index].pinned = CGL_TRUE;
+            }
+        }
+    }
     
-    // Initialize particles
-    CGL_shader_bind(g_State.compute_shader);
-    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "mode"), 0);
-    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_width"), CLOTH_WIDTH);
-    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_height"), CLOTH_HEIGHT);
-    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_size"), g_State.cloth_size);
-    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "rest_length"), g_State.rest_length);
-    CGL_shader_compute_dispatch(g_State.compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    // Create spring constraints
+    g_State.spring_count = 0;
+    CGL_int max_springs = (CLOTH_WIDTH - 1) * CLOTH_HEIGHT + CLOTH_WIDTH * (CLOTH_HEIGHT - 1) + 
+                          (CLOTH_WIDTH - 1) * (CLOTH_HEIGHT - 1) * 2;
+    g_State.springs = (Spring*)malloc(max_springs * sizeof(Spring));
+    
+    // Create structural springs (horizontal and vertical)
+    for (CGL_int y = 0; y < CLOTH_HEIGHT; y++)
+    {
+        for (CGL_int x = 0; x < CLOTH_WIDTH; x++)
+        {
+            CGL_int index = get_particle_index(x, y);
+            if (index < 0) continue;
+            
+            // Horizontal springs
+            if (x < CLOTH_WIDTH - 1)
+            {
+                CGL_int neighbor = get_particle_index(x + 1, y);
+                if (neighbor >= 0)
+                {
+                    g_State.springs[g_State.spring_count].p1 = index;
+                    g_State.springs[g_State.spring_count].p2 = neighbor;
+                    g_State.springs[g_State.spring_count].rest_length = g_State.cloth_size / (CGL_float)(CLOTH_WIDTH - 1);
+                    g_State.springs[g_State.spring_count].stiffness = g_State.spring_stiffness;
+                    g_State.spring_count++;
+                }
+            }
+            
+            // Vertical springs
+            if (y < CLOTH_HEIGHT - 1)
+            {
+                CGL_int neighbor = get_particle_index(x, y + 1);
+                if (neighbor >= 0)
+                {
+                    g_State.springs[g_State.spring_count].p1 = index;
+                    g_State.springs[g_State.spring_count].p2 = neighbor;
+                    g_State.springs[g_State.spring_count].rest_length = g_State.cloth_size / (CGL_float)(CLOTH_HEIGHT - 1);
+                    g_State.springs[g_State.spring_count].stiffness = g_State.spring_stiffness;
+                    g_State.spring_count++;
+                }
+            }
+            
+            // Diagonal springs (shear)
+            if (x < CLOTH_WIDTH - 1 && y < CLOTH_HEIGHT - 1)
+            {
+                CGL_int neighbor1 = get_particle_index(x + 1, y + 1);
+                CGL_int neighbor2 = get_particle_index(x + 1, y - 1);
+                
+                if (neighbor1 >= 0)
+                {
+                    g_State.springs[g_State.spring_count].p1 = index;
+                    g_State.springs[g_State.spring_count].p2 = neighbor1;
+                    g_State.springs[g_State.spring_count].rest_length = 
+                        sqrtf(2.0f) * g_State.cloth_size / (CGL_float)(CLOTH_WIDTH - 1);
+                    g_State.springs[g_State.spring_count].stiffness = g_State.spring_stiffness * 0.5f;
+                    g_State.spring_count++;
+                }
+                
+                if (neighbor2 >= 0 && y > 0)
+                {
+                    g_State.springs[g_State.spring_count].p1 = index;
+                    g_State.springs[g_State.spring_count].p2 = neighbor2;
+                    g_State.springs[g_State.spring_count].rest_length = 
+                        sqrtf(2.0f) * g_State.cloth_size / (CGL_float)(CLOTH_WIDTH - 1);
+                    g_State.springs[g_State.spring_count].stiffness = g_State.spring_stiffness * 0.5f;
+                    g_State.spring_count++;
+                }
+            }
+        }
+    }
+    
+    // Create mesh data
+    create_cloth_mesh();
+}
+
+void create_cloth_mesh()
+{
+    // Allocate memory for mesh data
+    g_State.vertices = (CGL_float*)malloc(CLOTH_PARTICLES * 3 * sizeof(CGL_float));
+    g_State.normals = (CGL_float*)malloc(CLOTH_PARTICLES * 3 * sizeof(CGL_float));
+    g_State.indices = (CGL_uint*)malloc(CLOTH_INDICES * sizeof(CGL_uint));
+    
+    // Create triangle indices for cloth mesh
+    CGL_uint index = 0;
+    for (CGL_int y = 0; y < CLOTH_HEIGHT - 1; y++)
+    {
+        for (CGL_int x = 0; x < CLOTH_WIDTH - 1; x++)
+        {
+            CGL_uint p1 = get_particle_index(x, y);
+            CGL_uint p2 = get_particle_index(x + 1, y);
+            CGL_uint p3 = get_particle_index(x, y + 1);
+            CGL_uint p4 = get_particle_index(x + 1, y + 1);
+            
+            // First triangle (p1, p2, p3)
+            g_State.indices[index++] = p1;
+            g_State.indices[index++] = p2;
+            g_State.indices[index++] = p3;
+            
+            // Second triangle (p2, p4, p3)
+            g_State.indices[index++] = p2;
+            g_State.indices[index++] = p4;
+            g_State.indices[index++] = p3;
+        }
+    }
+    
+    // Create mesh
+    g_State.cloth_mesh = CGL_mesh_create();
+    
+    // Update mesh data
+    update_cloth_mesh();
 }
 
 void update_cloth_physics()
 {
     if (!g_State.simulation_running) return;
     
-    // Step 1: Update particle physics using Verlet integration
-    CGL_shader_bind(g_State.compute_shader);
-    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "mode"), 1);
-    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "dt"), g_State.delta_time);
-    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "time"), CGL_utils_get_time());
-    CGL_shader_set_uniform_vec3v(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "gravity"), 0.0f, g_State.gravity_strength, 0.0f);
-    CGL_shader_set_uniform_vec3v(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "wind"), g_State.wind_strength, 0.0f, 0.0f);
-    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "damping"), g_State.damping);
-    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "spring_strength"), g_State.spring_strength);
-    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_width"), CLOTH_WIDTH);
-    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_height"), CLOTH_HEIGHT);
-    CGL_shader_compute_dispatch(g_State.compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
+    // Apply forces and update positions using Verlet integration
+    for (CGL_int i = 0; i < CLOTH_PARTICLES; i++)
+    {
+        if (g_State.particles[i].pinned) continue;
+        
+        CGL_vec3 pos = g_State.particles[i].position;
+        CGL_vec3 prev_pos = g_State.particles[i].prev_position;
+        CGL_float mass = g_State.particles[i].mass;
+        
+        // Calculate forces
+        CGL_vec3 force = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+        
+        // Gravity
+        force.y += g_State.gravity_strength * mass;
+        
+        // Wind
+        force.x += g_State.wind_strength * 0.1f;
+        
+        // Verlet integration
+        CGL_vec3 acceleration = CGL_vec3_scale(force, 1.0f / mass);
+        CGL_vec3 velocity = CGL_vec3_scale(CGL_vec3_sub(pos, prev_pos), 1.0f - g_State.damping);
+        CGL_vec3 new_pos = CGL_vec3_add(pos, CGL_vec3_add(velocity, 
+            CGL_vec3_scale(acceleration, g_State.delta_time * g_State.delta_time)));
+        
+        // Ground collision
+        if (new_pos.y < -1.0f)
+        {
+            new_pos.y = -1.0f;
+        }
+        
+        // Update particle
+        g_State.particles[i].prev_position = pos;
+        g_State.particles[i].position = new_pos;
+        g_State.particles[i].velocity = CGL_vec3_scale(CGL_vec3_sub(new_pos, pos), 1.0f / g_State.delta_time);
+    }
     
-    // Memory barrier ensures physics update completes before normal calculation
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    // Apply spring constraints
+    for (CGL_int iteration = 0; iteration < 3; iteration++)  // Multiple iterations for stability
+    {
+        for (CGL_int i = 0; i < g_State.spring_count; i++)
+        {
+            Spring* spring = &g_State.springs[i];
+            Particle* p1 = &g_State.particles[spring->p1];
+            Particle* p2 = &g_State.particles[spring->p2];
+            
+            CGL_vec3 diff = CGL_vec3_sub(p2->position, p1->position);
+            CGL_float distance = CGL_vec3_length(diff);
+            
+            if (distance > 0.0001f)
+            {
+                CGL_vec3 correction = CGL_vec3_scale(diff, 
+                    (spring->rest_length - distance) / distance * 0.5f);
+                
+                if (!p1->pinned)
+                {
+                    p1->position = CGL_vec3_sub(p1->position, correction);
+                }
+                if (!p2->pinned)
+                {
+                    p2->position = CGL_vec3_add(p2->position, correction);
+                }
+            }
+        }
+    }
     
-    // Step 2: Calculate surface normals for lighting (runs after physics update)
-    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "mode"), 2);
-    CGL_shader_compute_dispatch(g_State.compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    // Calculate normals for lighting
+    calculate_cloth_normals();
+    
+    // Update mesh data
+    update_cloth_mesh();
+}
+
+void calculate_cloth_normals()
+{
+    // Reset normals
+    for (CGL_int i = 0; i < CLOTH_PARTICLES; i++)
+    {
+        g_State.particles[i].normal = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    }
+    
+    // Calculate normals from triangles
+    for (CGL_int i = 0; i < CLOTH_INDICES; i += 3)
+    {
+        CGL_uint i1 = g_State.indices[i];
+        CGL_uint i2 = g_State.indices[i + 1];
+        CGL_uint i3 = g_State.indices[i + 2];
+        
+        CGL_vec3 p1 = g_State.particles[i1].position;
+        CGL_vec3 p2 = g_State.particles[i2].position;
+        CGL_vec3 p3 = g_State.particles[i3].position;
+        
+        CGL_vec3 normal = CGL_vec3_cross(CGL_vec3_sub(p2, p1), CGL_vec3_sub(p3, p1));
+        normal = CGL_vec3_normalize(normal);
+        
+        // Add to vertex normals
+        g_State.particles[i1].normal = CGL_vec3_add(g_State.particles[i1].normal, normal);
+        g_State.particles[i2].normal = CGL_vec3_add(g_State.particles[i2].normal, normal);
+        g_State.particles[i3].normal = CGL_vec3_add(g_State.particles[i3].normal, normal);
+    }
+    
+    // Normalize vertex normals
+    for (CGL_int i = 0; i < CLOTH_PARTICLES; i++)
+    {
+        g_State.particles[i].normal = CGL_vec3_normalize(g_State.particles[i].normal);
+    }
+}
+
+void update_cloth_mesh()
+{
+    // Update vertex positions
+    for (CGL_int i = 0; i < CLOTH_PARTICLES; i++)
+    {
+        g_State.vertices[i * 3] = g_State.particles[i].position.x;
+        g_State.vertices[i * 3 + 1] = g_State.particles[i].position.y;
+        g_State.vertices[i * 3 + 2] = g_State.particles[i].position.z;
+        
+        g_State.normals[i * 3] = g_State.particles[i].normal.x;
+        g_State.normals[i * 3 + 1] = g_State.particles[i].normal.y;
+        g_State.normals[i * 3 + 2] = g_State.particles[i].normal.z;
+    }
+    
+    // Update mesh
+    CGL_mesh_destroy(g_State.cloth_mesh);
+    g_State.cloth_mesh = CGL_mesh_create();
+    CGL_mesh_add_vertex_f3(g_State.cloth_mesh, g_State.vertices, CLOTH_PARTICLES);
+    CGL_mesh_add_normal_f3(g_State.cloth_mesh, g_State.normals, CLOTH_PARTICLES);
+    CGL_mesh_add_index_i(g_State.cloth_mesh, g_State.indices, CLOTH_INDICES);
+    CGL_mesh_upload(g_State.cloth_mesh, true);
 }
 
 void render_cloth()
@@ -503,26 +444,15 @@ void render_cloth()
     g_State.camera_pos.x = 5.0f * cosf(g_State.camera_angle);
     g_State.camera_pos.z = 5.0f * sinf(g_State.camera_angle);
     
-    CGL_mat4 view = CGL_mat4_look_at(g_State.camera_pos, g_State.camera_target, CGL_vec3_init(0.0f, 1.0f, 0.0f));
-    CGL_mat4 projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.1f, 100.0f);
-    CGL_mat4 view_proj = CGL_mat4_mul(projection, view);
+    CGL_camera_set_position(g_State.camera, g_State.camera_pos);
+    CGL_camera_set_target(g_State.camera, g_State.camera_target);
+    CGL_camera_recalculate_mat(g_State.camera);
     
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_PROGRAM_POINT_SIZE);
-    
-    CGL_shader_bind(g_State.cloth_shader);
-    CGL_shader_set_uniform_mat4(g_State.cloth_shader, CGL_shader_get_uniform_location(g_State.cloth_shader, "view_proj"), &view_proj);
-    CGL_shader_set_uniform_vec3v(g_State.cloth_shader, CGL_shader_get_uniform_location(g_State.cloth_shader, "light_pos"), 5.0f, 5.0f, 5.0f);
-    CGL_shader_set_uniform_vec3v(g_State.cloth_shader, CGL_shader_get_uniform_location(g_State.cloth_shader, "cloth_color"), 0.8f, 0.2f, 0.2f);
-    
-    // Render particles as points
-    glBindVertexArray(g_State.dummy_vao);
-    glDrawArrays(GL_POINTS, 0, CLOTH_PARTICLES);
-    glBindVertexArray(0);
-    
-    glDisable(GL_PROGRAM_POINT_SIZE);
-    glDisable(GL_DEPTH_TEST);
+    // Render cloth using Phong shading
+    CGL_mat4 model_matrix = CGL_mat4_identity();
+    CGL_phong_render_begin(g_State.phong_pipeline, g_State.camera);
+    CGL_phong_render(g_State.cloth_mesh, &model_matrix, g_State.cloth_material, g_State.phong_pipeline, g_State.camera);
+    CGL_phong_render_end(g_State.phong_pipeline, g_State.camera);
 }
 
 CGL_bool init()
@@ -552,18 +482,29 @@ CGL_bool init()
     // Create framebuffer
     g_State.default_framebuffer = CGL_framebuffer_create_from_default(g_State.window);
     
-    // Create shaders
-    g_State.present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER, PASS_THROUGH_FRAGMENT_SHADER, NULL);
-    g_State.cloth_shader = CGL_shader_create(CLOTH_VERTEX_SHADER, CLOTH_FRAGMENT_SHADER, NULL);
-    g_State.compute_shader = CGL_shader_compute_create(CLOTH_COMPUTE_SHADER, NULL);
+    // Create Phong pipeline and material
+    g_State.phong_pipeline = CGL_phong_pipeline_create();
+    CGL_phong_pipeline_add_light(g_State.phong_pipeline, 
+        CGL_phong_light_directional(CGL_vec3_init(0.5f, -1.0f, 0.3f), CGL_vec3_init(0.8f, 0.8f, 0.8f), 1.0f));
+    CGL_phong_pipeline_add_light(g_State.phong_pipeline, 
+        CGL_phong_light_directional(CGL_vec3_init(-0.5f, -1.0f, -0.3f), CGL_vec3_init(0.4f, 0.4f, 0.4f), 0.5f));
+    
+    g_State.cloth_material = CGL_phong_mat_create();
+    CGL_phong_mat_set_diffuse_color(g_State.cloth_material, CGL_vec3_init(0.8f, 0.2f, 0.2f));
+    CGL_phong_mat_set_specular_color(g_State.cloth_material, CGL_vec3_init(0.3f, 0.3f, 0.3f));
+    CGL_phong_mat_set_ambient_color(g_State.cloth_material, CGL_vec3_init(0.2f, 0.05f, 0.05f));
+    CGL_phong_mat_set_shininess(g_State.cloth_material, 32.0f);
+    
+    // Create camera
+    g_State.camera = CGL_camera_create();
+    CGL_camera_set_aspect_ratio(g_State.camera, 800.0f / 600.0f);
     
     // Initialize simulation parameters
     g_State.delta_time = 0.0f;
     g_State.gravity_strength = -9.8f;
     g_State.wind_strength = 0.0f;
     g_State.damping = 0.01f;
-    g_State.rest_length = 0.1f;
-    g_State.spring_strength = 50.0f;
+    g_State.spring_stiffness = 50.0f;
     g_State.cloth_size = 4.0f;
     g_State.simulation_running = CGL_TRUE;
     
@@ -577,6 +518,10 @@ CGL_bool init()
     g_State.frame_time = 0.0f;
     g_State.frames = 0;
     g_State.fps = 0;
+    
+    // Initialize window dimensions
+    g_State.window_width = 800;
+    g_State.window_height = 600;
     
     // Initialize cloth simulation
     initialize_cloth();
@@ -604,6 +549,10 @@ EM_BOOL loop(double time, void* userData)
         g_State.frame_time = 0.0f;
     }
     
+    // Update window dimensions
+    CGL_window_get_size(g_State.window, &g_State.window_width, &g_State.window_height);
+    CGL_camera_set_aspect_ratio(g_State.camera, (CGL_float)g_State.window_width / (CGL_float)g_State.window_height);
+    
     // Handle input
     if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_SPACE))
     {
@@ -623,30 +572,64 @@ EM_BOOL loop(double time, void* userData)
     
     render_cloth();
     
-    // UI
+    // UI with responsive scaling
     CGL_widgets_begin();
     
+    // Calculate responsive UI positions and sizes
+    CGL_float ui_scale = CGL_utils_min((CGL_float)g_State.window_width / 800.0f, (CGL_float)g_State.window_height / 600.0f);
+    CGL_float ui_text_height = 0.05f / ui_scale;
+    CGL_float ui_margin = 0.02f / ui_scale;
+    CGL_float ui_x = -1.0f + ui_margin;
+    CGL_float ui_y = 1.0f - ui_margin - ui_text_height;
+    
     static CGL_byte buffer[512];
+    
+    // Performance information
     sprintf(buffer, "FPS: %d", g_State.fps);
-    CGL_widgets_add_string(buffer, -1.0f, 0.95f, 1.0f, 0.05f);
+    CGL_widgets_add_string(buffer, ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
     
     sprintf(buffer, "Frame Time: %.3f ms", g_State.delta_time * 1000.0f);
-    CGL_widgets_add_string(buffer, -1.0f, 0.90f, 1.0f, 0.05f);
+    CGL_widgets_add_string(buffer, ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
     
     sprintf(buffer, "Particles: %d", CLOTH_PARTICLES);
-    CGL_widgets_add_string(buffer, -1.0f, 0.85f, 1.0f, 0.05f);
+    CGL_widgets_add_string(buffer, ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
     
+    sprintf(buffer, "Triangles: %d", CLOTH_TRIANGLES);
+    CGL_widgets_add_string(buffer, ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
+    
+    // Simulation parameters
+    ui_y -= ui_margin;
     sprintf(buffer, "Gravity: %.1f", g_State.gravity_strength);
-    CGL_widgets_add_string(buffer, -1.0f, 0.80f, 1.0f, 0.05f);
+    CGL_widgets_add_string(buffer, ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
     
     sprintf(buffer, "Wind: %.1f", g_State.wind_strength);
-    CGL_widgets_add_string(buffer, -1.0f, 0.75f, 1.0f, 0.05f);
+    CGL_widgets_add_string(buffer, ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
     
-    CGL_widgets_add_string("Controls:", -1.0f, 0.65f, 1.0f, 0.05f);
-    CGL_widgets_add_string("SPACE - Pause/Resume", -1.0f, 0.60f, 1.0f, 0.05f);
-    CGL_widgets_add_string("R - Reset", -1.0f, 0.55f, 1.0f, 0.05f);
-    CGL_widgets_add_string("UP/DOWN - Adjust Gravity", -1.0f, 0.50f, 1.0f, 0.05f);
-    CGL_widgets_add_string("LEFT/RIGHT - Adjust Wind", -1.0f, 0.45f, 1.0f, 0.05f);
+    sprintf(buffer, "Status: %s", g_State.simulation_running ? "Running" : "Paused");
+    CGL_widgets_add_string(buffer, ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
+    
+    // Controls
+    ui_y -= ui_margin;
+    CGL_widgets_add_string("Controls:", ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
+    
+    CGL_widgets_add_string("SPACE - Pause/Resume", ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
+    
+    CGL_widgets_add_string("R - Reset", ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
+    
+    CGL_widgets_add_string("UP/DOWN - Adjust Gravity", ui_x, ui_y, 0.3f, ui_text_height);
+    ui_y -= ui_text_height + ui_margin * 0.5f;
+    
+    CGL_widgets_add_string("LEFT/RIGHT - Adjust Wind", ui_x, ui_y, 0.3f, ui_text_height);
     
     // Interactive controls
     if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_UP))
@@ -675,7 +658,7 @@ EM_BOOL loop(double time, void* userData)
     return !CGL_window_should_close(g_State.window);
 }
 
-// NOTE: This will not work with WASM for now as SSBOs are not supported in WebGL
+// NOTE: This version uses CPU-based physics simulation and works with both native and WASM builds
 int main()
 {
     if (!init()) return EXIT_FAILURE;
@@ -695,11 +678,18 @@ int main()
 
 void cleanup()
 {
-    if (g_State.particle_ssbo) CGL_ssbo_destroy(g_State.particle_ssbo);
-    if (g_State.dummy_vao) glDeleteVertexArrays(1, &g_State.dummy_vao);
-    if (g_State.compute_shader) CGL_shader_destroy(g_State.compute_shader);
-    if (g_State.cloth_shader) CGL_shader_destroy(g_State.cloth_shader);
-    if (g_State.present_shader) CGL_shader_destroy(g_State.present_shader);
+    // Free memory
+    if (g_State.particles) free(g_State.particles);
+    if (g_State.springs) free(g_State.springs);
+    if (g_State.vertices) free(g_State.vertices);
+    if (g_State.normals) free(g_State.normals);
+    if (g_State.indices) free(g_State.indices);
+    
+    // Destroy CGL objects
+    if (g_State.cloth_mesh) CGL_mesh_destroy(g_State.cloth_mesh);
+    if (g_State.cloth_material) CGL_phong_mat_destroy(g_State.cloth_material);
+    if (g_State.phong_pipeline) CGL_phong_pipeline_destroy(g_State.phong_pipeline);
+    if (g_State.camera) CGL_camera_destroy(g_State.camera);
     if (g_State.default_framebuffer) CGL_framebuffer_destroy(g_State.default_framebuffer);
     
     CGL_widgets_shutdown();
