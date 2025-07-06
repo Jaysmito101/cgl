@@ -47,6 +47,8 @@ SOFTWARE.
  * Author: AI Assistant (based on CGL framework by Jaysmito Mukherjee)
  */
 
+#include <stdlib.h>
+
 #define CGL_LOGGING_ENABLED
 #define CGL_IMPLEMENTATION
 #define CGL_EXCLUDE_NETWORKING
@@ -55,6 +57,13 @@ SOFTWARE.
 #define CGL_EXCLUDE_AUDIO
 #define CGL_EXCLUDE_TEXT_RENDER
 #include "cgl.h"
+
+#ifdef CGL_WASM
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#else
+#define EM_BOOL int
+#endif
 
 // Cloth simulation parameters - adjust these for different cloth behaviors
 #define CLOTH_WIDTH 32      // Number of particles horizontally
@@ -401,90 +410,100 @@ static const char* CLOTH_COMPUTE_SHADER = "#version 430 core\n"
 "    }\n"
 "}";
 
-// Global variables
-static CGL_window* window = NULL;
-static CGL_framebuffer* default_framebuffer = NULL;
-static CGL_shader* present_shader = NULL;
-static CGL_shader* cloth_shader = NULL;
-static CGL_shader* compute_shader = NULL;
-static CGL_ssbo* particle_ssbo = NULL;
-static GLuint dummy_vao = 0;
-
-// Simulation parameters - tweak these for different cloth behaviors
-static float delta_time = 0.0f;
-static float gravity_strength = -9.8f;    // Negative for downward gravity
-static float wind_strength = 0.0f;        // Horizontal wind force
-static float damping = 0.01f;             // Energy loss per frame (0=no damping, 1=full damping)
-static float rest_length = 0.1f;          // Natural length of springs
-static float spring_strength = 50.0f;     // Spring stiffness (higher = stiffer cloth)
-static float cloth_size = 4.0f;           // World-space size of the cloth
-static bool simulation_running = true;    // Pause/resume simulation
-
-// Camera control
-static CGL_vec3 camera_pos = {0.0f, 2.0f, 5.0f};
-static CGL_vec3 camera_target = {0.0f, 0.0f, 0.0f};
-static float camera_angle = 0.0f;
+// Global state structure
+static struct {
+    CGL_window* window;
+    CGL_framebuffer* default_framebuffer;
+    CGL_shader* present_shader;
+    CGL_shader* cloth_shader;
+    CGL_shader* compute_shader;
+    CGL_ssbo* particle_ssbo;
+    GLuint dummy_vao;
+    
+    // Simulation parameters
+    CGL_float delta_time;
+    CGL_float previous_time;
+    CGL_float gravity_strength;
+    CGL_float wind_strength;
+    CGL_float damping;
+    CGL_float rest_length;
+    CGL_float spring_strength;
+    CGL_float cloth_size;
+    CGL_bool simulation_running;
+    
+    // Camera control
+    CGL_vec3 camera_pos;
+    CGL_vec3 camera_target;
+    CGL_float camera_angle;
+    
+    // Performance tracking
+    CGL_float frame_time;
+    CGL_int frames;
+    CGL_int fps;
+} g_State;
 
 // Function declarations
+CGL_bool init();
 void initialize_cloth();
 void update_cloth_physics();
 void render_cloth();
 void cleanup();
+EM_BOOL loop(double time, void* userData);
 
 void initialize_cloth()
 {
     // Create particle SSBO
-    particle_ssbo = CGL_ssbo_create(0);
-    CGL_ssbo_set_data(particle_ssbo, CLOTH_PARTICLES * 4 * 4 * sizeof(CGL_float), NULL, GL_DYNAMIC_DRAW);
+    g_State.particle_ssbo = CGL_ssbo_create(0);
+    CGL_ssbo_set_data(g_State.particle_ssbo, CLOTH_PARTICLES * 4 * 4 * sizeof(CGL_float), NULL, GL_DYNAMIC_DRAW);
     
     // Create dummy VAO for rendering
-    glGenVertexArrays(1, &dummy_vao);
+    glGenVertexArrays(1, &g_State.dummy_vao);
     
     // Initialize particles
-    CGL_shader_bind(compute_shader);
-    CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "mode"), 0);
-    CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "cloth_width"), CLOTH_WIDTH);
-    CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "cloth_height"), CLOTH_HEIGHT);
-    CGL_shader_set_uniform_float(compute_shader, CGL_shader_get_uniform_location(compute_shader, "cloth_size"), cloth_size);
-    CGL_shader_set_uniform_float(compute_shader, CGL_shader_get_uniform_location(compute_shader, "rest_length"), rest_length);
-    CGL_shader_compute_dispatch(compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
+    CGL_shader_bind(g_State.compute_shader);
+    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "mode"), 0);
+    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_width"), CLOTH_WIDTH);
+    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_height"), CLOTH_HEIGHT);
+    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_size"), g_State.cloth_size);
+    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "rest_length"), g_State.rest_length);
+    CGL_shader_compute_dispatch(g_State.compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void update_cloth_physics()
 {
-    if (!simulation_running) return;
+    if (!g_State.simulation_running) return;
     
     // Step 1: Update particle physics using Verlet integration
-    CGL_shader_bind(compute_shader);
-    CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "mode"), 1);
-    CGL_shader_set_uniform_float(compute_shader, CGL_shader_get_uniform_location(compute_shader, "dt"), delta_time);
-    CGL_shader_set_uniform_float(compute_shader, CGL_shader_get_uniform_location(compute_shader, "time"), CGL_utils_get_time());
-    CGL_shader_set_uniform_vec3v(compute_shader, CGL_shader_get_uniform_location(compute_shader, "gravity"), 0.0f, gravity_strength, 0.0f);
-    CGL_shader_set_uniform_vec3v(compute_shader, CGL_shader_get_uniform_location(compute_shader, "wind"), wind_strength, 0.0f, 0.0f);
-    CGL_shader_set_uniform_float(compute_shader, CGL_shader_get_uniform_location(compute_shader, "damping"), damping);
-    CGL_shader_set_uniform_float(compute_shader, CGL_shader_get_uniform_location(compute_shader, "spring_strength"), spring_strength);
-    CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "cloth_width"), CLOTH_WIDTH);
-    CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "cloth_height"), CLOTH_HEIGHT);
-    CGL_shader_compute_dispatch(compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
+    CGL_shader_bind(g_State.compute_shader);
+    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "mode"), 1);
+    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "dt"), g_State.delta_time);
+    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "time"), CGL_utils_get_time());
+    CGL_shader_set_uniform_vec3v(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "gravity"), 0.0f, g_State.gravity_strength, 0.0f);
+    CGL_shader_set_uniform_vec3v(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "wind"), g_State.wind_strength, 0.0f, 0.0f);
+    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "damping"), g_State.damping);
+    CGL_shader_set_uniform_float(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "spring_strength"), g_State.spring_strength);
+    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_width"), CLOTH_WIDTH);
+    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "cloth_height"), CLOTH_HEIGHT);
+    CGL_shader_compute_dispatch(g_State.compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
     
     // Memory barrier ensures physics update completes before normal calculation
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     
     // Step 2: Calculate surface normals for lighting (runs after physics update)
-    CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "mode"), 2);
-    CGL_shader_compute_dispatch(compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
+    CGL_shader_set_uniform_int(g_State.compute_shader, CGL_shader_get_uniform_location(g_State.compute_shader, "mode"), 2);
+    CGL_shader_compute_dispatch(g_State.compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void render_cloth()
 {
     // Update camera position
-    camera_angle += delta_time * 0.2f;
-    camera_pos.x = 5.0f * cosf(camera_angle);
-    camera_pos.z = 5.0f * sinf(camera_angle);
+    g_State.camera_angle += g_State.delta_time * 0.2f;
+    g_State.camera_pos.x = 5.0f * cosf(g_State.camera_angle);
+    g_State.camera_pos.z = 5.0f * sinf(g_State.camera_angle);
     
-    CGL_mat4 view = CGL_mat4_look_at(camera_pos, camera_target, CGL_vec3_init(0.0f, 1.0f, 0.0f));
+    CGL_mat4 view = CGL_mat4_look_at(g_State.camera_pos, g_State.camera_target, CGL_vec3_init(0.0f, 1.0f, 0.0f));
     CGL_mat4 projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.1f, 100.0f);
     CGL_mat4 view_proj = CGL_mat4_mul(projection, view);
     
@@ -492,13 +511,13 @@ void render_cloth()
     glDepthFunc(GL_LESS);
     glEnable(GL_PROGRAM_POINT_SIZE);
     
-    CGL_shader_bind(cloth_shader);
-    CGL_shader_set_uniform_mat4(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "view_proj"), &view_proj);
-    CGL_shader_set_uniform_vec3v(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "light_pos"), 5.0f, 5.0f, 5.0f);
-    CGL_shader_set_uniform_vec3v(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "cloth_color"), 0.8f, 0.2f, 0.2f);
+    CGL_shader_bind(g_State.cloth_shader);
+    CGL_shader_set_uniform_mat4(g_State.cloth_shader, CGL_shader_get_uniform_location(g_State.cloth_shader, "view_proj"), &view_proj);
+    CGL_shader_set_uniform_vec3v(g_State.cloth_shader, CGL_shader_get_uniform_location(g_State.cloth_shader, "light_pos"), 5.0f, 5.0f, 5.0f);
+    CGL_shader_set_uniform_vec3v(g_State.cloth_shader, CGL_shader_get_uniform_location(g_State.cloth_shader, "cloth_color"), 0.8f, 0.2f, 0.2f);
     
     // Render particles as points
-    glBindVertexArray(dummy_vao);
+    glBindVertexArray(g_State.dummy_vao);
     glDrawArrays(GL_POINTS, 0, CLOTH_PARTICLES);
     glBindVertexArray(0);
     
@@ -506,142 +525,185 @@ void render_cloth()
     glDisable(GL_DEPTH_TEST);
 }
 
-int main()
+CGL_bool init()
 {
     // Initialize CGL
-    CGL_init();
-    window = CGL_window_create(800, 600, "Cloth Simulation - CGL Example");
-    if (!window)
+    if (!CGL_init())
     {
-        CGL_error("Failed to create window");
-        return 1;
+        CGL_error("Failed to initialize CGL");
+        return CGL_FALSE;
     }
     
-    CGL_window_make_context_current(window);
-    CGL_gl_init();
+    g_State.window = CGL_window_create(800, 600, "Cloth Simulation - CGL Example");
+    if (!g_State.window)
+    {
+        CGL_error("Failed to create window");
+        return CGL_FALSE;
+    }
+    
+    CGL_window_make_context_current(g_State.window);
+    if (!CGL_gl_init())
+    {
+        CGL_error("Failed to initialize OpenGL");
+        return CGL_FALSE;
+    }
     CGL_widgets_init();
     
     // Create framebuffer
-    default_framebuffer = CGL_framebuffer_create_from_default(window);
+    g_State.default_framebuffer = CGL_framebuffer_create_from_default(g_State.window);
     
     // Create shaders
-    present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER, PASS_THROUGH_FRAGMENT_SHADER, NULL);
-    cloth_shader = CGL_shader_create(CLOTH_VERTEX_SHADER, CLOTH_FRAGMENT_SHADER, NULL);
-    compute_shader = CGL_shader_compute_create(CLOTH_COMPUTE_SHADER, NULL);
+    g_State.present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER, PASS_THROUGH_FRAGMENT_SHADER, NULL);
+    g_State.cloth_shader = CGL_shader_create(CLOTH_VERTEX_SHADER, CLOTH_FRAGMENT_SHADER, NULL);
+    g_State.compute_shader = CGL_shader_compute_create(CLOTH_COMPUTE_SHADER, NULL);
+    
+    // Initialize simulation parameters
+    g_State.delta_time = 0.0f;
+    g_State.gravity_strength = -9.8f;
+    g_State.wind_strength = 0.0f;
+    g_State.damping = 0.01f;
+    g_State.rest_length = 0.1f;
+    g_State.spring_strength = 50.0f;
+    g_State.cloth_size = 4.0f;
+    g_State.simulation_running = CGL_TRUE;
+    
+    // Initialize camera
+    g_State.camera_pos = CGL_vec3_init(0.0f, 2.0f, 5.0f);
+    g_State.camera_target = CGL_vec3_init(0.0f, 0.0f, 0.0f);
+    g_State.camera_angle = 0.0f;
+    
+    // Initialize performance tracking
+    g_State.previous_time = CGL_utils_get_time();
+    g_State.frame_time = 0.0f;
+    g_State.frames = 0;
+    g_State.fps = 0;
     
     // Initialize cloth simulation
     initialize_cloth();
     
-    // Main loop variables
-    CGL_float current_time = CGL_utils_get_time();
-    CGL_float previous_time = current_time;
-    CGL_float frame_time = 0.0f;
-    CGL_int frames = 0, fps = 0;
+    return CGL_TRUE;
+}
+
+EM_BOOL loop(double time, void* userData)
+{
+    (void)time;
+    (void)userData;
     
-    // Main loop
-    while (!CGL_window_should_close(window))
+    // Calculate delta time
+    CGL_float current_time = CGL_utils_get_time();
+    g_State.delta_time = current_time - g_State.previous_time;
+    g_State.delta_time = CGL_utils_clamp(g_State.delta_time, 0.0f, 0.033f); // Cap at 30 FPS
+    g_State.previous_time = current_time;
+    
+    g_State.frame_time += g_State.delta_time;
+    g_State.frames++;
+    if (g_State.frame_time >= 1.0f)
     {
-        // Calculate delta time
-        current_time = CGL_utils_get_time();
-        delta_time = current_time - previous_time;
-        delta_time = CGL_utils_clamp(delta_time, 0.0f, 0.033f); // Cap at 30 FPS
-        previous_time = current_time;
-        
-        frame_time += delta_time;
-        frames++;
-        if (frame_time >= 1.0f)
-        {
-            fps = frames;
-            frames = 0;
-            frame_time = 0.0f;
-        }
-        
-        // Handle input
-        if (CGL_window_is_key_pressed(window, CGL_KEY_SPACE))
-        {
-            simulation_running = !simulation_running;
-        }
-        if (CGL_window_is_key_pressed(window, CGL_KEY_R))
-        {
-            initialize_cloth();
-        }
-        
-        // Update physics
-        update_cloth_physics();
-        
-        // Render
-        CGL_framebuffer_bind(default_framebuffer);
-        CGL_gl_clear(0.1f, 0.1f, 0.1f, 1.0f);
-        
-        render_cloth();
-        
-        // UI
-        CGL_widgets_begin();
-        
-        static CGL_byte buffer[512];
-        sprintf(buffer, "FPS: %d", fps);
-        CGL_widgets_add_string(buffer, -1.0f, 0.95f, 1.0f, 0.05f);
-        
-        sprintf(buffer, "Frame Time: %.3f ms", delta_time * 1000.0f);
-        CGL_widgets_add_string(buffer, -1.0f, 0.90f, 1.0f, 0.05f);
-        
-        sprintf(buffer, "Particles: %d", CLOTH_PARTICLES);
-        CGL_widgets_add_string(buffer, -1.0f, 0.85f, 1.0f, 0.05f);
-        
-        sprintf(buffer, "Gravity: %.1f", gravity_strength);
-        CGL_widgets_add_string(buffer, -1.0f, 0.80f, 1.0f, 0.05f);
-        
-        sprintf(buffer, "Wind: %.1f", wind_strength);
-        CGL_widgets_add_string(buffer, -1.0f, 0.75f, 1.0f, 0.05f);
-        
-        CGL_widgets_add_string("Controls:", -1.0f, 0.65f, 1.0f, 0.05f);
-        CGL_widgets_add_string("SPACE - Pause/Resume", -1.0f, 0.60f, 1.0f, 0.05f);
-        CGL_widgets_add_string("R - Reset", -1.0f, 0.55f, 1.0f, 0.05f);
-        CGL_widgets_add_string("UP/DOWN - Adjust Gravity", -1.0f, 0.50f, 1.0f, 0.05f);
-        CGL_widgets_add_string("LEFT/RIGHT - Adjust Wind", -1.0f, 0.45f, 1.0f, 0.05f);
-        
-        // Interactive controls
-        if (CGL_window_is_key_pressed(window, CGL_KEY_UP))
-        {
-            gravity_strength += 1.0f * delta_time * 10.0f;
-        }
-        if (CGL_window_is_key_pressed(window, CGL_KEY_DOWN))
-        {
-            gravity_strength -= 1.0f * delta_time * 10.0f;
-        }
-        if (CGL_window_is_key_pressed(window, CGL_KEY_LEFT))
-        {
-            wind_strength -= 1.0f * delta_time * 10.0f;
-        }
-        if (CGL_window_is_key_pressed(window, CGL_KEY_RIGHT))
-        {
-            wind_strength += 1.0f * delta_time * 10.0f;
-        }
-        
-        CGL_widgets_end();
-        
-        // Swap buffers and poll events
-        CGL_window_swap_buffers(window);
-        CGL_window_poll_events(window);
+        g_State.fps = g_State.frames;
+        g_State.frames = 0;
+        g_State.frame_time = 0.0f;
     }
     
-    // Cleanup
-    cleanup();
+    // Handle input
+    if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_SPACE))
+    {
+        g_State.simulation_running = !g_State.simulation_running;
+    }
+    if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_R))
+    {
+        initialize_cloth();
+    }
     
-    return 0;
+    // Update physics
+    update_cloth_physics();
+    
+    // Render
+    CGL_framebuffer_bind(g_State.default_framebuffer);
+    CGL_gl_clear(0.1f, 0.1f, 0.1f, 1.0f);
+    
+    render_cloth();
+    
+    // UI
+    CGL_widgets_begin();
+    
+    static CGL_byte buffer[512];
+    sprintf(buffer, "FPS: %d", g_State.fps);
+    CGL_widgets_add_string(buffer, -1.0f, 0.95f, 1.0f, 0.05f);
+    
+    sprintf(buffer, "Frame Time: %.3f ms", g_State.delta_time * 1000.0f);
+    CGL_widgets_add_string(buffer, -1.0f, 0.90f, 1.0f, 0.05f);
+    
+    sprintf(buffer, "Particles: %d", CLOTH_PARTICLES);
+    CGL_widgets_add_string(buffer, -1.0f, 0.85f, 1.0f, 0.05f);
+    
+    sprintf(buffer, "Gravity: %.1f", g_State.gravity_strength);
+    CGL_widgets_add_string(buffer, -1.0f, 0.80f, 1.0f, 0.05f);
+    
+    sprintf(buffer, "Wind: %.1f", g_State.wind_strength);
+    CGL_widgets_add_string(buffer, -1.0f, 0.75f, 1.0f, 0.05f);
+    
+    CGL_widgets_add_string("Controls:", -1.0f, 0.65f, 1.0f, 0.05f);
+    CGL_widgets_add_string("SPACE - Pause/Resume", -1.0f, 0.60f, 1.0f, 0.05f);
+    CGL_widgets_add_string("R - Reset", -1.0f, 0.55f, 1.0f, 0.05f);
+    CGL_widgets_add_string("UP/DOWN - Adjust Gravity", -1.0f, 0.50f, 1.0f, 0.05f);
+    CGL_widgets_add_string("LEFT/RIGHT - Adjust Wind", -1.0f, 0.45f, 1.0f, 0.05f);
+    
+    // Interactive controls
+    if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_UP))
+    {
+        g_State.gravity_strength += 1.0f * g_State.delta_time * 10.0f;
+    }
+    if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_DOWN))
+    {
+        g_State.gravity_strength -= 1.0f * g_State.delta_time * 10.0f;
+    }
+    if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_LEFT))
+    {
+        g_State.wind_strength -= 1.0f * g_State.delta_time * 10.0f;
+    }
+    if (CGL_window_is_key_pressed(g_State.window, CGL_KEY_RIGHT))
+    {
+        g_State.wind_strength += 1.0f * g_State.delta_time * 10.0f;
+    }
+    
+    CGL_widgets_end();
+    
+    // Swap buffers and poll events
+    CGL_window_swap_buffers(g_State.window);
+    CGL_window_poll_events(g_State.window);
+    
+    return !CGL_window_should_close(g_State.window);
+}
+
+// NOTE: This will not work with WASM for now as SSBOs are not supported in WebGL
+int main()
+{
+    if (!init()) return EXIT_FAILURE;
+
+#ifdef CGL_WASM
+    CGL_info("Running in WASM mode");
+    emscripten_request_animation_frame_loop(loop, NULL);
+#else
+	while (!CGL_window_should_close(g_State.window))
+	{
+        if (!loop(0.0, NULL)) break;		
+	}
+    cleanup();
+#endif
+	return EXIT_SUCCESS;
 }
 
 void cleanup()
 {
-    if (particle_ssbo) CGL_ssbo_destroy(particle_ssbo);
-    if (dummy_vao) glDeleteVertexArrays(1, &dummy_vao);
-    if (compute_shader) CGL_shader_destroy(compute_shader);
-    if (cloth_shader) CGL_shader_destroy(cloth_shader);
-    if (present_shader) CGL_shader_destroy(present_shader);
-    if (default_framebuffer) CGL_framebuffer_destroy(default_framebuffer);
+    if (g_State.particle_ssbo) CGL_ssbo_destroy(g_State.particle_ssbo);
+    if (g_State.dummy_vao) glDeleteVertexArrays(1, &g_State.dummy_vao);
+    if (g_State.compute_shader) CGL_shader_destroy(g_State.compute_shader);
+    if (g_State.cloth_shader) CGL_shader_destroy(g_State.cloth_shader);
+    if (g_State.present_shader) CGL_shader_destroy(g_State.present_shader);
+    if (g_State.default_framebuffer) CGL_framebuffer_destroy(g_State.default_framebuffer);
     
     CGL_widgets_shutdown();
     CGL_gl_shutdown();
-    CGL_window_destroy(window);
+    CGL_window_destroy(g_State.window);
     CGL_shutdown();
 }
