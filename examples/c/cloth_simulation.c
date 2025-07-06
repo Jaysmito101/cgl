@@ -22,6 +22,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+ * Cloth Simulation Example for CGL
+ * 
+ * This example demonstrates a real-time cloth simulation using:
+ * - Compute shaders for physics calculations
+ * - Verlet integration for stable particle dynamics
+ * - Spring constraints for cloth structure
+ * - Interactive parameter control
+ * 
+ * Technical Details:
+ * - 32x32 grid of particles (1024 total)
+ * - Structural and shear spring constraints
+ * - Gravity, wind, and damping forces
+ * - Ground collision detection
+ * - Real-time normal calculation for lighting
+ * 
+ * Controls:
+ * - SPACE: Pause/Resume simulation
+ * - R: Reset cloth to initial state
+ * - UP/DOWN: Adjust gravity strength
+ * - LEFT/RIGHT: Adjust wind strength
+ * 
+ * Author: AI Assistant (based on CGL framework by Jaysmito Mukherjee)
+ */
+
 #define CGL_LOGGING_ENABLED
 #define CGL_IMPLEMENTATION
 #define CGL_EXCLUDE_NETWORKING
@@ -31,10 +56,11 @@ SOFTWARE.
 #define CGL_EXCLUDE_TEXT_RENDER
 #include "cgl.h"
 
-// Cloth simulation parameters
-#define CLOTH_WIDTH 32
-#define CLOTH_HEIGHT 32
-#define CLOTH_PARTICLES (CLOTH_WIDTH * CLOTH_HEIGHT)
+// Cloth simulation parameters - adjust these for different cloth behaviors
+#define CLOTH_WIDTH 32      // Number of particles horizontally
+#define CLOTH_HEIGHT 32     // Number of particles vertically
+#define CLOTH_PARTICLES (CLOTH_WIDTH * CLOTH_HEIGHT)  // Total particle count
+// Note: Spring count includes structural (horizontal/vertical) and shear (diagonal) springs
 #define CLOTH_SPRINGS ((CLOTH_WIDTH - 1) * CLOTH_HEIGHT + CLOTH_WIDTH * (CLOTH_HEIGHT - 1) + (CLOTH_WIDTH - 1) * (CLOTH_HEIGHT - 1) * 2)
 
 // Pass through vertex shader for screen quad rendering
@@ -129,34 +155,35 @@ static const char* CLOTH_FRAGMENT_SHADER = "#version 430 core\n"
 "	FragColor = vec4(Color, 1.0);\n"
 "}";
 
-// Cloth physics compute shader
+// Cloth physics compute shader - this runs on the GPU for high performance
 static const char* CLOTH_COMPUTE_SHADER = "#version 430 core\n"
 "\n"
+"// Compute shader work group size - processes 16x16 particles per dispatch\n"
 "layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;\n"
 "\n"
-"// Uniforms\n"
-"uniform int mode; // 0: initialize, 1: update physics\n"
-"uniform float dt; // delta time\n"
-"uniform float time; // current time\n"
-"uniform vec3 gravity; // gravity vector\n"
-"uniform vec3 wind; // wind force\n"
-"uniform float damping; // velocity damping\n"
-"uniform float rest_length; // rest length of springs\n"
-"uniform float spring_strength; // spring strength\n"
+"// Simulation control uniforms\n"
+"uniform int mode; // 0: initialize, 1: update physics, 2: calculate normals\n"
+"uniform float dt; // delta time for integration\n"
+"uniform float time; // current simulation time\n"
+"uniform vec3 gravity; // gravity force vector\n"
+"uniform vec3 wind; // wind force vector\n"
+"uniform float damping; // velocity damping factor (0-1)\n"
+"uniform float rest_length; // natural spring length\n"
+"uniform float spring_strength; // spring stiffness constant\n"
 "uniform int cloth_width;\n"
 "uniform int cloth_height;\n"
-"uniform float cloth_size;\n"
+"uniform float cloth_size; // world-space size of cloth\n"
 "\n"
-"// Particle structure\n"
+"// Particle data structure - each particle is 4 vec4s (64 bytes)\n"
 "struct Particle\n"
 "{\n"
 "    vec4 position; // xyz = position, w = mass\n"
-"    vec4 prev_position; // xyz = previous position, w = pinned (1.0 = pinned)\n"
+"    vec4 prev_position; // xyz = previous position, w = pinned flag (1.0 = pinned)\n"
 "    vec4 velocity; // xyz = velocity, w = unused\n"
-"    vec4 normal; // xyz = normal, w = unused\n"
+"    vec4 normal; // xyz = surface normal, w = unused\n"
 "};\n"
 "\n"
-"// Particle buffer\n"
+"// GPU buffer containing all particle data\n"
 "layout(std430, binding = 0) buffer ParticleBuffer\n"
 "{\n"
 "    Particle particles[];\n"
@@ -383,17 +410,17 @@ static CGL_shader* compute_shader = NULL;
 static CGL_ssbo* particle_ssbo = NULL;
 static GLuint dummy_vao = 0;
 
-// Simulation parameters
+// Simulation parameters - tweak these for different cloth behaviors
 static float delta_time = 0.0f;
-static float gravity_strength = -9.8f;
-static float wind_strength = 0.0f;
-static float damping = 0.01f;
-static float rest_length = 0.1f;
-static float spring_strength = 50.0f;
-static float cloth_size = 4.0f;
-static bool simulation_running = true;
+static float gravity_strength = -9.8f;    // Negative for downward gravity
+static float wind_strength = 0.0f;        // Horizontal wind force
+static float damping = 0.01f;             // Energy loss per frame (0=no damping, 1=full damping)
+static float rest_length = 0.1f;          // Natural length of springs
+static float spring_strength = 50.0f;     // Spring stiffness (higher = stiffer cloth)
+static float cloth_size = 4.0f;           // World-space size of the cloth
+static bool simulation_running = true;    // Pause/resume simulation
 
-// Camera
+// Camera control
 static CGL_vec3 camera_pos = {0.0f, 2.0f, 5.0f};
 static CGL_vec3 camera_target = {0.0f, 0.0f, 0.0f};
 static float camera_angle = 0.0f;
@@ -428,6 +455,7 @@ void update_cloth_physics()
 {
     if (!simulation_running) return;
     
+    // Step 1: Update particle physics using Verlet integration
     CGL_shader_bind(compute_shader);
     CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "mode"), 1);
     CGL_shader_set_uniform_float(compute_shader, CGL_shader_get_uniform_location(compute_shader, "dt"), delta_time);
@@ -439,9 +467,11 @@ void update_cloth_physics()
     CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "cloth_width"), CLOTH_WIDTH);
     CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "cloth_height"), CLOTH_HEIGHT);
     CGL_shader_compute_dispatch(compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
+    
+    // Memory barrier ensures physics update completes before normal calculation
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     
-    // Calculate normals
+    // Step 2: Calculate surface normals for lighting (runs after physics update)
     CGL_shader_set_uniform_int(compute_shader, CGL_shader_get_uniform_location(compute_shader, "mode"), 2);
     CGL_shader_compute_dispatch(compute_shader, (CLOTH_WIDTH + 15) / 16, (CLOTH_HEIGHT + 15) / 16, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);

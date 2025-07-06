@@ -12,3 +12,4 @@ test.c
 test
 _deps
 .vscode
+cloth_simulation
