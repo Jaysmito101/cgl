@@ -27,6 +27,8 @@ SOFTWARE.
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDE_RAY_CASTER
 #define CGL_EXCLUDE_NODE_EDITOR
+#define CGL_EXCLUDE_AUDIO
+#define CGL_EXCLUDE_TEXT_RENDER
 #include "cgl.h"
 
 // Cloth simulation parameters
@@ -68,54 +70,63 @@ static const char* PASS_THROUGH_FRAGMENT_SHADER = "#version 430 core\n"
 "	FragColor = vec4(color, 1.0f);\n"
 "}";
 
-// Cloth vertex shader
+// Cloth vertex shader - renders particles as points
 static const char* CLOTH_VERTEX_SHADER = "#version 430 core\n"
 "\n"
 "layout (location = 0) in vec3 position;\n"
-"layout (location = 1) in vec3 normal;\n"
-"layout (location = 2) in vec2 texcoord;\n"
 "\n"
-"out vec3 WorldPos;\n"
+"struct Particle\n"
+"{\n"
+"    vec4 position; // xyz = position, w = mass\n"
+"    vec4 prev_position; // xyz = previous position, w = pinned (1.0 = pinned)\n"
+"    vec4 velocity; // xyz = velocity, w = unused\n"
+"    vec4 normal; // xyz = normal, w = unused\n"
+"};\n"
+"\n"
+"layout(std430, binding = 0) buffer ParticleBuffer\n"
+"{\n"
+"    Particle particles[];\n"
+"};\n"
+"\n"
+"out vec3 Color;\n"
 "out vec3 Normal;\n"
-"out vec2 TexCoord;\n"
 "\n"
 "uniform mat4 view_proj;\n"
-"uniform mat4 model;\n"
+"uniform vec3 light_pos;\n"
+"uniform vec3 cloth_color;\n"
 "\n"
 "void main()\n"
 "{\n"
-"	WorldPos = (model * vec4(position, 1.0)).xyz;\n"
-"	Normal = normalize((model * vec4(normal, 0.0)).xyz);\n"
-"	TexCoord = texcoord;\n"
-"	gl_Position = view_proj * vec4(WorldPos, 1.0);\n"
+"	int particle_index = gl_VertexID;\n"
+"	vec3 world_pos = particles[particle_index].position.xyz;\n"
+"	vec3 normal = particles[particle_index].normal.xyz;\n"
+"	\n"
+"	gl_Position = view_proj * vec4(world_pos, 1.0);\n"
+"	gl_PointSize = 3.0;\n"
+"	\n"
+"	// Simple lighting calculation\n"
+"	vec3 light_dir = normalize(light_pos - world_pos);\n"
+"	float diffuse = max(dot(normal, light_dir), 0.0);\n"
+"	Color = cloth_color * (0.3 + diffuse * 0.7);\n"
+"	Normal = normal;\n"
 "}";
 
 // Cloth fragment shader
 static const char* CLOTH_FRAGMENT_SHADER = "#version 430 core\n"
 "\n"
-"in vec3 WorldPos;\n"
+"in vec3 Color;\n"
 "in vec3 Normal;\n"
-"in vec2 TexCoord;\n"
 "\n"
 "out vec4 FragColor;\n"
 "\n"
-"uniform vec3 light_pos;\n"
-"uniform vec3 view_pos;\n"
-"uniform vec3 cloth_color;\n"
-"\n"
 "void main()\n"
 "{\n"
-"	// Simple Phong lighting\n"
-"	vec3 light_dir = normalize(light_pos - WorldPos);\n"
-"	vec3 view_dir = normalize(view_pos - WorldPos);\n"
-"	vec3 reflect_dir = reflect(-light_dir, Normal);\n"
+"	// Make points round\n"
+"	vec2 center = gl_PointCoord - vec2(0.5);\n"
+"	if (dot(center, center) > 0.25)\n"
+"		discard;\n"
 "	\n"
-"	float ambient = 0.2;\n"
-"	float diffuse = max(dot(Normal, light_dir), 0.0);\n"
-"	float specular = pow(max(dot(view_dir, reflect_dir), 0.0), 32.0);\n"
-"	\n"
-"	vec3 color = cloth_color * (ambient + diffuse * 0.6 + specular * 0.2);\n"
-"	FragColor = vec4(color, 1.0);\n"
+"	FragColor = vec4(Color, 1.0);\n"
 "}";
 
 // Cloth physics compute shader
@@ -370,7 +381,7 @@ static CGL_shader* present_shader = NULL;
 static CGL_shader* cloth_shader = NULL;
 static CGL_shader* compute_shader = NULL;
 static CGL_ssbo* particle_ssbo = NULL;
-static CGL_mesh* cloth_mesh = NULL;
+static GLuint dummy_vao = 0;
 
 // Simulation parameters
 static float delta_time = 0.0f;
@@ -393,72 +404,14 @@ void update_cloth_physics();
 void render_cloth();
 void cleanup();
 
-// Create cloth mesh for rendering
-void create_cloth_mesh()
-{
-    // Create vertices and indices for cloth mesh
-    CGL_float* vertices = (CGL_float*)malloc(CLOTH_PARTICLES * 6 * sizeof(CGL_float)); // pos(3) + texcoord(2) + normal(3) = 8, but we'll use 6 for simplicity
-    CGL_uint* indices = (CGL_uint*)malloc((CLOTH_WIDTH - 1) * (CLOTH_HEIGHT - 1) * 6 * sizeof(CGL_uint));
-    
-    // Generate vertices
-    for (int y = 0; y < CLOTH_HEIGHT; y++)
-    {
-        for (int x = 0; x < CLOTH_WIDTH; x++)
-        {
-            int index = y * CLOTH_WIDTH + x;
-            
-            // Position (will be updated from particle buffer)
-            vertices[index * 6 + 0] = 0.0f;
-            vertices[index * 6 + 1] = 0.0f;
-            vertices[index * 6 + 2] = 0.0f;
-            
-            // Texture coordinates
-            vertices[index * 6 + 3] = (float)x / (float)(CLOTH_WIDTH - 1);
-            vertices[index * 6 + 4] = (float)y / (float)(CLOTH_HEIGHT - 1);
-            
-            // Normal (will be updated from particle buffer)
-            vertices[index * 6 + 5] = 0.0f;
-        }
-    }
-    
-    // Generate indices for triangles
-    int index_count = 0;
-    for (int y = 0; y < CLOTH_HEIGHT - 1; y++)
-    {
-        for (int x = 0; x < CLOTH_WIDTH - 1; x++)
-        {
-            int top_left = y * CLOTH_WIDTH + x;
-            int top_right = y * CLOTH_WIDTH + (x + 1);
-            int bottom_left = (y + 1) * CLOTH_WIDTH + x;
-            int bottom_right = (y + 1) * CLOTH_WIDTH + (x + 1);
-            
-            // First triangle
-            indices[index_count++] = top_left;
-            indices[index_count++] = bottom_left;
-            indices[index_count++] = top_right;
-            
-            // Second triangle
-            indices[index_count++] = top_right;
-            indices[index_count++] = bottom_left;
-            indices[index_count++] = bottom_right;
-        }
-    }
-    
-    cloth_mesh = CGL_mesh_create();
-    CGL_mesh_add_vertex_buffer(cloth_mesh, vertices, CLOTH_PARTICLES * 6 * sizeof(CGL_float), 0, 3, CGL_FLOAT, false, 6 * sizeof(CGL_float), 0);
-    CGL_mesh_add_vertex_buffer(cloth_mesh, vertices + 3, CLOTH_PARTICLES * 6 * sizeof(CGL_float), 1, 2, CGL_FLOAT, false, 6 * sizeof(CGL_float), 3 * sizeof(CGL_float));
-    CGL_mesh_add_vertex_buffer(cloth_mesh, vertices + 5, CLOTH_PARTICLES * 6 * sizeof(CGL_float), 2, 1, CGL_FLOAT, false, 6 * sizeof(CGL_float), 5 * sizeof(CGL_float));
-    CGL_mesh_set_indices(cloth_mesh, indices, index_count);
-    
-    free(vertices);
-    free(indices);
-}
-
 void initialize_cloth()
 {
     // Create particle SSBO
     particle_ssbo = CGL_ssbo_create(0);
     CGL_ssbo_set_data(particle_ssbo, CLOTH_PARTICLES * 4 * 4 * sizeof(CGL_float), NULL, GL_DYNAMIC_DRAW);
+    
+    // Create dummy VAO for rendering
+    glGenVertexArrays(1, &dummy_vao);
     
     // Initialize particles
     CGL_shader_bind(compute_shader);
@@ -504,25 +457,22 @@ void render_cloth()
     CGL_mat4 view = CGL_mat4_look_at(camera_pos, camera_target, CGL_vec3_init(0.0f, 1.0f, 0.0f));
     CGL_mat4 projection = CGL_mat4_perspective(CGL_deg_to_rad(45.0f), 1.0f, 0.1f, 100.0f);
     CGL_mat4 view_proj = CGL_mat4_mul(projection, view);
-    CGL_mat4 model = CGL_mat4_identity();
     
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    glEnable(GL_PROGRAM_POINT_SIZE);
     
     CGL_shader_bind(cloth_shader);
     CGL_shader_set_uniform_mat4(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "view_proj"), &view_proj);
-    CGL_shader_set_uniform_mat4(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "model"), &model);
-    CGL_shader_set_uniform_vec3(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "light_pos"), CGL_vec3_init(5.0f, 5.0f, 5.0f));
-    CGL_shader_set_uniform_vec3(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "view_pos"), camera_pos);
-    CGL_shader_set_uniform_vec3(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "cloth_color"), CGL_vec3_init(0.8f, 0.2f, 0.2f));
+    CGL_shader_set_uniform_vec3v(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "light_pos"), 5.0f, 5.0f, 5.0f);
+    CGL_shader_set_uniform_vec3v(cloth_shader, CGL_shader_get_uniform_location(cloth_shader, "cloth_color"), 0.8f, 0.2f, 0.2f);
     
-    // TODO: Update mesh vertices with particle positions
-    // For now, we'll just render a simple representation
-    CGL_mesh_render(cloth_mesh);
+    // Render particles as points
+    glBindVertexArray(dummy_vao);
+    glDrawArrays(GL_POINTS, 0, CLOTH_PARTICLES);
+    glBindVertexArray(0);
     
-    glDisable(GL_CULL_FACE);
+    glDisable(GL_PROGRAM_POINT_SIZE);
     glDisable(GL_DEPTH_TEST);
 }
 
@@ -548,9 +498,6 @@ int main()
     present_shader = CGL_shader_create(PASS_THROUGH_VERTEX_SHADER, PASS_THROUGH_FRAGMENT_SHADER, NULL);
     cloth_shader = CGL_shader_create(CLOTH_VERTEX_SHADER, CLOTH_FRAGMENT_SHADER, NULL);
     compute_shader = CGL_shader_compute_create(CLOTH_COMPUTE_SHADER, NULL);
-    
-    // Create cloth mesh
-    create_cloth_mesh();
     
     // Initialize cloth simulation
     initialize_cloth();
@@ -657,7 +604,7 @@ int main()
 void cleanup()
 {
     if (particle_ssbo) CGL_ssbo_destroy(particle_ssbo);
-    if (cloth_mesh) CGL_mesh_destroy(cloth_mesh);
+    if (dummy_vao) glDeleteVertexArrays(1, &dummy_vao);
     if (compute_shader) CGL_shader_destroy(compute_shader);
     if (cloth_shader) CGL_shader_destroy(cloth_shader);
     if (present_shader) CGL_shader_destroy(present_shader);
