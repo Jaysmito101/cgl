@@ -97,7 +97,7 @@ static struct {
     CGL_phong_pipeline* phong_pipeline;
     CGL_phong_mat* cloth_material;
     CGL_camera* camera;
-    CGL_mesh* cloth_mesh;
+    CGL_mesh_gpu* cloth_mesh;
     
     // Cloth simulation data
     Particle* particles;
@@ -296,8 +296,8 @@ void create_cloth_mesh()
         }
     }
     
-    // Create mesh
-    g_State.cloth_mesh = CGL_mesh_create();
+    // Create GPU mesh
+    g_State.cloth_mesh = CGL_mesh_gpu_create();
     
     // Update mesh data
     update_cloth_mesh();
@@ -399,7 +399,7 @@ void calculate_cloth_normals()
         CGL_vec3 p3 = g_State.particles[i3].position;
         
         CGL_vec3 normal = CGL_vec3_cross(CGL_vec3_sub(p2, p1), CGL_vec3_sub(p3, p1));
-        normal = CGL_vec3_normalize(normal);
+        normal = CGL_vec3_normalize_(normal);
         
         // Add to vertex normals
         g_State.particles[i1].normal = CGL_vec3_add(g_State.particles[i1].normal, normal);
@@ -410,31 +410,52 @@ void calculate_cloth_normals()
     // Normalize vertex normals
     for (CGL_int i = 0; i < CLOTH_PARTICLES; i++)
     {
-        g_State.particles[i].normal = CGL_vec3_normalize(g_State.particles[i].normal);
+        g_State.particles[i].normal = CGL_vec3_normalize_(g_State.particles[i].normal);
     }
 }
 
 void update_cloth_mesh()
 {
-    // Update vertex positions
+    // Create CPU mesh
+    CGL_mesh_cpu* cpu_mesh = CGL_mesh_cpu_create(CLOTH_PARTICLES, CLOTH_INDICES);
+    
+    // Fill vertices
     for (CGL_int i = 0; i < CLOTH_PARTICLES; i++)
     {
-        g_State.vertices[i * 3] = g_State.particles[i].position.x;
-        g_State.vertices[i * 3 + 1] = g_State.particles[i].position.y;
-        g_State.vertices[i * 3 + 2] = g_State.particles[i].position.z;
+        CGL_mesh_vertex vertex = {0};
+        vertex.position = CGL_vec4_init(
+            g_State.particles[i].position.x,
+            g_State.particles[i].position.y,
+            g_State.particles[i].position.z,
+            1.0f
+        );
+        vertex.normal = CGL_vec4_init(
+            g_State.particles[i].normal.x,
+            g_State.particles[i].normal.y,
+            g_State.particles[i].normal.z,
+            0.0f
+        );
+        vertex.texture_coordinates = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+        vertex.bone_wieghts = CGL_vec4_init(0.0f, 0.0f, 0.0f, 0.0f);
+        vertex.bone_ids = CGL_ivec4_init(0, 0, 0, 0);
         
-        g_State.normals[i * 3] = g_State.particles[i].normal.x;
-        g_State.normals[i * 3 + 1] = g_State.particles[i].normal.y;
-        g_State.normals[i * 3 + 2] = g_State.particles[i].normal.z;
+        cpu_mesh->vertices[i] = vertex;
     }
     
-    // Update mesh
-    CGL_mesh_destroy(g_State.cloth_mesh);
-    g_State.cloth_mesh = CGL_mesh_create();
-    CGL_mesh_add_vertex_f3(g_State.cloth_mesh, g_State.vertices, CLOTH_PARTICLES);
-    CGL_mesh_add_normal_f3(g_State.cloth_mesh, g_State.normals, CLOTH_PARTICLES);
-    CGL_mesh_add_index_i(g_State.cloth_mesh, g_State.indices, CLOTH_INDICES);
-    CGL_mesh_upload(g_State.cloth_mesh, true);
+    // Fill indices
+    for (CGL_int i = 0; i < CLOTH_INDICES; i++)
+    {
+        cpu_mesh->indices[i] = g_State.indices[i];
+    }
+    
+    cpu_mesh->vertex_count_used = CLOTH_PARTICLES;
+    cpu_mesh->index_count_used = CLOTH_INDICES;
+    
+    // Upload to GPU
+    CGL_mesh_gpu_upload(g_State.cloth_mesh, cpu_mesh, false);
+    
+    // Cleanup CPU mesh
+    CGL_mesh_cpu_destroy(cpu_mesh);
 }
 
 void render_cloth()
@@ -445,7 +466,15 @@ void render_cloth()
     g_State.camera_pos.z = 5.0f * sinf(g_State.camera_angle);
     
     CGL_camera_set_position(g_State.camera, g_State.camera_pos);
-    CGL_camera_set_target(g_State.camera, g_State.camera_target);
+    
+    // Calculate rotation to look at target
+    CGL_vec3 direction = CGL_vec3_normalize_(CGL_vec3_sub(g_State.camera_target, g_State.camera_pos));
+    CGL_vec3 rotation = CGL_vec3_init(
+        asinf(-direction.y), 
+        atan2f(direction.x, direction.z),
+        0.0f
+    );
+    CGL_camera_set_rotation(g_State.camera, rotation);
     CGL_camera_recalculate_mat(g_State.camera);
     
     // Render cloth using Phong shading
@@ -492,7 +521,6 @@ CGL_bool init()
     g_State.cloth_material = CGL_phong_mat_create();
     CGL_phong_mat_set_diffuse_color(g_State.cloth_material, CGL_vec3_init(0.8f, 0.2f, 0.2f));
     CGL_phong_mat_set_specular_color(g_State.cloth_material, CGL_vec3_init(0.3f, 0.3f, 0.3f));
-    CGL_phong_mat_set_ambient_color(g_State.cloth_material, CGL_vec3_init(0.2f, 0.05f, 0.05f));
     CGL_phong_mat_set_shininess(g_State.cloth_material, 32.0f);
     
     // Create camera
@@ -686,7 +714,7 @@ void cleanup()
     if (g_State.indices) free(g_State.indices);
     
     // Destroy CGL objects
-    if (g_State.cloth_mesh) CGL_mesh_destroy(g_State.cloth_mesh);
+    if (g_State.cloth_mesh) CGL_mesh_gpu_destroy(g_State.cloth_mesh);
     if (g_State.cloth_material) CGL_phong_mat_destroy(g_State.cloth_material);
     if (g_State.phong_pipeline) CGL_phong_pipeline_destroy(g_State.phong_pipeline);
     if (g_State.camera) CGL_camera_destroy(g_State.camera);
