@@ -27,9 +27,9 @@ SOFTWARE.
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
-#define ASPECT_RATIO                                                           \
-  1.0f // an aspect ratio on 1.0 will be needed since our sudoku game board will
-       // be a square
+#define ASPECT_RATIO \
+  1.0f  // an aspect ratio on 1.0 will be needed since our sudoku game board
+        // will be a square
 #define BORDER_WIDTH 0.01f
 #define FIXED_COLOR "0.9f, 0.9f, 0.9f"
 #define CORRECT_COLOR "0.01f, 0.5f, 0.1f"
@@ -140,10 +140,13 @@ static const char *board_fragment_shader_source =
     "   vec3 text_color = vec3(0.1f);\n"
     "   if(uischeckon)\n"
     "   {\n"
-    "      if(data2.y < 0.5f) text_color = vec3(" WRONG_COLOR ");\n"
-    "      if(data2.y > 0.5f) text_color = vec3(" CORRECT_COLOR ");\n"
+    "      if(data2.y < 0.5f) text_color = vec3(" WRONG_COLOR
+    ");\n"
+    "      if(data2.y > 0.5f) text_color = vec3(" CORRECT_COLOR
+    ");\n"
     "   }\n"
-    "   if(data2.x > 0.5f) text_color = vec3(" FIXED_COLOR ");\n"
+    "   if(data2.x > 0.5f) text_color = vec3(" FIXED_COLOR
+    ");\n"
     "   if((factor < 0.5f) || (size.x <= 0.01f))\n"
     "      FragColor = vec4(backgroud_color, 1.0f);\n"
     "   else\n"
@@ -159,7 +162,7 @@ struct char10 {
 // this will store the gobal application data like window context, mesh handles
 // for renderer, etc.
 static struct {
-  CGL_window *window; // the main window
+  CGL_window *window;  // the main window
   int window_height;
   int window_width;
 
@@ -201,10 +204,8 @@ static struct {
 int board_gen_priority_list_sort_comp(const void *el1, const void *el2) {
   struct char10 *elem1 = (struct char10 *)el1;
   struct char10 *elem2 = (struct char10 *)el2;
-  if (elem2->d[0] > elem1->d[0])
-    return -1;
-  if (elem2->d[0] < elem1->d[0])
-    return 1;
+  if (elem2->d[0] > elem1->d[0]) return -1;
+  if (elem2->d[0] < elem1->d[0]) return 1;
   return 0;
 }
 
@@ -235,8 +236,7 @@ void board_gen_remove_item(int index, char item_val_to_remove) {
       g_context.board_gen[index].d[item_val_to_remove] == 1) {
     g_context.board_gen[index].d[0] -= 1;
     g_context.board_gen[index].d[item_val_to_remove] = 0;
-    if (g_context.board_gen[index].d[0] == 1)
-      board_gen_collapse_item(index);
+    if (g_context.board_gen[index].d[0] == 1) board_gen_collapse_item(index);
   }
 }
 
@@ -264,9 +264,9 @@ void board_gen_collapse_item(int selected_item) {
   // board_index_x, (8 - board_index_y));
   for (int i = 0; i < 9; i++) {
     board_gen_remove_item(i * 9 + board_index_x,
-                          item_val_to_remove); // in the same column
+                          item_val_to_remove);  // in the same column
     board_gen_remove_item(board_index_y * 9 + i,
-                          item_val_to_remove); // in the same row
+                          item_val_to_remove);  // in the same row
   }
 
   // now in the same 3 x 3 square
@@ -292,14 +292,13 @@ bool board_gen_solve_step() {
         lowest_val = v;
         lowest_start = i;
       }
-      if (v > lowest_val && lowest_end == -1)
-        lowest_end = i - 1;
+      if (v > lowest_val && lowest_end == -1) lowest_end = i - 1;
     }
   }
-  if (lowest_end == -1)
-    lowest_end = 81 - 1;
+  if (lowest_end == -1) lowest_end = 81 - 1;
   if (lowest_start == -1)
-    return true; // if all are having 1 entropy then the board is already solved
+    return true;  // if all are having 1 entropy then the board is already
+                  // solved
 
   // then randomly select a item with lowest entropy to collapse it
   int selected_item =
@@ -311,15 +310,13 @@ bool board_gen_solve_step() {
 
 void generate_board() {
   for (int i = 0; i < 81; i++) {
-    for (int j = 0; j < 10; j++)
-      g_context.board_gen[i].d[j] = 1;
+    for (int j = 0; j < 10; j++) g_context.board_gen[i].d[j] = 1;
     g_context.board_gen[i].d[0] = 9;
     g_context.board_gen[i].d[10] = -1;
     g_context.priority_list[i] = (char)i;
   }
 
-  while (!board_gen_solve_step())
-    ;
+  while (!board_gen_solve_step());
 
   // now copy generated board to board_solved
   for (int i = 0; i < 81; i++)
@@ -337,8 +334,7 @@ void upload_board_piece(int peice_index) {
     offset[0] = CGL_vec4_init(
         character->normalized_offset.x, character->normalized_offset.y,
         character->normalized_size.x, character->normalized_size.y);
-  if (g_context.board_original[peice_index] > 0)
-    offset[1].x = 1.0f;
+  if (g_context.board_original[peice_index] > 0) offset[1].x = 1.0f;
   if (g_context.board_solved[peice_index] == g_context.board[peice_index])
     offset[1].y = 1.0f;
   CGL_ssbo_set_sub_data(g_context.board_data_ssbo,
@@ -347,8 +343,7 @@ void upload_board_piece(int peice_index) {
 }
 
 void upload_board() {
-  for (int i = 0; i < 81; i++)
-    upload_board_piece(i);
+  for (int i = 0; i < 81; i++) upload_board_piece(i);
 }
 
 void reset_game();
@@ -358,11 +353,9 @@ void key_callback(CGL_window *window, int key, int scancode, int action,
   int selected_tile_x = g_context.selected_tile % 9;
   int selected_tile_y = g_context.selected_tile / 9;
 
-  if (key == CGL_KEY_R && action == CGL_PRESS)
-    reset_game();
+  if (key == CGL_KEY_R && action == CGL_PRESS) reset_game();
 
-  if (!g_context.is_input_allowed)
-    return;
+  if (!g_context.is_input_allowed) return;
 
   if (action == CGL_PRESS) {
     if (key == CGL_KEY_UP)
@@ -380,27 +373,25 @@ void key_callback(CGL_window *window, int key, int scancode, int action,
         g_context.board[g_context.selected_tile] = key - CGL_KEY_0;
       if (key >= CGL_KEY_KP_1 && key <= CGL_KEY_KP_9)
         g_context.board[g_context.selected_tile] = key - CGL_KEY_KP_0;
-      if (key == CGL_KEY_DELETE)
-        g_context.board[g_context.selected_tile] = -1;
+      if (key == CGL_KEY_DELETE) g_context.board[g_context.selected_tile] = -1;
       upload_board_piece(g_context.selected_tile);
     }
 
-    if (key == CGL_KEY_C)
-      g_context.is_check_on = true;
+    if (key == CGL_KEY_C) g_context.is_check_on = true;
 
-    if (key == CGL_KEY_S) // auto solve selected tile
+    if (key == CGL_KEY_S)  // auto solve selected tile
     {
       g_context.board[g_context.selected_tile] =
           g_context.board_solved[g_context.selected_tile];
       upload_board_piece(g_context.selected_tile);
     }
-    if (key == CGL_KEY_A) // auto solve random tile
+    if (key == CGL_KEY_A)  // auto solve random tile
     {
       int r = CGL_utils_random_int(0, 80);
       g_context.board[r] = g_context.board_solved[r];
       upload_board_piece(r);
     }
-    if (key == CGL_KEY_F) // auto solve first unsolved tile tile
+    if (key == CGL_KEY_F)  // auto solve first unsolved tile tile
     {
       for (int i = 0; i < 81; i++) {
         if (g_context.board[i] == -1) {
@@ -411,8 +402,7 @@ void key_callback(CGL_window *window, int key, int scancode, int action,
       }
     }
   } else if (action == CGL_RELEASE) {
-    if (key == CGL_KEY_C)
-      g_context.is_check_on = false;
+    if (key == CGL_KEY_C) g_context.is_check_on = false;
   }
 }
 
@@ -421,28 +411,25 @@ bool setup_window() {
   g_context.window_width = (int)(g_context.window_height * ASPECT_RATIO);
   g_context.window =
       CGL_window_create(g_context.window_width, g_context.window_height,
-                        "Sudoku - Jaysmito Mukherjee"); // create the window
-  if (g_context.window == NULL)
-    return false; // window creation failed
+                        "Sudoku - Jaysmito Mukherjee");  // create the window
+  if (g_context.window == NULL) return false;  // window creation failed
   CGL_window_make_context_current(
-      g_context.window); // make the opengl context for the window current
+      g_context.window);  // make the opengl context for the window current
   CGL_window_set_key_callback(g_context.window, key_callback);
-  return true; // window was successfully created
+  return true;  // window was successfully created
 }
 
 bool setup_framebuffer() {
   g_context.framebuffer = CGL_framebuffer_create_from_default(
-      g_context.window); // load the default framebuffer (0) into
-                         // CGL_framebuffer object
-  if (g_context.framebuffer == NULL)
-    return false; // failed
+      g_context.window);  // load the default framebuffer (0) into
+                          // CGL_framebuffer object
+  if (g_context.framebuffer == NULL) return false;  // failed
 
   g_context.main_framebuffer =
-      CGL_framebuffer_create(1024, 1024); // for the main rendering
-  if (!g_context.main_framebuffer)
-    return false;
+      CGL_framebuffer_create(1024, 1024);  // for the main rendering
+  if (!g_context.main_framebuffer) return false;
 
-  return true; // success
+  return true;  // success
 }
 
 bool setup_quad_renderer() {
@@ -450,17 +437,16 @@ bool setup_quad_renderer() {
   CGL_mesh_cpu *quad_mesh_cpu = CGL_mesh_cpu_quad(
       CGL_vec3_init(1.0f, 1.0f, 0.0f), CGL_vec3_init(1.0f, -1.0f, 0.0f),
       CGL_vec3_init(-1.0f, -1.0f, 0.0f), CGL_vec3_init(-1.0f, 1.0f, 0.0f));
-  g_context.quad_mesh = CGL_mesh_gpu_create(); // create the gpu mesh
-  if (!g_context.quad_mesh)
-    return false; // failed
+  g_context.quad_mesh = CGL_mesh_gpu_create();  // create the gpu mesh
+  if (!g_context.quad_mesh) return false;       // failed
   CGL_mesh_gpu_upload(g_context.quad_mesh, quad_mesh_cpu,
-                      true);           // upload quad mesh data to the gpu mesh
-  CGL_mesh_cpu_destroy(quad_mesh_cpu); // free the quad mesh data from cpu as we
-                                       // no longer need it
+                      true);            // upload quad mesh data to the gpu mesh
+  CGL_mesh_cpu_destroy(quad_mesh_cpu);  // free the quad mesh data from cpu as
+                                        // we no longer need it
 
   g_context.quad_shader = CGL_shader_create(quad_mesh_vertex_shader_source,
                                             quad_mesh_fragment_shader_source,
-                                            NULL); // create the shader
+                                            NULL);  // create the shader
   // load the uiform locations
   g_context.quad_shader_usize =
       CGL_shader_get_uniform_location(g_context.quad_shader, "usize");
@@ -473,12 +459,12 @@ bool setup_quad_renderer() {
   g_context.quad_shader_utex =
       CGL_shader_get_uniform_location(g_context.quad_shader, "utex");
 
-  return true; // success
+  return true;  // success
 }
 
 void render_quad(float start_x, float start_y, float size_x, float size_y,
                  float color_r, float color_g, float color_b) {
-  CGL_shader_bind(g_context.quad_shader); // bind the quad shader
+  CGL_shader_bind(g_context.quad_shader);  // bind the quad shader
   // set the uniforms
   CGL_shader_set_uniform_vec2v(
       g_context.quad_shader, g_context.quad_shader_ustart,
@@ -490,12 +476,12 @@ void render_quad(float start_x, float start_y, float size_x, float size_y,
                                color_b);
   CGL_shader_set_uniform_bool(g_context.quad_shader,
                               g_context.quad_shader_uiscolor, true);
-  CGL_mesh_gpu_render(g_context.quad_mesh); // render the quad mesh
+  CGL_mesh_gpu_render(g_context.quad_mesh);  // render the quad mesh
 }
 
 void render_quad_texture(float start_x, float start_y, float size_x,
                          float size_y, CGL_texture *texture) {
-  CGL_shader_bind(g_context.quad_shader); // bind the quad shader
+  CGL_shader_bind(g_context.quad_shader);  // bind the quad shader
   // set the uniforms
   CGL_shader_set_uniform_vec2v(
       g_context.quad_shader, g_context.quad_shader_ustart,
@@ -507,15 +493,14 @@ void render_quad_texture(float start_x, float start_y, float size_x,
   CGL_texture_bind(texture, 0);
   CGL_shader_set_uniform_int(g_context.quad_shader, g_context.quad_shader_utex,
                              0);
-  CGL_mesh_gpu_render(g_context.quad_mesh); // render the quad mesh
+  CGL_mesh_gpu_render(g_context.quad_mesh);  // render the quad mesh
 }
 
 bool setup_board_renderer() {
-  g_context.font = CGL_font_load("font.ttf"); // load font from file
-  if (!g_context.font)
-    return false; // failed
+  g_context.font = CGL_font_load("font.ttf");  // load font from file
+  if (!g_context.font) return false;           // failed
   if (!CGL_font_build_atlas(g_context.font, 1024, 1024, 56))
-    return false; // build and rastarize the font atlas
+    return false;  // build and rastarize the font atlas
 
   g_context.you_won_text = CGL_text_bake_to_texture(
       "You Won!", strlen("You Won!"), g_context.font, NULL, NULL);
@@ -525,7 +510,7 @@ bool setup_board_renderer() {
 
   g_context.board_shader = CGL_shader_create(board_vertex_shader_source,
                                              board_fragment_shader_source,
-                                             NULL); // setup board shader
+                                             NULL);  // setup board shader
   // load up unifrom locations
   g_context.board_shader_uborder_width =
       CGL_shader_get_uniform_location(g_context.board_shader, "uborder_width");
@@ -538,15 +523,15 @@ bool setup_board_renderer() {
   g_context.board_shader_uischeckon =
       CGL_shader_get_uniform_location(g_context.board_shader, "uischeckon");
 
-  g_context.board_data_ssbo = CGL_ssbo_create(0); // create ssbo board data
+  g_context.board_data_ssbo = CGL_ssbo_create(0);  // create ssbo board data
   CGL_ssbo_set_data(g_context.board_data_ssbo, sizeof(CGL_vec4) * 2 * 81, NULL,
-                    false); // upload fresh data
+                    false);  // upload fresh data
 
   return true;
 }
 
 void render_board() {
-  CGL_shader_bind(g_context.board_shader); // bind the board shader
+  CGL_shader_bind(g_context.board_shader);  // bind the board shader
   // set the unifroms
   CGL_shader_set_uniform_float(g_context.board_shader,
                                g_context.board_shader_uborder_width,
@@ -564,7 +549,7 @@ void render_board() {
                               g_context.board_shader_uischeckon,
                               g_context.is_check_on);
   CGL_mesh_gpu_render_instanced(
-      g_context.quad_mesh, 81); // we need 81 quads for the entire sudoku board
+      g_context.quad_mesh, 81);  // we need 81 quads for the entire sudoku board
 }
 
 void reset_game() {
@@ -595,33 +580,30 @@ void reset_game() {
 int main() {
   srand((uint32_t)time(NULL));
   if (!CGL_init())
-    return EXIT_FAILURE; // initialize CGL (required for setting up internals of
-                         // CGL)
-  if (!setup_window())
-    return EXIT_FAILURE; // setup window
-  if (!CGL_gl_init())
-    return EXIT_FAILURE; // initialize cgl opengl module
-  if (!CGL_text_init())
-    return EXIT_FAILURE; // initialize cgl text/font module
-  if (!setup_framebuffer())
-    return EXIT_FAILURE; // setup framebuffer
+    return EXIT_FAILURE;  // initialize CGL (required for setting up internals
+                          // of CGL)
+  if (!setup_window()) return EXIT_FAILURE;   // setup window
+  if (!CGL_gl_init()) return EXIT_FAILURE;    // initialize cgl opengl module
+  if (!CGL_text_init()) return EXIT_FAILURE;  // initialize cgl text/font module
+  if (!setup_framebuffer()) return EXIT_FAILURE;  // setup framebuffer
   if (!setup_quad_renderer())
-    return EXIT_FAILURE; // setup up the mechanism for rendering quads
+    return EXIT_FAILURE;  // setup up the mechanism for rendering quads
   if (!setup_board_renderer())
-    return EXIT_FAILURE; // setup the mechanism to render the 9x9 sudoku board
-  reset_game();          // reset game data
+    return EXIT_FAILURE;  // setup the mechanism to render the 9x9 sudoku board
+  reset_game();           // reset game data
 
   const float board_tile_size = (2.0f - 10.0f * BORDER_WIDTH) / 9.0f;
 
   // the main loop
   while (!CGL_window_should_close(
-      g_context.window)) // run till the close button is clicked
+      g_context.window))  // run till the close button is clicked
   {
     // rendering
     CGL_framebuffer_bind(
-        g_context.main_framebuffer); // bind main framebuffer and also adjust
-                                     // viewport size and offset
-    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f); // clear screen with a dark gray color
+        g_context.main_framebuffer);  // bind main framebuffer and also adjust
+                                      // viewport size and offset
+    CGL_gl_clear(0.2f, 0.2f, 0.2f,
+                 1.0f);  // clear screen with a dark gray color
 
     // render the borders
     for (int i = 0; i <= 9; i += 3) {
@@ -642,21 +624,22 @@ int main() {
     }
 
     CGL_framebuffer_bind(
-        g_context.framebuffer); // bind default framebuffer and also adjust
-                                // viewport size and offset
-    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f); // clear screen with a dark gray color
+        g_context.framebuffer);  // bind default framebuffer and also adjust
+                                 // viewport size and offset
+    CGL_gl_clear(0.2f, 0.2f, 0.2f,
+                 1.0f);  // clear screen with a dark gray color
     render_quad_texture(
         -1.0f, -1.0f, 2.0f, 2.0f,
         CGL_framebuffer_get_color_texture(g_context.main_framebuffer));
 
-    CGL_window_swap_buffers(g_context.window); // swap framebuffers
+    CGL_window_swap_buffers(g_context.window);  // swap framebuffers
     CGL_window_poll_events(
-        g_context.window); // poll events (if this is not called every frame
-                           // window will stop responding)
+        g_context.window);  // poll events (if this is not called every frame
+                            // window will stop responding)
 
     double mouse_x_pos = 0.0, mouse_y_pos = 0.0;
     CGL_window_get_mouse_position(g_context.window, &mouse_x_pos, &mouse_y_pos);
-    g_context.hovered_tile = -1; //  reset hovered tile
+    g_context.hovered_tile = -1;  //  reset hovered tile
     if (mouse_x_pos > 0.0 && mouse_y_pos > 0.0 &&
         mouse_x_pos < g_context.window_width &&
         mouse_y_pos < g_context.window_height) {
@@ -668,7 +651,7 @@ int main() {
                                0.0, 1024.0),
           0);
       if (mouse_pick_id >= 0 && mouse_pick_id < 81)
-        g_context.hovered_tile = mouse_pick_id; // set hovered tile
+        g_context.hovered_tile = mouse_pick_id;  // set hovered tile
     }
     // select tile if clicked
     if (g_context.hovered_tile >= 0 &&
@@ -686,42 +669,42 @@ int main() {
     // make sure window aspect ratio is constant
     int new_window_height = 0, new_window_width = 0;
     CGL_window_get_size(g_context.window, &new_window_width,
-                        &new_window_height); // get new size
+                        &new_window_height);  // get new size
     if (new_window_height != g_context.window_height)
       new_window_width =
           (int)(new_window_height *
-                ASPECT_RATIO); // height is changed so width is corrected
+                ASPECT_RATIO);  // height is changed so width is corrected
     else if (new_window_width != g_context.window_width)
       new_window_height =
           (int)(new_window_width /
-                ASPECT_RATIO); // width is changed so height is corrected
-    g_context.window_height = new_window_height; // update the context
-    g_context.window_width = new_window_width;   // update the context
+                ASPECT_RATIO);  // width is changed so height is corrected
+    g_context.window_height = new_window_height;  // update the context
+    g_context.window_width = new_window_width;    // update the context
     CGL_window_set_size(
         g_context.window, g_context.window_width,
         g_context
-            .window_height); // set the corrected sizes (NOTE: its not ideal to
-                             // do it every frame but it wont be that big of a
-                             // performance issue in this case)
+            .window_height);  // set the corrected sizes (NOTE: its not ideal to
+                              // do it every frame but it wont be that big of a
+                              // performance issue in this case)
 
     if (CGL_window_get_key(g_context.window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break; // quit on pressing escape
+      break;  // quit on pressing escape
   }
 
   // cleanup
-  CGL_texture_destroy(g_context.you_won_text);     // destroy the texture
-  CGL_texture_destroy(g_context.instruction_text); // destroy the texture
-  CGL_font_destory(g_context.font);                // destroy the font
-  CGL_shader_destroy(g_context.board_shader);      // destory board shader
-  CGL_mesh_gpu_destroy(g_context.quad_mesh);       // destory quad mesh
-  CGL_shader_destroy(g_context.quad_shader);       // destory quad shader
+  CGL_texture_destroy(g_context.you_won_text);      // destroy the texture
+  CGL_texture_destroy(g_context.instruction_text);  // destroy the texture
+  CGL_font_destory(g_context.font);                 // destroy the font
+  CGL_shader_destroy(g_context.board_shader);       // destory board shader
+  CGL_mesh_gpu_destroy(g_context.quad_mesh);        // destory quad mesh
+  CGL_shader_destroy(g_context.quad_shader);        // destory quad shader
   CGL_framebuffer_destroy(
-      g_context.main_framebuffer);                // destory framebuffer object
-  CGL_framebuffer_destroy(g_context.framebuffer); // destory framebuffer object
-  CGL_text_shutdown();                            // shutdown cgl text module
-  CGL_gl_shutdown();                              // shutdown cgl opengl module
-  CGL_window_destroy(g_context.window);           // destroy window
-  CGL_shutdown(); // shutdown cgl and clean up resources allocated by CGL
-                  // internally (if any)
+      g_context.main_framebuffer);                 // destory framebuffer object
+  CGL_framebuffer_destroy(g_context.framebuffer);  // destory framebuffer object
+  CGL_text_shutdown();                             // shutdown cgl text module
+  CGL_gl_shutdown();                               // shutdown cgl opengl module
+  CGL_window_destroy(g_context.window);            // destroy window
+  CGL_shutdown();  // shutdown cgl and clean up resources allocated by CGL
+                   // internally (if any)
   return EXIT_SUCCESS;
 }

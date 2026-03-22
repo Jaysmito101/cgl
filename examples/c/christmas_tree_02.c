@@ -291,8 +291,7 @@ int main() {
   CGL_init();
   CGL_window *window = CGL_window_create(
       700, 700, "Particle Physics Dance - Jaysmito Mukherjee");
-  if (!window)
-    return 1;
+  if (!window) return 1;
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_widgets_init();
@@ -326,7 +325,7 @@ int main() {
   reset_sim();
 
   while (!CGL_window_should_close(window)) {
-    CGL_window_set_size(window, 700, 700); // force window size to be 600x600
+    CGL_window_set_size(window, 700, 700);  // force window size to be 600x600
 
     view = CGL_mat4_look_at(CGL_vec3_init(20.0f, 20.0f, 20.0f),
                             CGL_vec3_init(0.0f, 10.0f, 0.0f),
@@ -388,8 +387,7 @@ int main() {
     CGL_window_poll_events(window);
     CGL_window_swap_buffers(window);
 
-    if (CGL_window_is_key_pressed(window, CGL_KEY_SPACE))
-      reset_sim();
+    if (CGL_window_is_key_pressed(window, CGL_KEY_SPACE)) reset_sim();
   }
 
   CGL_bloom_destroy(bloom);

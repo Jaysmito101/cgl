@@ -257,8 +257,7 @@ static struct {
 CGL_texture *load_texture(const char *path) {
   int width, height, channels;
   unsigned char *data = stbi_load(path, &width, &height, &channels, 0);
-  if (data == NULL)
-    return NULL;
+  if (data == NULL) return NULL;
 
   CGL_image img = {.bytes_per_channel = 8,
                    .channels = channels,
@@ -287,7 +286,6 @@ CGL_bool raycast_single(CGL_float px, CGL_float py, CGL_float dir, CGL_int *wx,
   CGL_float dst_h = 1.0f;
   // if (fasle)
   {
-
     CGL_float tDir = tanf(CGL_PI_2 - dir);
     CGL_bool up = dir > 0.0f;
 
@@ -322,7 +320,6 @@ CGL_bool raycast_single(CGL_float px, CGL_float py, CGL_float dir, CGL_int *wx,
   CGL_float dst_v = 100000.0f;
   // if(false)
   {
-
     CGL_float tDir = tanf(dir);
     CGL_bool right = (dir <= CGL_PI_2 && dir >= -CGL_PI_2);
 
@@ -360,14 +357,12 @@ CGL_bool raycast_single(CGL_float px, CGL_float py, CGL_float dir, CGL_int *wx,
     *wx = wx_h;
     *wy = wy_h;
     *dst = dst_h;
-    if (hOv)
-      *hOv = true;
+    if (hOv) *hOv = true;
   } else {
     *wx = wx_v;
     *wy = wy_v;
     *dst = dst_v;
-    if (hOv)
-      *hOv = false;
+    if (hOv) *hOv = false;
   }
 
   return (*wx != -1 && *wy != -1);
@@ -401,10 +396,10 @@ static CGL_bool setup_map() {
   // Create tilemap
   CGL_info("Setting up map");
   g_TilemapTexture = load_texture(
-      "assets/doomtilemap.png"); // https://i.ibb.co/jDvNj9f/doomtilemap.png
+      "assets/doomtilemap.png");  // https://i.ibb.co/jDvNj9f/doomtilemap.png
   CGL_info("Loaded tilemap texture");
   g_SkyTexture = load_texture(
-      "assets/skylowres.png"); // https://i.ibb.co/ZWBghVy/skylowres.png
+      "assets/skylowres.png");  // https://i.ibb.co/ZWBghVy/skylowres.png
   CGL_info("Loaded sky texture");
   g_MapEditor.tilemap = CGL_tilemap_create(
       MAP_SIZE, MAP_SIZE, MAP_EDITOR_TILE_SIZE, MAP_EDITOR_TILE_SIZE, 1);
@@ -455,7 +450,7 @@ static void update_map_editor(CGL_float mx, CGL_float my) {
   // 1]
   CGL_widgets_begin_int((CGL_float)WINDOW_HEIGHT / WINDOW_WIDTH * scalingFactor,
                         1.0f * scalingFactor, -0.875f,
-                        -0.5f); // for [0, 0] to [1, 1]
+                        -0.5f);  // for [0, 0] to [1, 1]
 
   CGL_vec2 startPos = g_Game.position;
   CGL_vec2 direction = CGL_vec2_from_angle(g_Game.direction);
@@ -495,7 +490,6 @@ static void update_map_editor(CGL_float mx, CGL_float my) {
 }
 
 static void render_map_editor(CGL_float mx, CGL_float my) {
-
   CGL_tilemap_render(g_MapEditor.tilemap, 1.0f, 1.0f, 100.0, 200.f,
                      g_TilemapTexture);
 
@@ -515,7 +509,6 @@ static void render_map_editor(CGL_float mx, CGL_float my) {
   CGL_float yStart = -0.7f;
 
   for (int i = 0; i < 20; i++) {
-
     if (CGL_aabb_contains_point(CGL_vec2_init(xStart, yStart),
                                 CGL_vec2_init(xStart + 0.10f, yStart + 0.10f),
                                 CGL_vec2_init(mx, my))) {
@@ -741,22 +734,16 @@ CGL_void render_game() {
 
 CGL_bool init() {
   srand((uint32_t)time(NULL));
-  if (!CGL_init())
-    return CGL_FALSE;
+  if (!CGL_init()) return CGL_FALSE;
   g_Window = CGL_window_create(WINDOW_WIDTH, WINDOW_HEIGHT,
                                "CGL Raycaster 3D - Jaysmito Mukherjee");
-  if (g_Window == NULL)
-    return CGL_FALSE;
+  if (g_Window == NULL) return CGL_FALSE;
   CGL_window_make_context_current(g_Window);
-  if (!CGL_gl_init())
-    return CGL_FALSE;
-  if (!CGL_widgets_init())
-    return CGL_FALSE;
+  if (!CGL_gl_init()) return CGL_FALSE;
+  if (!CGL_widgets_init()) return CGL_FALSE;
   g_Framebuffer = CGL_framebuffer_create_from_default(g_Window);
-  if (!setup_map())
-    return CGL_FALSE;
-  if (!setup_game())
-    return CGL_FALSE;
+  if (!setup_map()) return CGL_FALSE;
+  if (!setup_game()) return CGL_FALSE;
 
   return CGL_TRUE;
 }
@@ -797,8 +784,7 @@ EM_BOOL loop(double time, void *userData) {
   render_map_editor((CGL_float)mxp, (CGL_float)myp);
   render_game();
 
-  if (CGL_window_is_key_pressed(g_Window, CGL_KEY_ESCAPE))
-    return CGL_FALSE;
+  if (CGL_window_is_key_pressed(g_Window, CGL_KEY_ESCAPE)) return CGL_FALSE;
 
   CGL_window_swap_buffers(g_Window);
   CGL_window_poll_events(g_Window);
@@ -809,16 +795,14 @@ EM_BOOL loop(double time, void *userData) {
 // NOTE: This will not work with WASM for now as SSBOs are not supported in
 // WebGL
 int main() {
-  if (!init())
-    return EXIT_FAILURE;
+  if (!init()) return EXIT_FAILURE;
 
 #ifdef CGL_WASM
   CGL_info("Running in WASM mode");
   emscripten_request_animation_frame_loop(loop, NULL);
 #else
   while (!CGL_window_should_close(g_Window)) {
-    if (!loop(0.0, NULL))
-      break;
+    if (!loop(0.0, NULL)) break;
   }
   cleanup();
 #endif

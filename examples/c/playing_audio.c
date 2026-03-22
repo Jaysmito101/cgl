@@ -33,8 +33,7 @@ static CGL_bool g_is_playing = false;
 static CGL_bool g_is_loaded = false;
 
 void on_drop_file(CGL_window *window, const CGL_byte **paths, CGL_int count) {
-  if (g_is_loaded)
-    CGL_wav_file_destroy(&g_wav_file);
+  if (g_is_loaded) CGL_wav_file_destroy(&g_wav_file);
   g_is_loaded = false;
   if (!CGL_wav_file_load(&g_wav_file, paths[0])) {
     CGL_error("Failed to load wav file: %s", paths[0]);
@@ -50,8 +49,7 @@ int main() {
   CGL_init();
   CGL_window *window =
       CGL_window_create(600, 600, "Audio - Jaysmito Mukherjee");
-  if (!window)
-    return 1;
+  if (!window) return 1;
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_window_set_drag_n_drop_callback(window, on_drop_file);
@@ -82,7 +80,7 @@ int main() {
   CGL_audio_buffer *audio_buffer = CGL_audio_buffer_create();
 
   while (!CGL_window_should_close(window)) {
-    CGL_window_set_size(window, 600, 600); // force window size to be 600x600
+    CGL_window_set_size(window, 600, 600);  // force window size to be 600x600
 
     CGL_framebuffer_bind(default_framebuffer);
     CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
@@ -114,8 +112,7 @@ int main() {
   CGL_audio_source_destroy(audio_source);
   CGL_audio_make_context_current(NULL);
   CGL_audio_context_destroy(audio_context);
-  if (g_is_loaded)
-    CGL_wav_file_destroy(&g_wav_file);
+  if (g_is_loaded) CGL_wav_file_destroy(&g_wav_file);
   CGL_framebuffer_destroy(default_framebuffer);
   CGL_gl_shutdown();
   CGL_window_destroy(window);

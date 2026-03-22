@@ -69,8 +69,7 @@ int main() {
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_widgets_init();
-  if (window == NULL)
-    return false;
+  if (window == NULL) return false;
   CGL_framebuffer *framebuffer = CGL_framebuffer_create(640, 360);
   CGL_framebuffer *default_framebuffer =
       CGL_framebuffer_create_from_default(window);

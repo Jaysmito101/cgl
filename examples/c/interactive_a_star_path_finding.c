@@ -47,35 +47,35 @@ static CGL_int end_pos[2] = {TILE_MAP_SIZE - 1, TILE_MAP_SIZE - 1};
 static CGL_path_finding_a_star_context *path_finding_context = NULL;
 
 void set_tilemap_from_ai_vector(CGL_tilemap *tilemap,
-                                CGL_int *data) // set tilemap from ai vector
+                                CGL_int *data)  // set tilemap from ai vector
 {
-  CGL_tilemap_set_auto_upload(tilemap, CGL_FALSE);    // disable auto upload
-  CGL_vec3 n_color = CGL_vec3_init(0.0f, 0.0f, 0.0f); // create color
+  CGL_tilemap_set_auto_upload(tilemap, CGL_FALSE);     // disable auto upload
+  CGL_vec3 n_color = CGL_vec3_init(0.0f, 0.0f, 0.0f);  // create color
   for (CGL_int y = 0; y < TILE_MAP_SIZE; y++)
-    for (CGL_int x = 0; x < TILE_MAP_SIZE; x++) // iterate through all pixels
+    for (CGL_int x = 0; x < TILE_MAP_SIZE; x++)  // iterate through all pixels
     {
       switch (data[y * TILE_MAP_SIZE + x]) {
-      case TILE_EMPTY_ID:
-        n_color = CGL_vec3_init(0.1f, 0.1f, 0.1f);
-        break; // set color to black
-      case TILE_START_POS_ID:
-        n_color = CGL_vec3_init(0.0f, 0.7f, 0.0f);
-        break; // set color to green
-      case TILE_END_POS_ID:
-        n_color = CGL_vec3_init(0.7f, 0.0f, 0.0f);
-        break; // set color to red
-      case TILE_WALL_ID:
-        n_color = CGL_vec3_init(0.7f, 0.7f, 0.7f);
-        break; // set color to white
-      case TILE_PATH_ID:
-        n_color = CGL_vec3_init(0.0f, 0.0f, 0.7f);
-        break; // set color to blue
+        case TILE_EMPTY_ID:
+          n_color = CGL_vec3_init(0.1f, 0.1f, 0.1f);
+          break;  // set color to black
+        case TILE_START_POS_ID:
+          n_color = CGL_vec3_init(0.0f, 0.7f, 0.0f);
+          break;  // set color to green
+        case TILE_END_POS_ID:
+          n_color = CGL_vec3_init(0.7f, 0.0f, 0.0f);
+          break;  // set color to red
+        case TILE_WALL_ID:
+          n_color = CGL_vec3_init(0.7f, 0.7f, 0.7f);
+          break;  // set color to white
+        case TILE_PATH_ID:
+          n_color = CGL_vec3_init(0.0f, 0.0f, 0.7f);
+          break;  // set color to blue
       }
       CGL_tilemap_set_tile_color(tilemap, x, y, n_color.x, n_color.y,
-                                 n_color.z); // set tile color
+                                 n_color.z);  // set tile color
     }
-  CGL_tilemap_upload(tilemap);                    // upload tilemap
-  CGL_tilemap_set_auto_upload(tilemap, CGL_TRUE); // enable auto upload
+  CGL_tilemap_upload(tilemap);                     // upload tilemap
+  CGL_tilemap_set_auto_upload(tilemap, CGL_TRUE);  // enable auto upload
 }
 
 CGL_bool node_equals(void *user_data, CGL_path_finding_node *node1,
@@ -117,21 +117,16 @@ CGL_int get_neighbours(void *user_data, CGL_path_finding_node *node,
   CGL_int nx = *data % TILE_MAP_SIZE, ny = *data / TILE_MAP_SIZE, k = 0;
   for (CGL_int i = -1; i <= 1; i++)
     for (CGL_int j = -1; j <= 1; j++) {
-      if (i == 0 && j == 0)
-        continue; // skip current node (itself)
-      if (i == -1 && j == -1)
-        continue; // skip top left
-      if (i == 1 && j == -1)
-        continue; // skip top right
-      if (i == -1 && j == 1)
-        continue; // skip bottom left
-      if (i == 1 && j == 1)
-        continue;                     // skip bottom right
-      CGL_int x = nx + i, y = ny + j; // get neighbour position
+      if (i == 0 && j == 0) continue;    // skip current node (itself)
+      if (i == -1 && j == -1) continue;  // skip top left
+      if (i == 1 && j == -1) continue;   // skip top right
+      if (i == -1 && j == 1) continue;   // skip bottom left
+      if (i == 1 && j == 1) continue;    // skip bottom right
+      CGL_int x = nx + i, y = ny + j;    // get neighbour position
       if (x < 0 || x >= TILE_MAP_SIZE || y < 0 || y >= TILE_MAP_SIZE ||
           grid[y * TILE_MAP_SIZE + x] == TILE_WALL_ID)
-        continue;                           // skip if out of bounds or wall
-      neighbours_out[k++] = add_node(x, y); // add neighbour
+        continue;                            // skip if out of bounds or wall
+      neighbours_out[k++] = add_node(x, y);  // add neighbour
     }
   return k;
 }
@@ -152,32 +147,28 @@ void update_path() {
 }
 
 int main() {
-  srand((uint32_t)time(NULL)); // seed random number generator
-  if (!CGL_init())
-    return -1; // initialize CGL
+  srand((uint32_t)time(NULL));  // seed random number generator
+  if (!CGL_init()) return -1;   // initialize CGL
   CGL_window *main_window = CGL_window_create(
       MAIN_FRAME_BUFFER_WIDTH, MAIN_FRAME_BUFFER_HEIGHT,
-      "A Star Path Finding - Jaysmito Mukherjee"); // create window
-  if (!main_window)
-    return -1;
-  CGL_window_make_context_current(main_window); // make window context current
-  if (!CGL_gl_init())
-    return -1; // initialize OpenGL
+      "A Star Path Finding - Jaysmito Mukherjee");  // create window
+  if (!main_window) return -1;
+  CGL_window_make_context_current(main_window);  // make window context current
+  if (!CGL_gl_init()) return -1;                 // initialize OpenGL
   CGL_framebuffer *default_framebuffer = CGL_framebuffer_create_from_default(
-      main_window); // create framebuffer from default window
+      main_window);  // create framebuffer from default window
   CGL_tilemap *tilemap =
       CGL_tilemap_create(TILE_MAP_SIZE, TILE_MAP_SIZE, TILE_SIZE, TILE_SIZE, 1);
-  CGL_widgets_init(); // initialize widgets
+  CGL_widgets_init();  // initialize widgets
   path_finding_context = CGL_path_finding_a_star_context_create(
       TILE_MAP_SIZE * TILE_MAP_SIZE, CGL_TRUE, sizeof(CGL_int));
-  while (!CGL_window_should_close(main_window)) // main loop
+  while (!CGL_window_should_close(main_window))  // main loop
   {
     CGL_window_set_size(main_window, MAIN_FRAME_BUFFER_WIDTH,
-                        MAIN_FRAME_BUFFER_HEIGHT); // set window size
-    CGL_framebuffer_bind(default_framebuffer);     // bind framebuffer
-    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);          // clear the screen
-    if (CGL_window_is_key_pressed(main_window, CGL_KEY_F))
-      update_path();
+                        MAIN_FRAME_BUFFER_HEIGHT);  // set window size
+    CGL_framebuffer_bind(default_framebuffer);      // bind framebuffer
+    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);           // clear the screen
+    if (CGL_window_is_key_pressed(main_window, CGL_KEY_F)) update_path();
     CGL_int pos_id = 0;
     CGL_path_finding_a_star_reorder_path(path_finding_context);
     set_tilemap_from_ai_vector(tilemap, grid);
@@ -190,47 +181,48 @@ int main() {
                                0.0f);
     CGL_tilemap_set_tile_color(tilemap, end_pos[0], end_pos[1], 1.0f, 0.0f,
                                0.0f);
-    CGL_tilemap_render(tilemap, 1.0f, 1.0f, 0.0f, 0.0f, NULL); // render tilemap
+    CGL_tilemap_render(tilemap, 1.0f, 1.0f, 0.0f, 0.0f,
+                       NULL);  // render tilemap
     CGL_double mx = 0.0, my = 0.0;
     CGL_window_get_mouse_position(main_window, &mx, &my);
-    my = MAIN_FRAME_BUFFER_HEIGHT - my; // get mouse position
+    my = MAIN_FRAME_BUFFER_HEIGHT - my;  // get mouse position
     if (CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_LEFT) ==
         CGL_PRESS) {
       CGL_path_finding_a_star_clear_path(path_finding_context);
       CGL_int x = (CGL_int)(TILE_MAP_SIZE * mx / 700),
               y = (CGL_int)(TILE_MAP_SIZE * my /
-                            700);                 // get the tilemap coordinates
-      grid[y * TILE_MAP_SIZE + x] = TILE_WALL_ID; // set the input vector
+                            700);  // get the tilemap coordinates
+      grid[y * TILE_MAP_SIZE + x] = TILE_WALL_ID;  // set the input vector
       if (CGL_window_is_key_pressed(main_window, CGL_KEY_S)) {
         start_pos[0] = x;
         start_pos[1] = y;
-      } // set start position
+      }  // set start position
       if (CGL_window_is_key_pressed(main_window, CGL_KEY_E)) {
         end_pos[0] = x;
         end_pos[1] = y;
-      } // set end position
+      }  // set end position
     } else if (CGL_window_get_mouse_button(
                    main_window, CGL_MOUSE_BUTTON_RIGHT) == CGL_PRESS) {
       CGL_path_finding_a_star_clear_path(path_finding_context);
       CGL_int x = (CGL_int)(TILE_MAP_SIZE * mx / 700),
               y = (CGL_int)(TILE_MAP_SIZE * my /
-                            700); // get the tilemap coordinates
-      grid[y * TILE_MAP_SIZE + x] = TILE_EMPTY_ID; // set the input vector
+                            700);  // get the tilemap coordinates
+      grid[y * TILE_MAP_SIZE + x] = TILE_EMPTY_ID;  // set the input vector
     }
     CGL_window_poll_events(main_window);
-    CGL_window_swap_buffers(main_window); // swap buffers
+    CGL_window_swap_buffers(main_window);  // swap buffers
     if (CGL_window_is_key_pressed(main_window, CGL_KEY_C)) {
       memset(grid, 0, sizeof(grid));
       set_tilemap_from_ai_vector(tilemap, grid);
-    } // clear the grid
+    }  // clear the grid
     if (CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break; // if the escape key is pressed, break the loop
+      break;  // if the escape key is pressed, break the loop
   }
-  CGL_tilemap_destroy(tilemap);                 // destroy the tilemap
-  CGL_framebuffer_destroy(default_framebuffer); // destroy the framebuffer
-  CGL_widgets_shutdown();                       // shutdown widgets
-  CGL_gl_shutdown();                            // shutdown OpenGL
-  CGL_window_destroy(main_window);              // destroy the window
-  CGL_shutdown();                               // shutdown CGL
-  return EXIT_SUCCESS;                          // exit successfully
+  CGL_tilemap_destroy(tilemap);                  // destroy the tilemap
+  CGL_framebuffer_destroy(default_framebuffer);  // destroy the framebuffer
+  CGL_widgets_shutdown();                        // shutdown widgets
+  CGL_gl_shutdown();                             // shutdown OpenGL
+  CGL_window_destroy(main_window);               // destroy the window
+  CGL_shutdown();                                // shutdown CGL
+  return EXIT_SUCCESS;                           // exit successfully
 }

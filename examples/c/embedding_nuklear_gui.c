@@ -66,14 +66,11 @@ void input_mouse_pos_callback(CGL_window *window, double x, double y) {
 
 int main() {
   srand((uint32_t)time(NULL));
-  if (!CGL_init())
-    return -1;
+  if (!CGL_init()) return -1;
   CGL_window *main_window = CGL_window_create(640, 480, "Hello World");
-  if (!main_window)
-    return -1;
+  if (!main_window) return -1;
   CGL_window_make_context_current(main_window);
-  if (!CGL_gl_init())
-    return -1;
+  if (!CGL_gl_init()) return -1;
   CGL_framebuffer *default_framebuffer =
       CGL_framebuffer_create_from_default(main_window);
   mouse_input.delta_x = 0.0f;
@@ -125,8 +122,7 @@ int main() {
                    main_window, CGL_MOUSE_BUTTON_RIGHT) == CGL_PRESS) {
     }
     mouse_input.delta_x = mouse_input.delta_y = 0.0f;
-    if (CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break;
+    if (CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
   }
 
   nk_glfw3_shutdown();

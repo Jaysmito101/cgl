@@ -197,32 +197,28 @@ void print_mat4(const char *name, float *m) {
   printf("%s = \n\t", name);
   for (int i = 0; i < 16; i++) {
     printf("%f ", m[i]);
-    if ((i + 1) % 4 == 0)
-      printf("\n\t");
+    if ((i + 1) % 4 == 0) printf("\n\t");
   }
   printf("\n");
 }
 
 int main() {
   srand((uint32_t)time(NULL));
-  if (!CGL_init())
-    return -1;
+  if (!CGL_init()) return -1;
   CGL_window *main_window =
       CGL_window_create(512, 512, "Toon Shading - Jaysmito Mukherjee");
-  if (!main_window)
-    return -1;
+  if (!main_window) return -1;
   CGL_window_make_context_current(main_window);
-  if (!CGL_gl_init())
-    return -1;
+  if (!CGL_gl_init()) return -1;
   CGL_framebuffer *default_framebuffer =
       CGL_framebuffer_create_from_default(main_window);
   CGL_framebuffer *g_buffer = CGL_framebuffer_create_basic(512, 512);
   CGL_framebuffer_add_color_attachment(
       g_buffer, CGL_texture_create_blank(512, 512, GL_RGBA, GL_RGBA,
-                                         GL_FLOAT)); // for albedo
+                                         GL_FLOAT));  // for albedo
   CGL_framebuffer_add_color_attachment(
       g_buffer, CGL_texture_create_blank(512, 512, GL_RGBA, GL_RGBA,
-                                         GL_FLOAT)); // for normal
+                                         GL_FLOAT));  // for normal
   CGL_toon_post_processor_init();
 
   CGL_bool toon_shading = false;
@@ -239,7 +235,7 @@ int main() {
 
   while (!CGL_window_should_close(main_window)) {
     CGL_window_set_size(main_window, 512,
-                        512); // force window size to be 512x512
+                        512);  // force window size to be 512x512
 
     CGL_mat4 temp;
     model = CGL_mat4_identity();
@@ -330,8 +326,7 @@ int main() {
     for (int i = 0; i < 10; i++)
       if (CGL_window_get_key(main_window, CGL_KEY_KP_0 + i) == CGL_PRESS)
         shades = i;
-    if (CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break;
+    if (CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
   }
 
   free_resources();

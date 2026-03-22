@@ -141,7 +141,7 @@ static const char *COMPUTE_SHADER_SOURCE =
     "}\n";
 
 static struct {
-  CGL_window *window; // the main window
+  CGL_window *window;  // the main window
   int window_height;
   int window_width;
   CGL_framebuffer *framebuffer;
@@ -150,19 +150,18 @@ static struct {
 int main() {
   srand((uint32_t)time(NULL));
   if (!CGL_init())
-    return EXIT_FAILURE; // initialize CGL (required for setting up internals of
-                         // CGL)
+    return EXIT_FAILURE;  // initialize CGL (required for setting up internals
+                          // of CGL)
   g_context.window_width = g_context.window_height = 700;
   g_context.window = CGL_window_create(
       g_context.window_width, g_context.window_height,
-      "Single Pendulum - Jaysmito Mukherjee"); // create the window
+      "Single Pendulum - Jaysmito Mukherjee");  // create the window
   CGL_window_make_context_current(
-      g_context.window); // make the opengl context for the window current
-  if (!CGL_gl_init())
-    return EXIT_FAILURE; // initialize cgl opengl module
+      g_context.window);  // make the opengl context for the window current
+  if (!CGL_gl_init()) return EXIT_FAILURE;  // initialize cgl opengl module
   g_context.framebuffer = CGL_framebuffer_create_from_default(
-      g_context.window); // load the default framebuffer (0) into
-                         // CGL_framebuffer object
+      g_context.window);  // load the default framebuffer (0) into
+                          // CGL_framebuffer object
   CGL_noise_init();
   CGL_bool is_physics_on = true;
   CGL_vec2 mass_pos = CGL_vec2_init(0.0f, 0.0f),
@@ -188,15 +187,16 @@ int main() {
   CGL_shader_compute_dispatch(draw_shader, 700 / 16 + 1, 700 / 16 + 1, 1);
   // the main loop
   while (!CGL_window_should_close(
-      g_context.window)) // run till the close button is clicked
+      g_context.window))  // run till the close button is clicked
   {
     curr_time = CGL_utils_get_time();
     CGL_window_set_size(g_context.window, g_context.window_width,
-                        g_context.window_height); // set window size
+                        g_context.window_height);  // set window size
     CGL_framebuffer_bind(
-        g_context.framebuffer); // bind default framebuffer and also adjust
-                                // viewport size and offset
-    CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f); // clear screen with a dark gray color
+        g_context.framebuffer);  // bind default framebuffer and also adjust
+                                 // viewport size and offset
+    CGL_gl_clear(0.2f, 0.2f, 0.2f,
+                 1.0f);  // clear screen with a dark gray color
     if (is_physics_on) {
       CGL_double mx = 0.0, my = 0.0;
       CGL_float weight = mass_val * acc_due_to_gravity * -1.0f;
@@ -267,12 +267,12 @@ int main() {
         present_shader,
         CGL_shader_get_uniform_location(present_shader, "u_tex"), 5);
     CGL_gl_render_screen_quad();
-    CGL_window_swap_buffers(g_context.window); // swap framebuffers
+    CGL_window_swap_buffers(g_context.window);  // swap framebuffers
     CGL_window_poll_events(
-        g_context.window); // poll events (if this is not called every frame
-                           // window will stop responding)
+        g_context.window);  // poll events (if this is not called every frame
+                            // window will stop responding)
     if (CGL_window_get_key(g_context.window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break; // quit on pressing escape
+      break;  // quit on pressing escape
     if (CGL_window_get_key(g_context.window, CGL_KEY_SPACE) == CGL_PRESS)
       is_physics_on = true;
     if (CGL_window_get_key(g_context.window, CGL_KEY_ENTER) == CGL_PRESS)
@@ -284,10 +284,10 @@ int main() {
   CGL_shader_destroy(present_shader);
   CGL_shader_destroy(draw_shader);
   CGL_texture_destroy(out_tex);
-  CGL_framebuffer_destroy(g_context.framebuffer); // destory framebuffer object
-  CGL_gl_shutdown();                              // shutdown cgl opengl module
-  CGL_window_destroy(g_context.window);           // destroy window
-  CGL_shutdown(); // shutdown cgl and clean up resources allocated by CGL
-                  // internally (if any)
+  CGL_framebuffer_destroy(g_context.framebuffer);  // destory framebuffer object
+  CGL_gl_shutdown();                               // shutdown cgl opengl module
+  CGL_window_destroy(g_context.window);            // destroy window
+  CGL_shutdown();  // shutdown cgl and clean up resources allocated by CGL
+                   // internally (if any)
   return EXIT_SUCCESS;
 }

@@ -196,7 +196,6 @@ void apply_comb_brush() {
 
   if (CGL_window_get_mouse_button(window, CGL_MOUSE_BUTTON_LEFT) == CGL_PRESS &&
       delt_len > 0.0001f) {
-
     for (CGL_int i = 0; i < VECTOR_FIELD_SIZE; i++) {
       for (CGL_int j = 0; j < VECTOR_FIELD_SIZE; j++) {
         CGL_float dist =
@@ -260,8 +259,7 @@ int main(int argc, char **argv, char **envp) {
   CGL_init();
   window = CGL_window_create(
       700, 700, "CGL Vector Field Visualizer - Jaysmito Mukherjee");
-  if (window == NULL)
-    return false;
+  if (window == NULL) return false;
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_widgets_init();
@@ -283,7 +281,7 @@ int main(int argc, char **argv, char **envp) {
   CGL_int mode = 1;
 
   while (!CGL_window_should_close(window)) {
-    CGL_window_set_size(window, 700, 700); // force window size to be 700x700
+    CGL_window_set_size(window, 700, 700);  // force window size to be 700x700
 
     curr_time = CGL_utils_get_time();
     delta_time = curr_time - last_time;
@@ -344,22 +342,19 @@ int main(int argc, char **argv, char **envp) {
     sprintf(buffer, "Mode: %s",
             mode == 1
                 ? "Field"
-                : (mode == 2
-                       ? "Divergence"
-                       : (mode == 3 ? "Curl" : "All"))); // this is dirty but it
-                                                         // works for now so ...
+                : (mode == 2 ? "Divergence"
+                             : (mode == 3 ? "Curl"
+                                          : "All")));  // this is dirty but it
+                                                       // works for now so ...
     CGL_widgets_add_string(buffer, -1.0f, 0.75f, 0.7f, 0.05f);
 
     CGL_widgets_end();
 
-    if (CGL_window_get_key(window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break;
+    if (CGL_window_get_key(window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
     if (CGL_window_get_key(window, CGL_KEY_R) == CGL_PRESS)
       randomize_vec_field();
-    if (CGL_window_get_key(window, CGL_KEY_C) == CGL_PRESS)
-      comb_mode = true;
-    if (CGL_window_get_key(window, CGL_KEY_V) == CGL_PRESS)
-      comb_mode = false;
+    if (CGL_window_get_key(window, CGL_KEY_C) == CGL_PRESS) comb_mode = true;
+    if (CGL_window_get_key(window, CGL_KEY_V) == CGL_PRESS) comb_mode = false;
     if (CGL_window_get_key(window, CGL_KEY_LEFT_SHIFT) == CGL_PRESS) {
       if (CGL_window_get_key(window, CGL_KEY_UP) == CGL_PRESS)
         brush_size += delta_time;
@@ -373,15 +368,11 @@ int main(int argc, char **argv, char **envp) {
     }
     if (CGL_window_get_key(window, CGL_KEY_G) == CGL_PRESS)
       randomize_charge_based_vec_field();
-    if (CGL_window_get_key(window, CGL_KEY_1) == CGL_PRESS)
-      mode = 1;
-    if (CGL_window_get_key(window, CGL_KEY_2) == CGL_PRESS)
-      mode = 2;
-    if (CGL_window_get_key(window, CGL_KEY_3) == CGL_PRESS)
-      mode = 3;
+    if (CGL_window_get_key(window, CGL_KEY_1) == CGL_PRESS) mode = 1;
+    if (CGL_window_get_key(window, CGL_KEY_2) == CGL_PRESS) mode = 2;
+    if (CGL_window_get_key(window, CGL_KEY_3) == CGL_PRESS) mode = 3;
 
-    if (comb_mode)
-      apply_comb_brush();
+    if (comb_mode) apply_comb_brush();
 
     CGL_window_swap_buffers(window);
     CGL_window_poll_events(window);

@@ -376,8 +376,7 @@ int main() {
                       GL_SHADER_STORAGE_BARRIER_BIT);
     }
 
-    if (CGL_window_is_key_pressed(window, CGL_KEY_ESCAPE))
-      break;
+    if (CGL_window_is_key_pressed(window, CGL_KEY_ESCAPE)) break;
 
     CGL_window_swap_buffers(window);
   }

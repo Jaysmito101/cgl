@@ -82,9 +82,10 @@ static const char *PASS_THROUGH_FRAGMENT_SHADER_SOURCE =
 static const char *TRAIL_VERTEX_SHADER =
     "#version 430 core\n"
     "\n"
-    "layout (location = 0) in vec4 position;\n" // w is lifespan
-    "layout (location = 1) in vec4 normal;\n"   // w is distance
-    "layout (location = 2) in vec4 texcoord;\n" // zw is reserved for future use
+    "layout (location = 0) in vec4 position;\n"  // w is lifespan
+    "layout (location = 1) in vec4 normal;\n"    // w is distance
+    "layout (location = 2) in vec4 texcoord;\n"  // zw is reserved for future
+                                                 // use
     "\n"
     "out vec3 Position;\n"
     "out vec2 TexCoord;\n"
@@ -165,8 +166,7 @@ int main() {
   CGL_init();
   CGL_window *window =
       CGL_window_create(600, 600, "Lorenz system - Jaysmito Mukherjee");
-  if (!window)
-    return 1;
+  if (!window) return 1;
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_framebuffer *default_framebuffer =
@@ -212,7 +212,7 @@ int main() {
     CGL_float time = CGL_utils_get_time();
     CGL_float delta_time = time - prev_time;
     prev_time = time;
-    CGL_window_set_size(window, 600, 600); // force window size to be 600x600
+    CGL_window_set_size(window, 600, 600);  // force window size to be 600x600
 
     ptmp = position;
     CGL_vec3_normalize(ptmp);

@@ -40,7 +40,7 @@ static struct {
   CGL_byte rules[256][256];
   CGL_byte rules_sizes[256];
   CGL_byte actions[256];
-  CGL_byte axiom[256]; // null terminated string
+  CGL_byte axiom[256];  // null terminated string
   CGL_vec2 start_position;
   CGL_int rule_count;
   CGL_float angle;
@@ -84,10 +84,9 @@ void log_l_system_data() {
 
 bool parse_parameter(const CGL_byte *line, CGL_byte *tbuffer, CGL_int *val) {
   tbuffer[0] = '\0';
-  line++; // skip the ':'
+  line++;  // skip the ':'
   while (*line != ' ') {
-    if (*line == 0)
-      return false;
+    if (*line == 0) return false;
     *tbuffer++ = *line++;
   }
   *tbuffer = '\0';
@@ -105,12 +104,11 @@ void parse_settings_file(const CGL_byte *path) {
   CGL_info("Parsing file %s", path);
   CGL_byte line[1024], tbuffer[1024];
   CGL_int param_val = 0;
-  CGL_byte parser_mode = 0; // 0 - parameters, 1 - rules, 2 - action
+  CGL_byte parser_mode = 0;  // 0 - parameters, 1 - rules, 2 - action
   while (fgets(line, 1024, file) != NULL) {
-    if (line[0] == '#' || strlen(line) < 3)
-      continue; // skip comment
+    if (line[0] == '#' || strlen(line) < 3) continue;  // skip comment
     if (parser_mode == 0) {
-      if (line[0] == ':') // parse parameter
+      if (line[0] == ':')  // parse parameter
       {
         if (!parse_parameter(line, tbuffer, &param_val)) {
           CGL_warn("Error while parsing line %s", line);
@@ -129,8 +127,7 @@ void parse_settings_file(const CGL_byte *path) {
         else if (strcmp(tbuffer, "AXIOM") == 0) {
           CGL_byte *ln = line + 6;
           CGL_byte *ax = l_system_data.axiom;
-          while (*ln != '\n' && *ln != '\0')
-            *ax++ = *ln++;
+          while (*ln != '\n' && *ln != '\0') *ax++ = *ln++;
           *ax = '\0';
         } else if (strcmp(tbuffer, "RULES") == 0)
           parser_mode = 1;
@@ -152,8 +149,7 @@ void parse_settings_file(const CGL_byte *path) {
       } else if (parser_mode == 2)
         l_system_data.actions[*line] = atoi(line + 2);
       param_val--;
-      if (param_val == 0)
-        parser_mode = 0;
+      if (param_val == 0) parser_mode = 0;
     }
   }
   fclose(file);
@@ -165,8 +161,7 @@ void parse_settings_file(const CGL_byte *path) {
 
 void drag_n_drop_callback(CGL_window *window, const CGL_byte **paths,
                           CGL_int count) {
-  if (count > 0)
-    parse_settings_file(paths[0]);
+  if (count > 0) parse_settings_file(paths[0]);
 }
 
 void generate_l_system_txt() {
@@ -199,30 +194,30 @@ void draw_system() {
   CGL_vec2 new_pos;
   for (CGL_int i = 0; i < current_ls_buff_len; i++) {
     switch (l_system_data.actions[current_ls_buff[i]]) {
-    case 1:
-      new_pos =
-          CGL_vec2_add_(CGL_vec2_scale_(CGL_vec2_from_angle(
-                                            current_state.rotation + CGL_PI_2),
-                                        current_state.line_size),
-                        current_state.position);
-      add_line(current_state.position, new_pos);
-      current_state.position = new_pos;
-      current_state.line_size *= l_system_data.length_factor;
-      break;
-    case 2:
-      current_state.rotation += l_system_data.angle;
-      break;
-    case 3:
-      current_state.rotation -= l_system_data.angle;
-      break;
-    case 4:
-      turtle_stack[++turtle_stack_top] = current_state;
-      break;
-    case 5:
-      current_state = turtle_stack[turtle_stack_top--];
-      break;
-    default:
-      break;
+      case 1:
+        new_pos = CGL_vec2_add_(
+            CGL_vec2_scale_(
+                CGL_vec2_from_angle(current_state.rotation + CGL_PI_2),
+                current_state.line_size),
+            current_state.position);
+        add_line(current_state.position, new_pos);
+        current_state.position = new_pos;
+        current_state.line_size *= l_system_data.length_factor;
+        break;
+      case 2:
+        current_state.rotation += l_system_data.angle;
+        break;
+      case 3:
+        current_state.rotation -= l_system_data.angle;
+        break;
+      case 4:
+        turtle_stack[++turtle_stack_top] = current_state;
+        break;
+      case 5:
+        current_state = turtle_stack[turtle_stack_top--];
+        break;
+      default:
+        break;
     }
   }
 }
@@ -236,16 +231,13 @@ void generate_system() {
 
 int main() {
   srand((uint32_t)time(NULL));
-  if (!CGL_init())
-    return -1;
+  if (!CGL_init()) return -1;
   CGL_window *main_window =
       CGL_window_create(700, 700, "L Systems - Jaysmito Mukherjee");
-  if (!main_window)
-    return -1;
+  if (!main_window) return -1;
   CGL_window_make_context_current(main_window);
   CGL_window_set_drag_n_drop_callback(main_window, drag_n_drop_callback);
-  if (!CGL_gl_init())
-    return -1;
+  if (!CGL_gl_init()) return -1;
   CGL_widgets_init();
   CGL_framebuffer *default_framebuffer =
       CGL_framebuffer_create_from_default(main_window);
@@ -295,8 +287,7 @@ int main() {
       CGL_utils_sleep(200);
     }
 
-    if (CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break;
+    if (CGL_window_get_key(main_window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
   }
 
   CGL_widgets_shutdown();

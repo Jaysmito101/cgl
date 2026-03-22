@@ -33,11 +33,11 @@ typedef struct {
   CGL_double y;
 } CGL_dvec2;
 
-#define CGL_dvec2_init(x, y)                                                   \
+#define CGL_dvec2_init(x, y) \
   (CGL_dvec2) { x, y }
 
 static struct {
-  CGL_window *window; // the main window
+  CGL_window *window;  // the main window
   CGL_int window_height;
   CGL_int window_width;
   CGL_framebuffer *framebuffer;
@@ -61,21 +61,19 @@ CGL_dvec2 next_point_sierpinski(CGL_dvec2 prev_point) {
 int main() {
   srand((uint32_t)time(NULL));
   if (!CGL_init())
-    return EXIT_FAILURE; // initialize CGL (required for setting up internals of
-                         // CGL)
+    return EXIT_FAILURE;  // initialize CGL (required for setting up internals
+                          // of CGL)
   g_context.window_height = g_context.window_width = 700;
   g_context.window = CGL_window_create(
       g_context.window_width, g_context.window_height,
-      "Sierpinski Triangle - Jaysmito Mukherjee"); // create the window
+      "Sierpinski Triangle - Jaysmito Mukherjee");  // create the window
   CGL_window_make_context_current(
-      g_context.window); // make the opengl context for the window current
-  if (!CGL_gl_init())
-    return EXIT_FAILURE; // initialize cgl opengl module
+      g_context.window);  // make the opengl context for the window current
+  if (!CGL_gl_init()) return EXIT_FAILURE;  // initialize cgl opengl module
   g_context.framebuffer = CGL_framebuffer_create_from_default(
-      g_context.window); // load the default framebuffer (0) into
-                         // CGL_framebuffer object
-  if (!CGL_widgets_init())
-    return EXIT_FAILURE;
+      g_context.window);  // load the default framebuffer (0) into
+                          // CGL_framebuffer object
+  if (!CGL_widgets_init()) return EXIT_FAILURE;
 
   CGL_float prev_time = CGL_utils_get_time(), curr_time = 0.0f,
             delta_time = 0.0f, frame_time = 0.0f;
@@ -90,7 +88,7 @@ int main() {
 
   // the main loop
   while (!CGL_window_should_close(
-      g_context.window)) // run till the close button is clicked
+      g_context.window))  // run till the close button is clicked
   {
     curr_time = CGL_utils_get_time();
     delta_time = curr_time - prev_time;
@@ -104,11 +102,11 @@ int main() {
     }
 
     CGL_window_set_size(g_context.window, g_context.window_width,
-                        g_context.window_height); // set the window size
+                        g_context.window_height);  // set the window size
     // rendering
     CGL_framebuffer_bind(
-        g_context.framebuffer); // bind default framebuffer and also adjust
-                                // viewport size and offset
+        g_context.framebuffer);  // bind default framebuffer and also adjust
+                                 // viewport size and offset
 
     CGL_widgets_begin();
 
@@ -144,25 +142,25 @@ int main() {
       g_context.offset.y -= 0.005;
     tmp2 |= tmp;
 
-    CGL_window_swap_buffers(g_context.window); // swap framebuffers
+    CGL_window_swap_buffers(g_context.window);  // swap framebuffers
     CGL_window_poll_events(
-        g_context.window); // poll events (if this is not called every frame
-                           // window will stop responding)
+        g_context.window);  // poll events (if this is not called every frame
+                            // window will stop responding)
 
     if (tmp2)
       CGL_gl_clear(0.0f, 0.0f, 0.0f,
-                   1.0f); // clear screen with a dark gray color
+                   1.0f);  // clear screen with a dark gray color
 
     if (CGL_window_get_key(g_context.window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break; // quit on pressing escape
+      break;  // quit on pressing escape
   }
 
   // cleanup
   CGL_widgets_shutdown();
-  CGL_framebuffer_destroy(g_context.framebuffer); // destory framebuffer object
-  CGL_gl_shutdown();                              // shutdown cgl opengl module
-  CGL_window_destroy(g_context.window);           // destroy window
-  CGL_shutdown(); // shutdown cgl and clean up resources allocated by CGL
-                  // internally (if any)
+  CGL_framebuffer_destroy(g_context.framebuffer);  // destory framebuffer object
+  CGL_gl_shutdown();                               // shutdown cgl opengl module
+  CGL_window_destroy(g_context.window);            // destroy window
+  CGL_shutdown();  // shutdown cgl and clean up resources allocated by CGL
+                   // internally (if any)
   return EXIT_SUCCESS;
 }

@@ -375,8 +375,7 @@ int main() {
   CGL_init();
   CGL_window *window =
       CGL_window_create(700, 700, "Slime Sim - Jaysmito Mukherjee");
-  if (!window)
-    return 1;
+  if (!window) return 1;
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_widgets_init();
@@ -408,7 +407,7 @@ int main() {
   reset_simulation();
 
   while (!CGL_window_should_close(window)) {
-    CGL_window_set_size(window, 700, 700); // force window size to be 600x600
+    CGL_window_set_size(window, 700, 700);  // force window size to be 600x600
 
     curr_time = CGL_utils_get_time();
     delta_time = curr_time - prev_time;

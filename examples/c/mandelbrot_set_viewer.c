@@ -117,8 +117,7 @@ int main() {
   CGL_init();
   CGL_window *window =
       CGL_window_create(600, 600, "Mandelbrot Set - Jaysmito Mukherjee");
-  if (!window)
-    return 1;
+  if (!window) return 1;
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_framebuffer *default_framebuffer =
@@ -133,7 +132,7 @@ int main() {
   CGL_float scale = 1.0f;
 
   while (!CGL_window_should_close(window)) {
-    CGL_window_set_size(window, 700, 700); // force window size to be 700x700
+    CGL_window_set_size(window, 700, 700);  // force window size to be 700x700
 
     CGL_framebuffer_bind(default_framebuffer);
     CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
@@ -159,10 +158,8 @@ int main() {
       offset_y += 0.01f * scale_f;
     if (CGL_window_is_key_pressed(window, CGL_KEY_DOWN))
       offset_y -= 0.01f * scale_f;
-    if (CGL_window_is_key_pressed(window, CGL_KEY_EQUAL))
-      scale /= 1.01f;
-    if (CGL_window_is_key_pressed(window, CGL_KEY_MINUS))
-      scale *= 1.01f;
+    if (CGL_window_is_key_pressed(window, CGL_KEY_EQUAL)) scale /= 1.01f;
+    if (CGL_window_is_key_pressed(window, CGL_KEY_MINUS)) scale *= 1.01f;
   }
 
   CGL_shader_destroy(present_shader);

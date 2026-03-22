@@ -1451,7 +1451,6 @@ void render_nuklear() {
   nk_label(ctx, "", NK_TEXT_LEFT);
   // Vizualization
   if (settingsTab == 0) {
-
     // a combo box for viz mode with label
     {
       static const char *items[] = {"Color", "Shape Noise", "Detail Noise",
@@ -1508,7 +1507,6 @@ void render_nuklear() {
   }
   // Cloud Noise
   else if (settingsTab == 1) {
-
     static int noiseTexture = 0;
     // a combo box for noise texture
     {
@@ -1831,8 +1829,7 @@ int main() {
     if (CGL_window_is_key_pressed(g_Context.core.window, CGL_KEY_G))
       generate_noise_data();
 
-    if (CGL_window_is_key_pressed(g_Context.core.window, CGL_KEY_ESCAPE))
-      break;
+    if (CGL_window_is_key_pressed(g_Context.core.window, CGL_KEY_ESCAPE)) break;
 
     CGL_window_swap_buffers(g_Context.core.window);
   }

@@ -215,8 +215,7 @@ void bake_game_over_text() {
 }
 
 void handle_player_input() {
-  if (g_game.is_over || !g_game.allow_input)
-    return;
+  if (g_game.is_over || !g_game.allow_input) return;
   if (CGL_window_get_key(g_context.main_window, CGL_KEY_UP) == CGL_PRESS)
     g_game.player_height +=
         PLAYER_SPEED *
@@ -232,8 +231,8 @@ void handle_player_input() {
 
 void update_computer() {
   if (g_game.is_over || g_game.allow_input)
-    return; // do not give computer move is ball is in player area or game is
-            // over
+    return;  // do not give computer move is ball is in player area or game is
+             // over
 
   // the aim here is not creating a perfect AI or algorithm to win every time
   // but a kind of bad/weak logic so that the player also has a chance of
@@ -260,8 +259,7 @@ void update_computer() {
 }
 
 void update_ball() {
-  if (g_game.is_over)
-    return;
+  if (g_game.is_over) return;
   float curr_time = CGL_utils_get_time();
   float delta_time = CGL_utils_clamp(curr_time - g_game.prev_time, 0.0f, 0.2f);
   g_game.prev_time = curr_time;
@@ -294,8 +292,7 @@ void update_ball() {
       (g_game.ball_pos_y >= (1.0f - BALL_RADIUS - BORDER_THICKNESS)) ||
       (g_game.ball_pos_x >= (1.0f - BALL_RADIUS - HITTER_WIDTH)) ||
       (g_game.ball_pos_x <= (-1.0f + BALL_RADIUS + HITTER_WIDTH)))
-    if (rand() % 1000 > 980)
-      g_game.total_time = 0.0f;
+    if (rand() % 1000 > 980) g_game.total_time = 0.0f;
 }
 
 void check_is_game_over() {
@@ -335,8 +332,7 @@ void reset_game() {
 int main() {
   // setup cgl
   srand((uint32_t)time(NULL));
-  if (!CGL_init())
-    return EXIT_FAILURE;
+  if (!CGL_init()) return EXIT_FAILURE;
 
   // setup window
   g_context.prev_window_height = (int)(640 / ASPECT_RATIO);
@@ -344,17 +340,14 @@ int main() {
   g_context.main_window = CGL_window_create(g_context.prev_window_width,
                                             g_context.prev_window_height,
                                             "Pong -Jaysmito Mukherjee");
-  if (!g_context.main_window)
-    return EXIT_FAILURE;
+  if (!g_context.main_window) return EXIT_FAILURE;
   CGL_window_make_context_current(g_context.main_window);
 
   // setup opengl (glad)
-  if (!CGL_gl_init())
-    return EXIT_FAILURE;
+  if (!CGL_gl_init()) return EXIT_FAILURE;
 
   // intialize CGL text
-  if (!CGL_text_init())
-    return EXIT_FAILURE;
+  if (!CGL_text_init()) return EXIT_FAILURE;
 
   bake_game_over_text();
 
@@ -387,13 +380,13 @@ int main() {
     }
 
     // render board border
-    render_quad(-1.0f, -1.0f, 2.0f, BORDER_THICKNESS, BORDER_COLOR); // bottom
+    render_quad(-1.0f, -1.0f, 2.0f, BORDER_THICKNESS, BORDER_COLOR);  // bottom
     render_quad(-1.0f, 1.0f - BORDER_THICKNESS, 2.0f, BORDER_THICKNESS,
-                BORDER_COLOR); // top
+                BORDER_COLOR);  // top
     render_quad(-1.0f, -1.0f, BORDER_THICKNESS / ASPECT_RATIO, 2.0f,
-                BORDER_COLOR); // left
+                BORDER_COLOR);  // left
     render_quad(1.0f - BORDER_THICKNESS / ASPECT_RATIO, -1.0f, BORDER_THICKNESS,
-                2.0f, BORDER_COLOR); // right
+                2.0f, BORDER_COLOR);  // right
 
     // render area seperator
     render_quad(-BORDER_THICKNESS / ASPECT_RATIO * 0.5f, -1.0f,
@@ -413,9 +406,9 @@ int main() {
 
     if (g_game.is_over) {
       // render the text info
-      render_quad_texture(-0.5f, -0.3f, 1.0f, 0.7f,
-                          g_game.is_game_won ? g_game.you_win_text
-                                             : g_game.you_lose_text);
+      render_quad_texture(
+          -0.5f, -0.3f, 1.0f, 0.7f,
+          g_game.is_game_won ? g_game.you_win_text : g_game.you_lose_text);
       render_quad_texture(-0.5f, -0.7f, 1.0f, 0.125f, g_game.instruction_text);
 
       // reset the game on pressing R

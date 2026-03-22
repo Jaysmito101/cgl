@@ -25,12 +25,13 @@ SOFTWARE.
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
-static const CGL_byte *s_test_csv = "UID,Full Name,Age,Gender,Played For\n"
-                                    "1,John Doe,32,Male,3 hrs\n"
-                                    "2,Jane Smith,25,Female,1.8 hrs\n"
-                                    "3,Rory Johnson,41,Male,2.5 hrs\n"
-                                    "4,Amy Lee,19,Female,3.6 hrs\n"
-                                    "5,David Brown,27,Male,6.4 hrs\n";
+static const CGL_byte *s_test_csv =
+    "UID,Full Name,Age,Gender,Played For\n"
+    "1,John Doe,32,Male,3 hrs\n"
+    "2,Jane Smith,25,Female,1.8 hrs\n"
+    "3,Rory Johnson,41,Male,2.5 hrs\n"
+    "4,Amy Lee,19,Female,3.6 hrs\n"
+    "5,David Brown,27,Male,6.4 hrs\n";
 
 int main() {
   CGL_init();

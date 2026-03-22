@@ -175,8 +175,7 @@ CGL_void update_random_points(random_point *pnts) {
   for (CGL_int i = 0; i < RANDOM_POINT_COUNT; i++) {
     pnts[i].acc.x = pnts[i].acc.y = 0.0f;
     for (CGL_int j = 0; j < RANDOM_POINT_COUNT; j++) {
-      if (i == j)
-        continue;
+      if (i == j) continue;
       CGL_float dx = pnts[j].pos.x - pnts[i].pos.x;
       CGL_float dy = pnts[j].pos.y - pnts[i].pos.y;
       CGL_float dist = sqrtf(dx * dx + dy * dy);
@@ -202,10 +201,8 @@ CGL_void update_random_points(random_point *pnts) {
     pnts[i].vel.y += pnts[i].acc.y * 0.1f;
     pnts[i].vel.x = pnts[i].vel.x * 0.98f;
     pnts[i].vel.y = pnts[i].vel.y * 0.98f;
-    if (pnts[i].pos.x < -1.0f || pnts[i].pos.x > 1.0f)
-      pnts[i].vel.x *= -1.0f;
-    if (pnts[i].pos.y < -1.0f || pnts[i].pos.y > 1.0f)
-      pnts[i].vel.y *= -1.0f;
+    if (pnts[i].pos.x < -1.0f || pnts[i].pos.x > 1.0f) pnts[i].vel.x *= -1.0f;
+    if (pnts[i].pos.y < -1.0f || pnts[i].pos.y > 1.0f) pnts[i].vel.y *= -1.0f;
     pnts[i].pos.x = CGL_utils_clamp(pnts[i].pos.x, -0.9999f, 0.9999f);
     pnts[i].pos.y = CGL_utils_clamp(pnts[i].pos.y, -0.9999f, 0.9999f);
   }
@@ -220,8 +217,7 @@ int main() {
   CGL_gl_init();
   CGL_widgets_init();
   CGL_noise_init();
-  if (window == NULL)
-    return false;
+  if (window == NULL) return false;
   CGL_framebuffer *default_framebuffer =
       CGL_framebuffer_create_from_default(window);
   CGL_shader *present_shader =
@@ -294,13 +290,10 @@ int main() {
         CGL_texture_bind(o_tex, 0));
     CGL_gl_render_screen_quad();
 
-    if (CGL_window_is_key_pressed(window, CGL_KEY_C))
-      DISPATCH_ON_MODE(1);
-    if (CGL_window_is_key_pressed(window, CGL_KEY_D))
-      DISPATCH_ON_MODE(2);
+    if (CGL_window_is_key_pressed(window, CGL_KEY_C)) DISPATCH_ON_MODE(1);
+    if (CGL_window_is_key_pressed(window, CGL_KEY_D)) DISPATCH_ON_MODE(2);
 
-    if (CGL_window_is_key_pressed(window, CGL_KEY_ESCAPE))
-      break;
+    if (CGL_window_is_key_pressed(window, CGL_KEY_ESCAPE)) break;
 
     CGL_window_swap_buffers(window);
     CGL_window_poll_events(window);

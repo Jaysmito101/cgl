@@ -34,33 +34,35 @@ static int shape_count;
 static CGL_vec2 mpos;
 static CGL_vec2 spheres[16];
 
-const char *__VS_S = "#version 430 core\n"
-                     "\n"
-                     "layout (location = 0) in vec4 position;\n"
-                     "layout (location = 1) in vec4 normal;\n"
-                     "layout (location = 2) in vec4 texcoord;\n"
-                     "\n"
-                     "out vec2 Position;\n"
-                     "\n"
-                     "void main()\n"
-                     "{\n"
-                     "	gl_Position = vec4(position.xy, 0.0f, 1.0f);\n"
-                     "	Position = position.xy;\n"
-                     "}";
+const char *__VS_S =
+    "#version 430 core\n"
+    "\n"
+    "layout (location = 0) in vec4 position;\n"
+    "layout (location = 1) in vec4 normal;\n"
+    "layout (location = 2) in vec4 texcoord;\n"
+    "\n"
+    "out vec2 Position;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "	gl_Position = vec4(position.xy, 0.0f, 1.0f);\n"
+    "	Position = position.xy;\n"
+    "}";
 
-const char *__FS_S = "#version 430 core\n"
-                     "\n"
-                     "out vec4 FragColor;\n"
-                     "\n"
-                     "in vec2 Position;\n"
-                     "\n"
-                     "uniform vec2 c_pos;\n"
-                     "\n"
-                     "void main()\n"
-                     "{\n"
-                     "	vec4 color = vec4(1.0f, 1.0f, 1.0f , 1.0f);\n"
-                     "	FragColor = color;\n"
-                     "}";
+const char *__FS_S =
+    "#version 430 core\n"
+    "\n"
+    "out vec4 FragColor;\n"
+    "\n"
+    "in vec2 Position;\n"
+    "\n"
+    "uniform vec2 c_pos;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "	vec4 color = vec4(1.0f, 1.0f, 1.0f , 1.0f);\n"
+    "	FragColor = color;\n"
+    "}";
 
 float value_func(float x, float y, float r) {
   // if((x * x + y * y) > (r * r)) return 0.0f;
@@ -78,8 +80,7 @@ bool sample_function(CGL_vec2 pos, float *value, void *user_data) {
   if (CGL_window_get_mouse_button(window, CGL_MOUSE_BUTTON_LEFT) == CGL_PRESS)
     sigma = 2.0f;
   v += value_func(pos.x - mpos.x, pos.y - mpos.y, sigma);
-  if (value)
-    *value = v;
+  if (value) *value = v;
   return v > 45.0f;
 }
 
@@ -88,8 +89,7 @@ int main(int argc, char **argv, char **envp) {
   CGL_init();
   window =
       CGL_window_create(700, 700, "CGL Square Marching - Jaysmito Mukherjee");
-  if (window == NULL)
-    return false;
+  if (window == NULL) return false;
   CGL_window_make_context_current(window);
   CGL_gl_init();
   CGL_widgets_init();
@@ -143,8 +143,7 @@ int main(int argc, char **argv, char **envp) {
       }
     }
 
-    if (CGL_window_get_key(window, CGL_KEY_ESCAPE) == CGL_PRESS)
-      break;
+    if (CGL_window_get_key(window, CGL_KEY_ESCAPE) == CGL_PRESS) break;
 
     CGL_window_swap_buffers(window);
     CGL_window_poll_events(window);
