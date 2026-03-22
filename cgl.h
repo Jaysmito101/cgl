@@ -66,9 +66,12 @@ SOFTWARE.
 #ifdef CGL_WASM
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDES_THREADS
+
 #ifdef CGL_EXCLUDE_WINDOW_API
 #undef CGL_EXCLUDE_WINDOW_API
+#warning "CGL_WASM requires window API. CGL_EXCLUDE_WINDOW_API is undefined."
 #endif
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
@@ -1763,7 +1766,7 @@ typedef struct CGL_image CGL_image;
 #ifndef CGL_EXCLUDE_GRAPHICS_API
 
 //#ifndef  CGL_EXCLUDE_WINDOW_API
-#include <glad/glad.h>
+#include "glad/gl.h"
 
 
 #ifdef CGL_WASM
@@ -8105,7 +8108,11 @@ bool CGL_gl_init()
 	CGL_log_internal("OpenGL ES %d\n", gles_version);
 	CGL_bool result = true;
 #else
-	CGL_bool result = gladLoadGL();
+#ifndef CGL_EXCLUDE_WINDOW_API
+	CGL_bool result = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
+#else
+	CGL_bool result = gladLoaderLoadGL();
+#endif
 	if (!result) CGL_log_internal("Failed to load OpenGL functions");
 #endif
 	CGL_mesh_cpu* mesh_cpu = CGL_mesh_cpu_quad(
@@ -8123,6 +8130,9 @@ bool CGL_gl_init()
 // clean up
 CGL_void CGL_gl_shutdown()
 {
+#ifdef CGL_EXCLUDE_WINDOW_API
+	gladLoaderUnloadGL();
+#endif 
 	CGL_mesh_gpu_destroy(__CGL_GL_SCREEN_QUAD_MESH);
 }
 
