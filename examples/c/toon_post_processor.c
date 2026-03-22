@@ -31,9 +31,6 @@ SOFTWARE.
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 static const char *VS_diffuse =
     "#version 430 core\n"
     "layout(location = 0) in vec4 aPos;\n"
