@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
   memset(temp_buffer, 0, sizeof(temp_buffer));
   static char temp_buffer2[4];
   memset(temp_buffer2, 0, sizeof(temp_buffer2));
-  sprintf(temp_buffer, argv[3]);
+  sprintf(temp_buffer, "%s", argv[3]);
 
   const char* key =
       temp_buffer +
