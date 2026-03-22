@@ -1435,269 +1435,271 @@ void render_nuklear() {
   struct nk_context *ctx = g_Context.nuklearData.ctx;
   if (nk_begin(ctx, "Settings", nk_rect(50, 50, 230, 250),
                NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
-                   NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
-
+                   NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE)) {
     static int settingsTab = 0;
-  static const char *settingsTabNames[] = {"Vizualization", "Cloud Noise",
-                                           "Cloud Settings"};
-  static int settingsTabCount =
-      sizeof(settingsTabNames) / sizeof(settingsTabNames[0]);
+    static const char *settingsTabNames[] = {"Vizualization", "Cloud Noise",
+                                             "Cloud Settings"};
+    static int settingsTabCount =
+        sizeof(settingsTabNames) / sizeof(settingsTabNames[0]);
 
-  nk_layout_row_dynamic(ctx, 25, 1);
-  settingsTab = nk_combo(ctx, settingsTabNames, settingsTabCount, settingsTab,
-                         30, nk_vec2(200, 200));
+    nk_layout_row_dynamic(ctx, 25, 1);
+    settingsTab = nk_combo(ctx, settingsTabNames, settingsTabCount, settingsTab,
+                           30, nk_vec2(200, 200));
 
-  nk_layout_row_dynamic(ctx, 5, 1);
-  nk_label(ctx, "", NK_TEXT_LEFT);
-  // Vizualization
-  if (settingsTab == 0) {
-    // a combo box for viz mode with label
-    {
-      static const char *items[] = {"Color", "Shape Noise", "Detail Noise",
-                                    "Curl Noise"};
-      static int selected = 0;
-      // nk_layout_row(ctx, NK_DYNAMIC, 25, 2, (float[]){0.35f, 0.65f});
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Viz Mode", NK_TEXT_LEFT);
-      selected = nk_combo(ctx, items, sizeof(items) / sizeof(items[0]),
-                          selected, 25, nk_vec2(200, 200));
-      g_Context.core.vizMode = selected;
-    }
-
-    if (g_Context.core.vizMode != 0) {
-      // a combo box for viz channel with label
+    nk_layout_row_dynamic(ctx, 5, 1);
+    nk_label(ctx, "", NK_TEXT_LEFT);
+    // Vizualization
+    if (settingsTab == 0) {
+      // a combo box for viz mode with label
       {
-        static const char *items[] = {"Red", "Green", "Blue", "Alpha"};
+        static const char *items[] = {"Color", "Shape Noise", "Detail Noise",
+                                      "Curl Noise"};
         static int selected = 0;
         // nk_layout_row(ctx, NK_DYNAMIC, 25, 2, (float[]){0.35f, 0.65f});
         nk_layout_row_dynamic(ctx, 25, 2);
-        nk_label(ctx, "Viz Channel", NK_TEXT_LEFT);
+        nk_label(ctx, "Viz Mode", NK_TEXT_LEFT);
         selected = nk_combo(ctx, items, sizeof(items) / sizeof(items[0]),
                             selected, 25, nk_vec2(200, 200));
-        g_Context.core.vizChannel = selected;
+        g_Context.core.vizMode = selected;
       }
 
-      // Viz Slice
+      if (g_Context.core.vizMode != 0) {
+        // a combo box for viz channel with label
+        {
+          static const char *items[] = {"Red", "Green", "Blue", "Alpha"};
+          static int selected = 0;
+          // nk_layout_row(ctx, NK_DYNAMIC, 25, 2, (float[]){0.35f, 0.65f});
+          nk_layout_row_dynamic(ctx, 25, 2);
+          nk_label(ctx, "Viz Channel", NK_TEXT_LEFT);
+          selected = nk_combo(ctx, items, sizeof(items) / sizeof(items[0]),
+                              selected, 25, nk_vec2(200, 200));
+          g_Context.core.vizChannel = selected;
+        }
+
+        // Viz Slice
+        {
+          nk_layout_row_dynamic(ctx, 25, 2);
+          nk_label(ctx, "Viz Slice", NK_TEXT_LEFT);
+          nk_slider_float(ctx, 0.0f, &g_Context.core.vizSlice, 1.0f, 0.01f);
+        }
+
+        // Viz Scale
+        {
+          nk_layout_row_dynamic(ctx, 25, 2);
+          nk_label(ctx, "Viz Scale", NK_TEXT_LEFT);
+          nk_slider_float(ctx, 1.0f, &g_Context.core.vizScale, 20.0f, 0.01f);
+        }
+
+        // Viz Offset
+        {
+          nk_layout_row_dynamic(ctx, 25, 4);
+          nk_label(ctx, "Viz Offset", NK_TEXT_LEFT);
+          nk_property_float(ctx, "X:", -10.0f, &g_Context.core.vizOffset.x,
+                            10.0f, 0.01f, 0.01f);
+          nk_property_float(ctx, "Y:", -10.0f, &g_Context.core.vizOffset.y,
+                            10.0f, 0.01f, 0.01f);
+          nk_property_float(ctx, "Z:", -10.0f, &g_Context.core.vizOffset.z,
+                            10.0f, 0.01f, 0.01f);
+        }
+      }
+
+    }
+    // Cloud Noise
+    else if (settingsTab == 1) {
+      static int noiseTexture = 0;
+      // a combo box for noise texture
+      {
+        static const char *items[] = {"Shape Noise", "Detail Noise",
+                                      "Curl Noise"};
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Texture", NK_TEXT_LEFT);
+        noiseTexture = nk_combo(ctx, items, sizeof(items) / sizeof(items[0]),
+                                noiseTexture, 25, nk_vec2(200, 200));
+      }
+
+      bool hasNoiseChanged = false;
+
+      // the starting scale
       {
         nk_layout_row_dynamic(ctx, 25, 2);
-        nk_label(ctx, "Viz Slice", NK_TEXT_LEFT);
-        nk_slider_float(ctx, 0.0f, &g_Context.core.vizSlice, 1.0f, 0.01f);
+        nk_label(ctx, "Starting Scale", NK_TEXT_LEFT);
+        CGL_int tmp = (CGL_int)g_Context.cloud.noiseStartingScale[noiseTexture];
+        hasNoiseChanged = nk_slider_int(ctx, 0, &tmp, 20, 1) || hasNoiseChanged;
+        g_Context.cloud.noiseStartingScale[noiseTexture] = (float)tmp;
       }
 
-      // Viz Scale
-      {
-        nk_layout_row_dynamic(ctx, 25, 2);
-        nk_label(ctx, "Viz Scale", NK_TEXT_LEFT);
-        nk_slider_float(ctx, 1.0f, &g_Context.core.vizScale, 20.0f, 0.01f);
+      if (hasNoiseChanged) {
+        generate_noise_data();
       }
 
-      // Viz Offset
+    }
+    // Cloud Settings
+    else if (settingsTab == 2) {
+      // clouds bounds min
       {
         nk_layout_row_dynamic(ctx, 25, 4);
-        nk_label(ctx, "Viz Offset", NK_TEXT_LEFT);
-        nk_property_float(ctx, "X:", -10.0f, &g_Context.core.vizOffset.x, 10.0f,
-                          0.01f, 0.01f);
-        nk_property_float(ctx, "Y:", -10.0f, &g_Context.core.vizOffset.y, 10.0f,
-                          0.01f, 0.01f);
-        nk_property_float(ctx, "Z:", -10.0f, &g_Context.core.vizOffset.z, 10.0f,
-                          0.01f, 0.01f);
+        nk_label(ctx, "Bounds Min", NK_TEXT_LEFT);
+        nk_property_float(ctx, "X Max:", -100.0f, &g_Context.cloud.boundsMin.x,
+                          100.0f, 0.1f, 0.01f);
+        nk_property_float(ctx, "Y Max:", -100.0f, &g_Context.cloud.boundsMin.y,
+                          100.0f, 0.1f, 0.01f);
+        nk_property_float(ctx, "Z Max:", -100.0f, &g_Context.cloud.boundsMin.z,
+                          100.0f, 0.1f, 0.01f);
+      }
+
+      // clouds bounds max
+      {
+        nk_layout_row_dynamic(ctx, 25, 4);
+        nk_label(ctx, "Bounds Max", NK_TEXT_LEFT);
+        nk_property_float(ctx, "X Min:", -100.0f, &g_Context.cloud.boundsMax.x,
+                          100.0f, 0.01f, 0.01f);
+        nk_property_float(ctx, "Y Min:", -100.0f, &g_Context.cloud.boundsMax.y,
+                          100.0f, 0.01f, 0.01f);
+        nk_property_float(ctx, "Z Min:", -100.0f, &g_Context.cloud.boundsMax.z,
+                          100.0f, 0.01f, 0.01f);
+      }
+
+      // light absorption through sun
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Light Absorption Through Sun", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.lightAbsorptionThroughSun,
+                        1.0f, 0.01f);
+      }
+
+      // light absorption through cloud
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Light Absorption Through Cloud", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.lightAbsorptionThroughCloud,
+                        1.0f, 0.01f);
+      }
+
+      // phase params
+      {
+        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_label(ctx, "Phase Params", NK_TEXT_LEFT);
+        nk_layout_row_dynamic(ctx, 25, 4);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.x, 1.0f, 0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.y, 1.0f, 0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.z, 1.0f, 0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.w, 1.0f, 0.01f);
+      }
+
+      // density factor
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Density Factor", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.densityFactor, 500.0f,
+                        0.01f);
+      }
+
+      // threshold
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Threshold", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.threshold, 2.0f, 0.0001f);
+      }
+
+      // height factor
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Height Factor", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.heightFactor, 10.0f, 0.01f);
+      }
+
+      // shape noise weights
+      {
+        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_label(ctx, "Shape Noise Weights", NK_TEXT_LEFT);
+        nk_layout_row_dynamic(ctx, 25, 4);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.x, 1.0f,
+                        0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.y, 1.0f,
+                        0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.z, 1.0f,
+                        0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.w, 1.0f,
+                        0.01f);
+      }
+
+      // scale
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Scale", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.scale, 5.0f, 0.01f);
+      }
+
+      // offset
+      {
+        nk_layout_row_dynamic(ctx, 25, 4);
+        nk_label(ctx, "Offset", NK_TEXT_LEFT);
+        nk_property_float(ctx, "Xo:", -100.0f, &g_Context.cloud.offset.x,
+                          100.0f, 0.01f, 0.01f);
+        nk_property_float(ctx, "Yo:", -100.0f, &g_Context.cloud.offset.y,
+                          100.0f, 0.01f, 0.01f);
+        nk_property_float(ctx, "Zo:", -100.0f, &g_Context.cloud.offset.z,
+                          100.0f, 0.01f, 0.01f);
+      }
+
+      // detail scale
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Detail Scale", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailScale, 5.0f, 0.01f);
+      }
+
+      // detail offset
+      {
+        nk_layout_row_dynamic(ctx, 25, 4);
+        nk_label(ctx, "Detail Offset", NK_TEXT_LEFT);
+        nk_property_float(ctx, "Xd:", -100.0f, &g_Context.cloud.detailOffset.x,
+                          100.0f, 0.01f, 0.01f);
+        nk_property_float(ctx, "Yd:", -100.0f, &g_Context.cloud.detailOffset.y,
+                          100.0f, 0.01f, 0.01f);
+        nk_property_float(ctx, "Zd:", -100.0f, &g_Context.cloud.detailOffset.z,
+                          100.0f, 0.01f, 0.01f);
+      }
+
+      // detail noise weights
+      {
+        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_label(ctx, "Detail Noise Weights", NK_TEXT_LEFT);
+        nk_layout_row_dynamic(ctx, 25, 4);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.x, 1.0f,
+                        0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.y, 1.0f,
+                        0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.z, 1.0f,
+                        0.01f);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.w, 1.0f,
+                        0.01f);
+      }
+
+      // animation speed
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Animation Speed", NK_TEXT_LEFT);
+        nk_slider_float(ctx, 0.0f, &g_Context.cloud.animationSpeed, 1.0f,
+                        0.01f);
+      }
+
+      // num steps
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Num Steps", NK_TEXT_LEFT);
+        nk_slider_int(ctx, 0, &g_Context.cloud.numSteps, 200, 1);
+      }
+
+      // num light steps
+      {
+        nk_layout_row_dynamic(ctx, 25, 2);
+        nk_label(ctx, "Num Light Steps", NK_TEXT_LEFT);
+        nk_slider_int(ctx, 0, &g_Context.cloud.numLightSteps, 50, 1);
       }
     }
-
+    nk_end(ctx);
   }
-  // Cloud Noise
-  else if (settingsTab == 1) {
-    static int noiseTexture = 0;
-    // a combo box for noise texture
-    {
-      static const char *items[] = {"Shape Noise", "Detail Noise",
-                                    "Curl Noise"};
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Texture", NK_TEXT_LEFT);
-      noiseTexture = nk_combo(ctx, items, sizeof(items) / sizeof(items[0]),
-                              noiseTexture, 25, nk_vec2(200, 200));
-    }
-
-    bool hasNoiseChanged = false;
-
-    // the starting scale
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Starting Scale", NK_TEXT_LEFT);
-      CGL_int tmp = (CGL_int)g_Context.cloud.noiseStartingScale[noiseTexture];
-      hasNoiseChanged = nk_slider_int(ctx, 0, &tmp, 20, 1) || hasNoiseChanged;
-      g_Context.cloud.noiseStartingScale[noiseTexture] = (float)tmp;
-    }
-
-    if (hasNoiseChanged) {
-      generate_noise_data();
-    }
-
-  }
-  // Cloud Settings
-  else if (settingsTab == 2) {
-    // clouds bounds min
-    {
-      nk_layout_row_dynamic(ctx, 25, 4);
-      nk_label(ctx, "Bounds Min", NK_TEXT_LEFT);
-      nk_property_float(ctx, "X Max:", -100.0f, &g_Context.cloud.boundsMin.x,
-                        100.0f, 0.1f, 0.01f);
-      nk_property_float(ctx, "Y Max:", -100.0f, &g_Context.cloud.boundsMin.y,
-                        100.0f, 0.1f, 0.01f);
-      nk_property_float(ctx, "Z Max:", -100.0f, &g_Context.cloud.boundsMin.z,
-                        100.0f, 0.1f, 0.01f);
-    }
-
-    // clouds bounds max
-    {
-      nk_layout_row_dynamic(ctx, 25, 4);
-      nk_label(ctx, "Bounds Max", NK_TEXT_LEFT);
-      nk_property_float(ctx, "X Min:", -100.0f, &g_Context.cloud.boundsMax.x,
-                        100.0f, 0.01f, 0.01f);
-      nk_property_float(ctx, "Y Min:", -100.0f, &g_Context.cloud.boundsMax.y,
-                        100.0f, 0.01f, 0.01f);
-      nk_property_float(ctx, "Z Min:", -100.0f, &g_Context.cloud.boundsMax.z,
-                        100.0f, 0.01f, 0.01f);
-    }
-
-    // light absorption through sun
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Light Absorption Through Sun", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.lightAbsorptionThroughSun,
-                      1.0f, 0.01f);
-    }
-
-    // light absorption through cloud
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Light Absorption Through Cloud", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.lightAbsorptionThroughCloud,
-                      1.0f, 0.01f);
-    }
-
-    // phase params
-    {
-      nk_layout_row_dynamic(ctx, 25, 1);
-      nk_label(ctx, "Phase Params", NK_TEXT_LEFT);
-      nk_layout_row_dynamic(ctx, 25, 4);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.x, 1.0f, 0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.y, 1.0f, 0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.z, 1.0f, 0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.phaseParams.w, 1.0f, 0.01f);
-    }
-
-    // density factor
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Density Factor", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.densityFactor, 500.0f, 0.01f);
-    }
-
-    // threshold
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Threshold", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.threshold, 2.0f, 0.0001f);
-    }
-
-    // height factor
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Height Factor", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.heightFactor, 10.0f, 0.01f);
-    }
-
-    // shape noise weights
-    {
-      nk_layout_row_dynamic(ctx, 25, 1);
-      nk_label(ctx, "Shape Noise Weights", NK_TEXT_LEFT);
-      nk_layout_row_dynamic(ctx, 25, 4);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.x, 1.0f,
-                      0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.y, 1.0f,
-                      0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.z, 1.0f,
-                      0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.shapeNoiseWeights.w, 1.0f,
-                      0.01f);
-    }
-
-    // scale
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Scale", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.scale, 5.0f, 0.01f);
-    }
-
-    // offset
-    {
-      nk_layout_row_dynamic(ctx, 25, 4);
-      nk_label(ctx, "Offset", NK_TEXT_LEFT);
-      nk_property_float(ctx, "Xo:", -100.0f, &g_Context.cloud.offset.x, 100.0f,
-                        0.01f, 0.01f);
-      nk_property_float(ctx, "Yo:", -100.0f, &g_Context.cloud.offset.y, 100.0f,
-                        0.01f, 0.01f);
-      nk_property_float(ctx, "Zo:", -100.0f, &g_Context.cloud.offset.z, 100.0f,
-                        0.01f, 0.01f);
-    }
-
-    // detail scale
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Detail Scale", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailScale, 5.0f, 0.01f);
-    }
-
-    // detail offset
-    {
-      nk_layout_row_dynamic(ctx, 25, 4);
-      nk_label(ctx, "Detail Offset", NK_TEXT_LEFT);
-      nk_property_float(ctx, "Xd:", -100.0f, &g_Context.cloud.detailOffset.x,
-                        100.0f, 0.01f, 0.01f);
-      nk_property_float(ctx, "Yd:", -100.0f, &g_Context.cloud.detailOffset.y,
-                        100.0f, 0.01f, 0.01f);
-      nk_property_float(ctx, "Zd:", -100.0f, &g_Context.cloud.detailOffset.z,
-                        100.0f, 0.01f, 0.01f);
-    }
-
-    // detail noise weights
-    {
-      nk_layout_row_dynamic(ctx, 25, 1);
-      nk_label(ctx, "Detail Noise Weights", NK_TEXT_LEFT);
-      nk_layout_row_dynamic(ctx, 25, 4);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.x, 1.0f,
-                      0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.y, 1.0f,
-                      0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.z, 1.0f,
-                      0.01f);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.detailNoiseWeights.w, 1.0f,
-                      0.01f);
-    }
-
-    // animation speed
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Animation Speed", NK_TEXT_LEFT);
-      nk_slider_float(ctx, 0.0f, &g_Context.cloud.animationSpeed, 1.0f, 0.01f);
-    }
-
-    // num steps
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Num Steps", NK_TEXT_LEFT);
-      nk_slider_int(ctx, 0, &g_Context.cloud.numSteps, 200, 1);
-    }
-
-    // num light steps
-    {
-      nk_layout_row_dynamic(ctx, 25, 2);
-      nk_label(ctx, "Num Light Steps", NK_TEXT_LEFT);
-      nk_slider_int(ctx, 0, &g_Context.cloud.numLightSteps, 50, 1);
-    }
-  }
-  nk_end(ctx);
 }
 
 #endif
