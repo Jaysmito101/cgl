@@ -30,7 +30,7 @@ SOFTWARE.
 
 int main() {
   char buffer[1024];
-  CGL_hashtable *table = CGL_hashtable_create(1, 0);
+  CGL_hashtable *table = CGL_hashtable_create(1, 0, 10);
   int idata = 0;
   float fdata = 0.0f;
   CGL_hashtable_set_string(table, "Name", "Jaysmito");
