@@ -24,6 +24,7 @@ SOFTWARE.
 
 #define CGL_LOGGING_ENABLED
 #define CGL_EXCLUDE_NETWORKING
+#define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
@@ -38,8 +39,8 @@ SOFTWARE.
 #define NK_IMPLEMENTATION
 #define NK_GLFW_GL3_IMPLEMENTATION
 #define NK_KEYSTATE_BASED_INPUT
+#include "demo/glfw_opengl4/nuklear_glfw_gl4.h"
 #include "nuklear.h"
-#include "nuklear_glfw_gl4.h"
 #pragma warning(pop)
 
 static struct {
