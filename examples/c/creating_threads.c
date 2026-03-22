@@ -48,7 +48,7 @@ void dummy_payload_function(void *argument) {
   static int invocation_id = 0;
   printf("Invocation %d :", invocation_id++);
   for (int i = 0; i < 10; i++) {
-    Sleep(500);
+    CGL_utils_sleep(100);
     printf(" %d ", i);
   }
   printf("\n");
