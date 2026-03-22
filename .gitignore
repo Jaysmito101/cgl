@@ -14,3 +14,5 @@ _deps
 .vscode
 ./lib
 build
+build.linux
+build.windows
