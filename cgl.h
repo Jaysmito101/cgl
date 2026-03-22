@@ -824,21 +824,21 @@ CGL_void* CGL_hashtable_iterator_curr_key(CGL_hashtable_iterator* iterator);
 
 // getter setters for data types
 #define CGL_DECLARE_HASHTABLE_GETTER_SETTER(type)                             \
-  inline type CGL_hashtable_get_##type(CGL_hashtable* table,                  \
+  static inline type CGL_hashtable_get_##type(CGL_hashtable* table,                  \
                                        const void* key) {                     \
     type value;                                                               \
     CGL_hashtable_get(table, key, &value);                                    \
     return value;                                                             \
   }                                                                           \
                                                                               \
-  inline void CGL_hashtable_set_##type(CGL_hashtable* table, const void* key, \
+  static inline void CGL_hashtable_set_##type(CGL_hashtable* table, const void* key, \
                                        type value) {                          \
     CGL_hashtable_set(table, key, &value, sizeof(value));                     \
   }
 
 #ifndef CDL_DONT_DECLARE_HASHTABLE_STD_GETTER_SETTERS
 
-inline void CGL_hashtable_set_string(CGL_hashtable* table, const void* key,
+static inline void CGL_hashtable_set_string(CGL_hashtable* table, const void* key,
                                      const char* value) {
   CGL_hashtable_set(table, key, value, strlen(value) + 1);
 }
