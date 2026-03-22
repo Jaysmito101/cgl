@@ -10,3 +10,6 @@
 [submodule "lib/stb"]
 	path = lib/stb
 	url = https://github.com/nothings/stb
+[submodule "lib/nuklear"]
+	path = lib/nuklear
+	url = https://github.com/Immediate-Mode-UI/Nuklear
