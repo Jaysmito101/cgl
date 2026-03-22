@@ -13,3 +13,4 @@ test
 _deps
 .vscode
 ./lib
+build
