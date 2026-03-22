@@ -12,3 +12,7 @@ test.c
 test
 _deps
 .vscode
+./lib
+build
+build.linux
+build.windows
