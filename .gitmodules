@@ -1,0 +1,9 @@
+[submodule "lib/glfw"]
+	path = lib/glfw
+	url = https://github.com/glfw/glfw
+[submodule "lib/openal"]
+	path = lib/openal
+	url = https://github.com/kcat/openal-soft
+[submodule "lib/glad"]
+	path = lib/glad
+	url = https://github.com/Dav1dde/glad.git
