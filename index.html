@@ -255,6 +255,7 @@
         }
       }
     </style>
+    <script defer src="https://analytics.jaysmito.dev/script.js" data-website-id="30c24acc-e80e-4194-82a5-a49f6cf0b4ee"></script>
     <!-- Hotjar Tracking Code for CGL Web Demos -->
     <script>
       (function (h, o, t, j, a, r) {
@@ -382,8 +383,10 @@
           tagElem.addEventListener("click", () => {
             if (selectedTags.has(tag)) {
               selectedTags.delete(tag);
+              if (window.umami) umami.track('filter_tag', { tag: tag, action: 'remove' });
             } else {
               selectedTags.add(tag);
+              if (window.umami) umami.track('filter_tag', { tag: tag, action: 'add' });
             }
             renderTags();
             renderProjects();
@@ -487,6 +490,9 @@
           const detailURL = generateDetailURL(proj);
           const imageLink = document.createElement("a");
           imageLink.href = detailURL;
+          imageLink.addEventListener("click", () => {
+            if (window.umami) umami.track('view_project_detail', { project: proj.name });
+          });
 
           // Card image
           const img = document.createElement("img");
@@ -531,8 +537,10 @@
               const tag = ev.target.textContent;
               if (selectedTags.has(tag)) {
                 selectedTags.delete(tag);
+                if (window.umami) umami.track('filter_tag', { tag: tag, action: 'remove' });
               } else {
                 selectedTags.add(tag);
+                if (window.umami) umami.track('filter_tag', { tag: tag, action: 'add' });
               }
               renderTags();
               renderProjects();
@@ -550,6 +558,9 @@
           sourceLink.href = proj.source_code;
           sourceLink.target = "_blank";
           sourceLink.textContent = "Source Code";
+          sourceLink.addEventListener("click", () => {
+            if (window.umami) umami.track('source_code_click', { project: proj.name });
+          });
           actionsDiv.appendChild(sourceLink);
 
           // "Open Live Demo" button
@@ -558,6 +569,7 @@
           demoBtn.addEventListener("click", (e) => {
             // Prevent card click events from firing if necessary
             e.stopPropagation();
+            if (window.umami) umami.track('open_demo', { project: proj.name });
             window.location.href = detailURL;
           });
           actionsDiv.appendChild(demoBtn);
@@ -570,19 +582,26 @@
       }
 
       // Event Listeners
+      let searchTimeout;
       searchInput.addEventListener("input", (e) => {
         searchQuery = e.target.value.toLowerCase();
         renderProjects();
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          if (window.umami && searchQuery) umami.track('search', { query: searchQuery });
+        }, 1000);
       });
 
       sortSelect.addEventListener("change", (e) => {
         sortOption = e.target.value;
+        if (window.umami) umami.track('sort', { option: sortOption });
         renderProjects();
       });
 
       themeToggle.addEventListener("click", () => {
         document.body.classList.toggle("dark");
         updateThemeToggleIcon();
+        if (window.umami) umami.track('theme_toggle', { theme: document.body.classList.contains("dark") ? 'dark' : 'light' });
       });
 
       function shuffleProjects() {

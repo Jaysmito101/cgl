@@ -294,6 +294,7 @@
       }
     </style>
     <link href="prism.css" rel="stylesheet" />
+    <script defer src="https://analytics.jaysmito.dev/script.js" data-website-id="30c24acc-e80e-4194-82a5-a49f6cf0b4ee"></script>
     <!-- Hotjar Tracking Code for CGL Web Demos -->
     <script>
       (function (h, o, t, j, a, r) {
@@ -418,6 +419,7 @@
       themeToggle.addEventListener("click", () => {
         document.body.classList.toggle("dark");
         updateThemeToggleIcon();
+        if (window.umami) umami.track('theme_toggle', { theme: document.body.classList.contains("dark") ? 'dark' : 'light' });
       });
       applyDefaultTheme();
       /*************** End Theme Logic ****************/
@@ -463,12 +465,20 @@
         }
 
         // Populate project details
-        document.getElementById("github-btn").href = project.source_code;
+        const githubBtn = document.getElementById("github-btn");
+        githubBtn.href = project.source_code;
+        githubBtn.addEventListener("click", () => {
+          if (window.umami) umami.track('github_click', { project: project.name });
+        });
 
+        const youtubeBtn = document.getElementById("youtube-btn");
         if (project.youtube) {
-          document.getElementById("youtube-btn").href = project.youtube;
+          youtubeBtn.href = project.youtube;
+          youtubeBtn.addEventListener("click", () => {
+            if (window.umami) umami.track('youtube_click', { project: project.name });
+          });
         } else {
-          document.getElementById("youtube-btn").style.display = "none";
+          youtubeBtn.style.display = "none";
         }
 
         document.getElementById("projTitle").textContent = project.name;
@@ -489,6 +499,20 @@
 
         // Set the demo iframe's URL to "./{project.path}/index.html"
         const demoIframe = document.getElementById("demoIframe");
+        demoIframe.onload = () => {
+          if (window.umami) umami.track('demo_loaded', { project: project.name });
+          try {
+            if (demoIframe.contentDocument) {
+              const script = demoIframe.contentDocument.createElement('script');
+              script.defer = true;
+              script.src = "https://analytics.jaysmito.dev/script.js";
+              script.setAttribute('data-website-id', '30c24acc-e80e-4194-82a5-a49f6cf0b4ee');
+              demoIframe.contentDocument.head.appendChild(script);
+            }
+          } catch(e) {
+            // Ignore cross-origin errors if any
+          }
+        };
         demoIframe.src = `${project.path}/index.html`;
 
         // Attempt to load documentation from "./{project.path}/doc.md"
@@ -507,6 +531,7 @@
 
         // Share / Copy Link button functionality
         document.getElementById("copyLinkBtn").addEventListener("click", () => {
+          if (window.umami) umami.track('copy_link', { project: project.name });
           navigator.clipboard
             .writeText(window.location.href)
             .then(() => alert("Link copied!"))
