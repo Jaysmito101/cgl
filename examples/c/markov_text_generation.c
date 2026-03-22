@@ -25,7 +25,6 @@ SOFTWARE.
 #define CGL_IMPLEMENTATION
 #define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_EXCLUDE_NETWORKING
-#define CGL_LOG printf
 #include "cgl.h"
 
 int main(int argc, char** argv) {
