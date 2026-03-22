@@ -7,6 +7,9 @@ project(cgl)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REUIRED True)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 find_package(Freetype QUIET)
 if (NOT FREETYPE_FOUND)
     message(WARNING "FreeType not found. Some examples will be skipped.")
