@@ -50,7 +50,7 @@ int main() {
     CGL_gl_clear(0.2f, 0.2f, 0.2f, 1.0f);
     CGL_widgets_begin();
     CGL_widgets_add_string_with_font("Jaysmito Mukherjee!", font, -0.7f, -0.5f,
-                                     1.4f);
+                                     1.4f, 1.0);
     CGL_widgets_end();
     CGL_window_poll_events(main_window);
     CGL_window_swap_buffers(main_window);
