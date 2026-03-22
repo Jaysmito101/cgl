@@ -32,7 +32,7 @@ static CGL_window *window;
 static CGL_shape shapes[1000];
 static int shape_count;
 static CGL_vec2 mpos;
-static CGL_vec2 spheres[16];
+static CGL_vec2 spheres[32];
 
 const char *__VS_S =
     "#version 430 core\n"
