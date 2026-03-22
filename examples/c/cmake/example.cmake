@@ -1,4 +1,19 @@
 function(cgl_add_example target_name source_file)
+    set(options REQUIRES_FREETYPE REQUIRES_OPENSSL)
+    set(oneValueArgs "")
+    set(multiValueArgs "")
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(ARG_REQUIRES_FREETYPE AND NOT FREETYPE_FOUND)
+        message(WARNING "Skipping example ${target_name} because FreeType was not found.")
+        return()
+    endif()
+
+    if(ARG_REQUIRES_OPENSSL AND NOT OPENSSL_FOUND)
+        message(WARNING "Skipping example ${target_name} because OpenSSL was not found.")
+        return()
+    endif()
+
     add_executable(${target_name} ${source_file})
 
     if(DEFINED EMSCRIPTEN)
@@ -18,5 +33,15 @@ function(cgl_add_example target_name source_file)
     
     if(NOT DEFINED EMSCRIPTEN)
         target_link_libraries(${target_name} OpenAL)
+    endif()
+
+    if(ARG_REQUIRES_FREETYPE AND FREETYPE_FOUND)
+        target_include_directories(${target_name} PRIVATE ${FREETYPE_INCLUDE_DIRS})
+        target_link_libraries(${target_name} ${FREETYPE_LIBRARIES})
+    endif()
+
+    if(ARG_REQUIRES_OPENSSL AND OPENSSL_FOUND)
+        target_include_directories(${target_name} PRIVATE ${OPENSSL_INCLUDE_DIR})
+        target_link_libraries(${target_name} OpenSSL::SSL OpenSSL::Crypto)
     endif()
 endfunction()

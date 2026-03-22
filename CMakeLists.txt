@@ -7,6 +7,16 @@ project(cgl)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REUIRED True)
 
+find_package(Freetype QUIET)
+if (NOT FREETYPE_FOUND)
+    message(WARNING "FreeType not found. Some examples will be skipped.")
+endif()
+
+find_package(OpenSSL QUIET)
+if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found. Some examples will be skipped.")
+endif()
+
 include_directories(
     ./
     ./include
