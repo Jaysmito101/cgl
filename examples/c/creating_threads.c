@@ -44,7 +44,7 @@ void input_mouse_pos_callback(CGL_window *window, double x, double y) {
   mouse_input.prev_y = (float)y;
 }
 
-void dummy_payload_function(void *argument) {
+void *dummy_payload_function(void *argument) {
   static int invocation_id = 0;
   printf("Invocation %d :", invocation_id++);
   for (int i = 0; i < 10; i++) {
@@ -52,6 +52,7 @@ void dummy_payload_function(void *argument) {
     printf(" %d ", i);
   }
   printf("\n");
+  return NULL;
 }
 
 void spawn_the_thread(CGL_thread *thread) {
