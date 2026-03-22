@@ -37,10 +37,10 @@ SOFTWARE.
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
-#define NK_GLFW_GL3_IMPLEMENTATION
+#define NK_GLFW_GL4_IMPLEMENTATION
 #define NK_KEYSTATE_BASED_INPUT
-#include "demo/glfw_opengl4/nuklear_glfw_gl4.h"
 #include "nuklear.h"
+#include "demo/glfw_opengl4/nuklear_glfw_gl4.h"
 #pragma warning(pop)
 
 static struct {
@@ -53,7 +53,6 @@ static struct {
 static struct {
   struct nk_context *ctx;
   struct nk_colorf bg;
-  struct nk_glfw glfw;
 } nuklear_data;
 
 void input_scroll_callback(CGL_window *window, double x, double y) {}
@@ -86,14 +85,13 @@ int main() {
   CGL_window_resecure_callbacks(main_window);
 
   // setup nuklear
-  nuklear_data.ctx =
-      nk_glfw3_init(&nuklear_data.glfw, CGL_window_get_glfw_handle(main_window),
-                    NK_GLFW3_INSTALL_CALLBACKS);
+  nuklear_data.ctx = nk_glfw3_init(CGL_window_get_glfw_handle(main_window),
+                                   NK_GLFW3_INSTALL_CALLBACKS, 100000, 100000);
 
   {
     struct nk_font_atlas *atlas;
-    nk_glfw3_font_stash_begin(&nuklear_data.glfw, &atlas);
-    nk_glfw3_font_stash_end(&nuklear_data.glfw);
+    nk_glfw3_font_stash_begin(&atlas);
+    nk_glfw3_font_stash_end();
   }
 
   while (!CGL_window_should_close(main_window)) {
@@ -107,7 +105,7 @@ int main() {
 
     CGL_window_poll_events(main_window);
 
-    nk_glfw3_new_frame(&nuklear_data.glfw);
+    nk_glfw3_new_frame();
 
     if (nk_begin(nuklear_data.ctx, "Demo", nk_rect(50, 50, 230, 250),
                  NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
@@ -118,8 +116,7 @@ int main() {
       }
     }
     nk_end(nuklear_data.ctx);
-    nk_glfw3_render(&nuklear_data.glfw, NK_ANTI_ALIASING_ON, 1024 * 512,
-                    1024 * 128);
+    nk_glfw3_render(NK_ANTI_ALIASING_ON);
 
     CGL_window_swap_buffers(main_window);
     if (CGL_window_get_mouse_button(main_window, CGL_MOUSE_BUTTON_MIDDLE) ==
@@ -132,7 +129,7 @@ int main() {
       break;
   }
 
-  nk_glfw3_shutdown(&nuklear_data.glfw);
+  nk_glfw3_shutdown();
   CGL_framebuffer_destroy(default_framebuffer);
   CGL_gl_shutdown();
   CGL_window_destroy(main_window);

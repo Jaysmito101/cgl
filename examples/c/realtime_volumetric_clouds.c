@@ -18,6 +18,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+// set this to 0 to disable the ui and remove nuklear dependency
+#define GUI_DEBUG 1
+
 #define CGL_LOGGING_ENABLED
 #define CGL_EXCLUDE_NETWORKING
 #define CGL_EXCLUDE_SKY_RENDERER
@@ -26,9 +29,6 @@ SOFTWARE.
 #define CGL_EXCLUDE_TEXT_RENDER
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
-
-// set this to 0 to disable the ui and remove nuklear dependency
-#define GUI_DEBUG 1
 
 #if GUI_DEBUG
 #pragma warning(push, 0)
@@ -40,10 +40,10 @@ SOFTWARE.
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
-#define NK_GLFW_GL3_IMPLEMENTATION
+#define NK_GLFW_GL4_IMPLEMENTATION
 #define NK_KEYSTATE_BASED_INPUT
 #include "nuklear.h"
-#include "nuklear_glfw_gl4.h"
+#include "demo/glfw_opengl4/nuklear_glfw_gl4.h"
 #pragma warning(pop)
 #endif
 
@@ -808,7 +808,6 @@ static struct {
   struct {
     struct nk_context *ctx;
     struct nk_colorf bg;
-    struct nk_glfw glfw;
   } nuklearData;
 
 #endif
@@ -1766,13 +1765,12 @@ int main() {
 #if GUI_DEBUG
 
   g_Context.nuklearData.ctx =
-      nk_glfw3_init(&g_Context.nuklearData.glfw,
-                    CGL_window_get_glfw_handle(g_Context.core.window),
-                    NK_GLFW3_INSTALL_CALLBACKS);
+      nk_glfw3_init(CGL_window_get_glfw_handle(g_Context.core.window),
+                    NK_GLFW3_INSTALL_CALLBACKS, 100000, 100000);
   {
     struct nk_font_atlas *atlas;
-    nk_glfw3_font_stash_begin(&g_Context.nuklearData.glfw, &atlas);
-    nk_glfw3_font_stash_end(&g_Context.nuklearData.glfw);
+    nk_glfw3_font_stash_begin(&atlas);
+    nk_glfw3_font_stash_end();
   }
 
 #endif
@@ -1824,10 +1822,9 @@ int main() {
 #if GUI_DEBUG
 
     CGL_framebuffer_bind(g_Context.core.framebuffer);
-    nk_glfw3_new_frame(&g_Context.nuklearData.glfw);
+    nk_glfw3_new_frame();
     render_nuklear();
-    nk_glfw3_render(&g_Context.nuklearData.glfw, NK_ANTI_ALIASING_ON,
-                    1024 * 512, 1024 * 128);
+    nk_glfw3_render(NK_ANTI_ALIASING_ON);
 
 #endif
 
@@ -1843,7 +1840,7 @@ int main() {
   free_scene();
 
 #if GUI_DEBUG
-  nk_glfw3_shutdown(&g_Context.nuklearData.glfw);
+  nk_glfw3_shutdown();
 #endif
 
   // Free resources and shutdown
