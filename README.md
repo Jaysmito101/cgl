@@ -53,13 +53,15 @@ python scripts/cgl.py build hello_cube
 python scripts/cgl.py run using_hashtable
 ```
 
-`run` builds the example if needed and launches it; pass program arguments after `--`. It runs native host builds only. The default `native` platform uses the compiler for the current machine. To build a browser version, activate the Emscripten SDK and run:
+`run` builds the example if needed and launches it; pass program arguments after `--`. It runs native host builds only. The default `native` platform uses the compiler for the current machine. To build a browser version, install and activate the Emscripten SDK, then run:
 
 ```sh
 python scripts/cgl.py build hello_cube --platform wasm
 ```
 
 The WebAssembly JavaScript and `.wasm` files are written into `site/builds/hello_cube`, alongside that example's launch page.
+
+The CLI uses the detected Emscripten compiler and Binaryen directories for its build commands. On Windows it selects Ninja automatically when available; use `--generator` to choose another CMake generator.
 
 Use `--generator`, `--config`, `--jobs`, `--build-dir`, `--output-dir`, `--toolchain`, and repeatable `--cmake-arg` options on `build` or `run` to customize the build. Examples marked as requiring FreeType automatically fetch and build FreeType 2.14.3 when it is not installed; use `--no-fetch` to disable that. `simple_ssl_tcp_client` still requires OpenSSL to be installed and discoverable by CMake.
 
