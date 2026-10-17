@@ -54,6 +54,8 @@ python scripts/cgl.py list
 python scripts/cgl.py list text
 python scripts/cgl.py build hello_cube
 python scripts/cgl.py build-all --platform wasm
+python scripts/cgl.py build-all --platform wasm --site
+python scripts/cgl.py stage-site
 python scripts/cgl.py run using_hashtable
 ```
 
@@ -63,12 +65,14 @@ python scripts/cgl.py run using_hashtable
 python scripts/cgl.py build hello_cube --platform wasm
 ```
 
-The WebAssembly JavaScript, `.wasm`, and generated launch page are written into `build/examples/wasm/hello_cube`. `build-all --platform wasm` builds every example into its own folder under `build/examples/wasm`. The page comes from `scripts/templates/wasm-page.html`; per-example controls and instructions are stored in `site/db.json`. To generate a page separately, run `python scripts/cgl.py page hello_cube`. Existing hand-written pages in the output directory are left untouched unless you pass `--force` to `page`. Use `--output-dir site/builds/hello_cube` to stage a single build directly into the website tree; with `build-all`, `--output-dir` is the parent folder for per-example outputs. Otherwise builds stay under `build/` so they can be copied or published by a separate CI step.
+The WebAssembly JavaScript, `.wasm`, and generated launch page are written under `build/examples/wasm/`. `build-all --platform wasm` builds every example into its own folder there; add `--site` to build only examples listed in `site/db.json`. Website examples use their catalog path as the output folder name. The page comes from `scripts/templates/wasm-page.html`; per-example controls and instructions are stored in `site/db.json`. To generate a page separately, run `python scripts/cgl.py page hello_cube`. Existing hand-written pages in the output directory are left untouched unless you pass `--force` to `page`. Build output stays under `build/` by default so it can be copied or published by a separate CI step.
 
 
 The CLI uses the detected Emscripten compiler and Binaryen directories for its build commands. On Windows it selects Ninja automatically when available; use `--generator` to choose another CMake generator.
 
 Use `--generator`, `--config`, `--jobs`, `--build-dir`, `--output-dir`, `--toolchain`, and repeatable `--cmake-arg` options on `build` or `run` to customize the build. Examples marked as requiring FreeType automatically fetch and build FreeType 2.14.3 when it is not installed; use `--no-fetch` to disable that. `simple_ssl_tcp_client` still requires OpenSSL to be installed and discoverable by CMake.
+
+Website thumbnails and C runtime assets share the repository-level `assets/<example>/` directory. Keep thumbnails at `thumb.png` and put files opened by the C program under `runtime/`, preserving their relative paths there. Native builds copy that runtime tree beside the executable, and `cgl run` starts the executable from that directory. WebAssembly builds preload it into the virtual filesystem. Run `python scripts/cgl.py stage-site` after building to replace `site/builds/` with the complete `build/examples/wasm/` tree, preserve per-example `doc.md` files, and copy thumbnails into `site/assets/`. The Pages workflow builds website examples and runs this staging command before uploading the site. The full example-by-example asset inventory is in [`assets/README.md`](./assets/README.md).
 
 <br>
 
