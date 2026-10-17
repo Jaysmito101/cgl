@@ -628,7 +628,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(f"Running: {executable}\n", flush=True)
-    return subprocess.run([str(executable), *args.program_args], cwd=ROOT, check=False).returncode
+    return subprocess.run(
+        [str(executable), *args.program_args],
+        cwd=executable.parent,
+        check=False,
+    ).returncode
 
 
 if __name__ == "__main__":
