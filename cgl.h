@@ -7025,9 +7025,9 @@ CGL_matrix* CGL_matrix_inverse(CGL_matrix* m) {
 }
 
 CGL_matrix* CGL_matrix_copy_to(CGL_matrix* m, CGL_matrix* out) {
-  if (!m || !out) return CGL_FALSE;  // return false if either matrix is null
+  if (!m || !out) return NULL;  // return null if either matrix is null
   if (m->m != out->m || m->n != out->n)
-    return CGL_FALSE;  // return false if the matrices are not the same size
+    return NULL;  // return null if the matrices are not the same size
   for (int i = 0; i < m->m * m->n; i++)  // iterate over the elements
     out->data[i] = m->data[i];           // copy the element
   return out;  // return true if the copy was successful
@@ -7673,7 +7673,7 @@ static CGL_window* __CGL_window_create(CGL_int width, CGL_int height,
   if (__CGL_context->window_count == 0) {
     if (!glfwInit()) {
       CGL_log_internal("Failed to initialize GLFW\n");
-      return false;
+      return NULL;
     }
   }
 #ifdef CGL_WASM
@@ -7703,7 +7703,7 @@ static CGL_window* __CGL_window_create(CGL_int width, CGL_int height,
   window->handle = glfwCreateWindow(width, height, title, NULL, NULL);
   if (window->handle == NULL) {
     CGL_log_internal("Failed to create GLFW window\n");
-    return false;
+    return NULL;
   }
   glfwSwapInterval(1);  // vsync
   window->is_hidden = true;
@@ -17900,9 +17900,9 @@ CGL_byte* CGL_csv_set_item(CGL_csv* csv, CGL_int row, CGL_int column,
 CGL_byte* CGL_csv_get_item(CGL_csv* csv, CGL_int row, CGL_int column,
                            CGL_byte* item_out) {
   CGL_list* column_ptr = *(CGL_list**)CGL_list_get(csv->columns, column, NULL);
-  if (column_ptr == NULL) return CGL_FALSE;
+  if (column_ptr == NULL) return NULL;
   CGL_byte* item = (CGL_byte*)CGL_list_get(column_ptr, row, NULL);
-  if (item == NULL) return CGL_FALSE;
+  if (item == NULL) return NULL;
   if (item_out) sprintf(item_out, "%s", item);
   return item;
 }
