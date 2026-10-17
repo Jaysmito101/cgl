@@ -2057,7 +2057,11 @@ typedef struct CGL_image CGL_image;
 #ifndef CGL_EXCLUDE_GRAPHICS_API
 
 // #ifndef  CGL_EXCLUDE_WINDOW_API
+#ifdef CGL_WASM
+#include "glad/gles2.h"
+#else
 #include "glad/gl.h"
+#endif
 
 #ifdef CGL_WASM
 #define CGL_OPENGL_VERSION_MAJOR 2
@@ -8829,7 +8833,7 @@ static CGL_mesh_gpu* __CGL_GL_SCREEN_QUAD_MESH = NULL;
 // load opengl functions
 bool CGL_gl_init() {
 #ifdef CGL_WASM
-  CGL_int gles_version = gladLoadGLES2Loader((GLADloadproc)glfwGetProcAddress);
+  CGL_int gles_version = gladLoadGLES2(glfwGetProcAddress);
   CGL_log_internal("OpenGL ES %d\n", gles_version);
   CGL_bool result = true;
 #else

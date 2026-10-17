@@ -65,7 +65,11 @@ set( GLFW_BUILD_DOCS OFF CACHE BOOL  "GLFW lib only" )
 set( GLFW_INSTALL OFF CACHE BOOL  "GLFW lib only" )
 
 add_subdirectory(lib/glad/cmake)
-glad_add_library(glad STATIC API gl:core=4.3)
+if (EMSCRIPTEN)
+    glad_add_library(glad STATIC API gles2=3.2)
+else()
+    glad_add_library(glad STATIC API gl:core=4.3)
+endif()
 
 if (NOT DEFINED EMSCRIPTEN)
     add_subdirectory(lib/glfw)
