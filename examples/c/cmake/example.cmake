@@ -54,6 +54,28 @@ function(cgl_add_example target_name source_file)
         )
     endif()
 
+    set(example_asset_dir "${CGL_EXAMPLE_ASSET_ROOT}/${target_name}/runtime")
+    if(EXISTS "${example_asset_dir}")
+        if(DEFINED EMSCRIPTEN)
+            file(GLOB_RECURSE example_asset_files "${example_asset_dir}/*")
+            file(TO_CMAKE_PATH "${example_asset_dir}" example_asset_dir_posix)
+            set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS
+                " --preload-file \"${example_asset_dir_posix}@/\"")
+            if(example_asset_files)
+                set_property(TARGET ${target_name} APPEND PROPERTY LINK_DEPENDS
+                    ${example_asset_files})
+            endif()
+        else()
+            add_custom_command(TARGET ${target_name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${example_asset_dir}"
+                    "$<TARGET_FILE_DIR:${target_name}>"
+                COMMENT "Copying runtime assets for ${target_name}"
+                VERBATIM
+            )
+        endif()
+    endif()
+
     target_link_libraries(${target_name}
         glfw
         ${GLFW_LIBRARIES}

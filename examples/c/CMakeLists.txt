@@ -1,5 +1,7 @@
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/example.cmake)
 
+set(CGL_EXAMPLE_ASSET_ROOT "${PROJECT_SOURCE_DIR}/assets")
+
 cgl_add_example(2d_collision_detection 2d_collision_detection.c)
 cgl_add_example(2d_procedural_trees 2d_procedural_trees.c)
 cgl_add_example(3d_maze_game 3d_maze_game.c)
