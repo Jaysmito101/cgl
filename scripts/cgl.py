@@ -94,6 +94,30 @@ def emscripten_toolchain() -> Path:
     raise RuntimeError(message)
 
 
+def emscripten_environment(toolchain_file: Path) -> dict[str, str]:
+    environment = os.environ.copy()
+    if toolchain_file.name.lower() != "emscripten.cmake":
+        return environment
+
+    emscripten_dir = toolchain_file.parents[3]
+    sdk_paths = [emscripten_dir, emscripten_dir.parent / "bin"]
+    existing_path = environment.get("PATH", "").split(os.pathsep)
+    normalized_existing = {
+        os.path.normcase(os.path.abspath(entry.strip('"')))
+        for entry in existing_path
+        if entry
+    }
+    paths_to_add = [
+        str(path.resolve())
+        for path in sdk_paths
+        if path.is_dir()
+        and os.path.normcase(os.path.abspath(str(path))) not in normalized_existing
+    ]
+    if paths_to_add:
+        environment["PATH"] = os.pathsep.join([*paths_to_add, *existing_path])
+    return environment
+
+
 def add_build_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--platform",
@@ -205,11 +229,25 @@ def build_example(args: argparse.Namespace) -> tuple[int, Path | None]:
         return 2, None
     platform, toolchain_file = validated
     is_wasm = platform in {"wasm", "web"}
+    generator = args.generator
+    if is_wasm and os.name == "nt" and generator is None:
+        if not shutil.which("ninja"):
+            print(
+                "error: Ninja is required for Windows WebAssembly builds; install it "
+                "or pass a supported generator with --generator",
+                file=sys.stderr,
+            )
+            return 2, None
+        generator = "Ninja"
 
+    build_label = args.platform
+    if is_wasm and generator:
+        generator_label = re.sub(r"[^A-Za-z0-9_.-]+", "-", generator.lower()).strip("-")
+        build_label = f"{args.platform}-{generator_label}"
     build_dir = (
         args.build_dir.resolve()
         if args.build_dir
-        else ROOT / "build" / "examples" / ".cmake" / args.platform
+        else ROOT / "build" / "examples" / ".cmake" / build_label
     )
     if args.output_dir:
         output_dir = args.output_dir.resolve()
@@ -242,21 +280,26 @@ def build_example(args: argparse.Namespace) -> tuple[int, Path | None]:
         configure.append("-DCGL_EXAMPLE_OUTPUT_NAME=cglweb")
     if toolchain_file:
         configure.append(f"-DCMAKE_TOOLCHAIN_FILE={toolchain_file}")
-    if args.generator:
-        configure.extend(["-G", args.generator])
+    if generator:
+        configure.extend(["-G", generator])
     configure.extend(args.cmake_arg)
 
+    build_environment = (
+        emscripten_environment(toolchain_file)
+        if is_wasm and toolchain_file
+        else None
+    )
     print(f"Building {args.example} ({args.platform}, {args.config})", flush=True)
     print(f"Build directory: {build_dir}", flush=True)
     print(f"Output directory: {output_dir}", flush=True)
-    result = subprocess.run(configure, cwd=ROOT, check=False)
+    result = subprocess.run(configure, cwd=ROOT, check=False, env=build_environment)
     if result.returncode:
         return result.returncode, None
 
     build = [cmake, "--build", str(build_dir), "--target", args.example, "--config", args.config]
     if args.jobs:
         build.extend(["--parallel", str(args.jobs)])
-    result = subprocess.run(build, cwd=ROOT, check=False)
+    result = subprocess.run(build, cwd=ROOT, check=False, env=build_environment)
     if result.returncode:
         return result.returncode, None
 
