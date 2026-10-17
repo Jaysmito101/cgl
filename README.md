@@ -50,6 +50,7 @@ Use the Python CLI to list, build, or run one C example without building every e
 python scripts/cgl.py list
 python scripts/cgl.py list text
 python scripts/cgl.py build hello_cube
+python scripts/cgl.py build-all --platform wasm
 python scripts/cgl.py run using_hashtable
 ```
 
@@ -59,7 +60,8 @@ python scripts/cgl.py run using_hashtable
 python scripts/cgl.py build hello_cube --platform wasm
 ```
 
-The WebAssembly JavaScript and `.wasm` files are written into `site/builds/hello_cube`, alongside that example's launch page.
+The WebAssembly JavaScript, `.wasm`, and generated launch page are written into `build/examples/wasm/hello_cube`. `build-all --platform wasm` builds every example into its own folder under `build/examples/wasm`. The page comes from `scripts/templates/wasm-page.html`; per-example controls and instructions are stored in `site/db.json`. To generate a page separately, run `python scripts/cgl.py page hello_cube`. Existing hand-written pages in the output directory are left untouched unless you pass `--force` to `page`. Use `--output-dir site/builds/hello_cube` to stage a single build directly into the website tree; with `build-all`, `--output-dir` is the parent folder for per-example outputs. Otherwise builds stay under `build/` so they can be copied or published by a separate CI step.
+
 
 The CLI uses the detected Emscripten compiler and Binaryen directories for its build commands. On Windows it selects Ninja automatically when available; use `--generator` to choose another CMake generator.
 
