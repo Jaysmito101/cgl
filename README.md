@@ -16,10 +16,13 @@
 
 
 # Index
-* [Intro](#cgl)
-* [Platforms](#target-platforms)
-* [Features](#what-does-cgl-provide)
-* [Showreels](#showreels)
+- [Index](#index)
+- [CGL](#cgl)
+  - [Target Platforms](#target-platforms)
+  - [Building C Examples](#building-c-examples)
+  - [What does CGL Provide?](#what-does-cgl-provide)
+  - [Things that are being worked on:](#things-that-are-being-worked-on)
+  - [Showreels](#showreels)
 
 <br>
 
