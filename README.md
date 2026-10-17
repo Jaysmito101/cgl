@@ -28,6 +28,8 @@ CGL (C Graphics Library) is a multipurpose library mainly for recreational codin
 
 **NOTE** : Do not think that header only means its going to increase compile time as the implementation needs be enabled only for 1 file using `#define CGL_IMPLEMENTATION`. See [Examples](./examples)
 
+Explore the [interactive WebAssembly examples](https://libcgl.tech/) served from [`site/`](./site).
+
 <br>
 
 ## Target Platforms
