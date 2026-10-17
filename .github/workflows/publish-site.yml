@@ -30,8 +30,24 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
-      - name: Stage shared thumbnails
-        run: python scripts/stage_site_assets.py
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Set up Emscripten
+        uses: emscripten-core/setup-emsdk@v15
+        with:
+          version: 5.0.3
+
+      - name: Verify Emscripten
+        run: emcc -v
+
+      - name: Build website examples
+        run: python scripts/cgl.py build-all --platform wasm --site --jobs 2
+
+      - name: Stage Wasm builds and thumbnails
+        run: python scripts/cgl.py stage-site
 
       - name: Upload website artifact
         uses: actions/upload-pages-artifact@v5
