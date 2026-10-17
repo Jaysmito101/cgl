@@ -395,11 +395,9 @@ static CGL_void upload_tilemap_data() {
 static CGL_bool setup_map() {
   // Create tilemap
   CGL_info("Setting up map");
-  g_TilemapTexture = load_texture(
-      "assets/doomtilemap.png");  // https://i.ibb.co/jDvNj9f/doomtilemap.png
+  g_TilemapTexture = load_texture("assets/doomtilemap.png");
   CGL_info("Loaded tilemap texture");
-  g_SkyTexture = load_texture(
-      "assets/skylowres.png");  // https://i.ibb.co/ZWBghVy/skylowres.png
+  g_SkyTexture = load_texture("assets/skylowres.png");
   CGL_info("Loaded sky texture");
   g_MapEditor.tilemap = CGL_tilemap_create(
       MAP_SIZE, MAP_SIZE, MAP_EDITOR_TILE_SIZE, MAP_EDITOR_TILE_SIZE, 1);
