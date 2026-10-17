@@ -11,6 +11,37 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(Freetype QUIET)
+option(CGL_FETCH_MISSING_FREETYPE "Fetch FreeType when a selected example needs it and no system package is found" OFF)
+if (NOT FREETYPE_FOUND AND CGL_FETCH_MISSING_FREETYPE)
+    if (CMAKE_VERSION VERSION_LESS 3.14)
+        message(FATAL_ERROR "Fetching FreeType requires CMake 3.14 or newer.")
+    endif()
+
+    include(FetchContent)
+
+    set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+    set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+    set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+    set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+    set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+    set(FT_DISABLE_HVF ON CACHE BOOL "" FORCE)
+
+    FetchContent_Declare(cgl_freetype
+        GIT_REPOSITORY https://github.com/freetype/freetype.git
+        GIT_TAG VER-2-14-3
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(cgl_freetype)
+
+    set(FREETYPE_FOUND TRUE)
+    set(FREETYPE_INCLUDE_DIRS
+        "${cgl_freetype_SOURCE_DIR}/include"
+        "${cgl_freetype_BINARY_DIR}/include"
+    )
+    set(FREETYPE_LIBRARIES freetype)
+    message(STATUS "Using fetched FreeType 2.14.3")
+endif()
+
 if (NOT FREETYPE_FOUND)
     message(WARNING "FreeType not found. Some examples will be skipped.")
 endif()
