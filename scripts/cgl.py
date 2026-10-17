@@ -38,16 +38,30 @@ def example_requirements(example: str) -> set[str]:
 
 def emscripten_toolchain() -> Path:
     candidates: list[Path] = []
-    emsdk = os.environ.get("EMSDK")
-    if emsdk:
+    emscripten = os.environ.get("EMSCRIPTEN")
+    if emscripten:
         candidates.append(
-            Path(emsdk)
-            / "upstream"
-            / "emscripten"
+            Path(emscripten)
             / "cmake"
             / "Modules"
             / "Platform"
             / "Emscripten.cmake"
+        )
+
+    emsdk = os.environ.get("EMSDK")
+    if emsdk:
+        sdk_root = Path(emsdk)
+        candidates.extend(
+            [
+                sdk_root
+                / "upstream"
+                / "emscripten"
+                / "cmake"
+                / "Modules"
+                / "Platform"
+                / "Emscripten.cmake",
+                sdk_root / "cmake" / "Modules" / "Platform" / "Emscripten.cmake",
+            ]
         )
 
     emcc = shutil.which("emcc")
@@ -60,14 +74,24 @@ def emscripten_toolchain() -> Path:
             / "Emscripten.cmake"
         )
 
+    candidates = list(dict.fromkeys(candidate.resolve() for candidate in candidates))
     for candidate in candidates:
         if candidate.is_file():
-            return candidate.resolve()
+            return candidate
 
-    raise RuntimeError(
-        "Could not find the Emscripten CMake toolchain. Activate the Emscripten "
-        "SDK first, or pass --toolchain explicitly."
+    message = "Could not find the Emscripten CMake toolchain."
+    if emsdk:
+        message += f" EMSDK is set to {Path(emsdk).resolve()}, but the toolchain file is missing."
+    if not emcc:
+        message += " No emcc executable was found on PATH either."
+    if candidates:
+        message += " Checked: " + ", ".join(str(path) for path in candidates) + "."
+    message += (
+        " Install and activate an SDK with `emsdk install latest` and "
+        "`emsdk activate latest`, then rerun its environment setup; or pass "
+        "--toolchain explicitly."
     )
+    raise RuntimeError(message)
 
 
 def add_build_options(parser: argparse.ArgumentParser) -> None:
