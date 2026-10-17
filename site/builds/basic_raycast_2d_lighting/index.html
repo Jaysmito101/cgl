@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CGL-Web</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+      }
+      canvas {
+        border: 1px solid #000;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      canvas {
+        width: 100vmin;
+        height: 100vmin;
+      }
+
+      .window {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        width: 200px;
+        background: #1e1e1e;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        z-index: 9999;
+        text-align: center;
+      }
+      .window p {
+        font-size: 14px;
+        margin-bottom: 10px;
+        color: #bbb;
+      }
+      .options {
+        list-style: none;
+        padding: 0;
+      }
+      .options li {
+        background: #333;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+        font-size: 14px;
+      }
+      .options li:hover {
+        background: #444;
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="cglCanvas" width="800" height="600"></canvas>
+    <div class="window">
+        <p>Click and drag to add wall</p>
+        <p>Press C to clear all walls</p>
+        <p>W/S -> to move around</p>
+        <p>Q/E-> To rotate direction</p>
+        <p>R -> to shoot ray</p>
+        <p>T -> to visualize mesh</p>
+    </div>
+    <script>
+      var Module = {
+        onRuntimeInitialized: function () {
+          console.log("WASM Module Loaded");
+        },
+        canvas: document.getElementById("cglCanvas"),
+      };
+    </script>
+    <script src="./cglweb.js"></script>
+  </body>
+</html>

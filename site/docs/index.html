@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Documentation Buttons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #f1f1f1;
+            color: #333333;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .button {
+            display: inline-block;
+            width: 250px; /* Set the width of the buttons */
+            padding: 20px 40px; /* Increase the padding */
+            font-size: 20px; /* Increase the font size */
+            background-color: #3498db;
+            color: #ffffff;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Dark mode styles */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #333333;
+                color: #f1f1f1;
+            }
+
+            .button {
+                background-color: #555555;
+            }
+
+            .button:hover {
+                background-color: #444444;
+            }
+        }
+
+        /* Mobile-friendly styles */
+        @media (max-width: 600px) {
+            .container {
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>CGL Documentation Links</h1>
+    <div class="container">
+        <a href="./rust/cgl_rs"><button class="button">Rust Documentation</button></a>
+        <a href="./c"><button class="button">C Documentation</button></a>
+        <button class="button" onclick="alert('todo')">Python Documentation</button>
+    </div>
+
+</body>
+</html>

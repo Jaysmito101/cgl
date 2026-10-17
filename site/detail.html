@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- For proper responsive scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Project Detail - CGL Interactive Demos (WASM)</title>
+    <style>
+      /* CSS Variables for Themes and Layout */
+      :root {
+        --bg-color: #f0f0f0;
+        --text-color: #222;
+        --card-bg: #fff;
+        --accent-color: #007acc;
+        --header-bg: #ffffff;
+        --input-bg: #e0e0e0;
+        --header-height: 60px;
+      }
+      body.dark {
+        --bg-color: #181818;
+        --text-color: #f0f0f0;
+        --card-bg: #242424;
+        --accent-color: #66afe9;
+        --header-bg: #1f1f1f;
+        --input-bg: #333;
+      }
+
+      /* Global Reset */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      /* On desktop we disable overall scrolling so that only the details panel scrolls */
+      body {
+        padding: 10px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+      }
+      /* On mobile, override overflow so that the page scrolls */
+      @media (max-width: 767px) {
+        body {
+          overflow: auto;
+        }
+      }
+      a {
+        color: var(--accent-color);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      /* Fixed Header */
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-height);
+        padding: 0 1rem;
+        background-color: var(--header-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 1000;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      .brand img {
+        height: 40px;
+        width: auto;
+      }
+      .brand h1 {
+        font-size: 1.6rem;
+        white-space: nowrap;
+      }
+      .theme-toggle {
+        cursor: pointer;
+        padding: 0.5rem;
+        border: none;
+        background: var(--accent-color);
+        color: #fff;
+        border-radius: 4px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Main container: on desktop fills space below header */
+      main {
+        position: absolute;
+        top: var(--header-height);
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+
+      /* Desktop Layout */
+      @media (min-width: 768px) {
+        .container {
+          display: flex;
+          height: 100%;
+        }
+        /* Demo panel fixed on the left */
+        .demo {
+          position: fixed;
+          top: var(--header-height);
+          left: 0;
+          width: 40vw;
+          height: calc(100vh - var(--header-height));
+          background-color: var(--card-bg);
+          padding: 1rem;
+          box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+          border-right: 1px solid #ddd;
+        }
+        .demo iframe {
+          width: 100%;
+          height: 100%;
+          border: none;
+        }
+        /* Details panel occupies remaining space and scrolls independently */
+        .details {
+          margin-left: 40vw;
+          width: 60vw;
+          height: calc(100vh - var(--header-height));
+          overflow-y: auto;
+          background-color: var(--card-bg);
+          padding: 1rem;
+        }
+      }
+
+      /* Mobile Layout: Stack panels vertically */
+      @media (max-width: 767px) {
+        .container {
+          display: flex;
+          flex-direction: column;
+          /* Let the container grow naturally */
+          height: auto;
+        }
+        .demo {
+          position: relative;
+          width: 100%;
+          height: auto;
+          padding: 1rem 0;
+        }
+        .demo iframe {
+          width: 100%;
+          min-height: 400px;
+          height: auto;
+        }
+        .details {
+          width: 100%;
+          height: auto;
+          overflow-y: visible;
+          padding-bottom: 1rem;
+        }
+      }
+
+      /* Content Styling */
+      .project-info h2 {
+        margin-bottom: 0.5rem;
+      }
+      .project-meta {
+        font-size: 0.9rem;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+      }
+      .difficulty {
+        font-size: 1rem;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .tags span {
+        background-color: var(--input-bg);
+        padding: 0.3rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+      }
+      .documentation {
+        border: 1px solid #ddd;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: #fafafa;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+        margin-bottom: 1rem;
+      }
+      .actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .actions button {
+        padding: 0.5rem 1rem;
+        border: none;
+        background-color: var(--accent-color);
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .source-code {
+        margin-bottom: 1rem;
+      }
+      /* Dark theme adjustments for content areas */
+      body.dark .documentation,
+      body.dark .source-code {
+        background-color: #333;
+        color: #f0f0f0;
+        border-color: #555;
+      }
+      .github-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica,
+          Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 20px;
+        color: white;
+        background-color: #2da44e;
+        border: 1px solid rgba(27, 31, 36, 0.15);
+        border-radius: 6px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+
+      .github-btn:hover {
+        background-color: #2a9142;
+        box-shadow: 0 1px 0 rgba(27, 31, 36, 0.1);
+      }
+
+      .github-btn:active {
+        background-color: #298640;
+        transform: scale(0.98);
+      }
+
+      .github-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        fill: white;
+      }
+      .youtube-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        font-family: Roboto, Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 20px;
+        color: white;
+        background-color: #ff0000; /* YouTube red */
+        border: none;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+
+      .youtube-btn:hover {
+        background-color: #cc0000; /* Darker red on hover */
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+      }
+
+      .youtube-btn:active {
+        background-color: #b30000; /* Even darker red on click */
+        transform: scale(0.98);
+      }
+
+      .youtube-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        fill: white;
+      }
+    </style>
+    <link href="prism.css" rel="stylesheet" />
+    <script defer src="https://analytics.jaysmito.dev/script.js" data-website-id="30c24acc-e80e-4194-82a5-a49f6cf0b4ee"></script>
+    <!-- Hotjar Tracking Code for CGL Web Demos -->
+    <script>
+      (function (h, o, t, j, a, r) {
+        h.hj =
+          h.hj ||
+          function () {
+            (h.hj.q = h.hj.q || []).push(arguments);
+          };
+        h._hjSettings = { hjid: 5288873, hjsv: 6 };
+        a = o.getElementsByTagName("head")[0];
+        r = o.createElement("script");
+        r.async = 1;
+        r.src = t + h._hjSettings.hjid + j + h._hjSettings.hjsv;
+        a.appendChild(r);
+      })(window, document, "https://static.hotjar.com/c/hotjar-", ".js?sv=");
+    </script>
+  </head>
+  <body>
+    <header>
+      <a href="./index.html" style="text-decoration: none; color: inherit">
+        <div class="brand">
+          <img
+            src="https://raw.githubusercontent.com/Jaysmito101/cgl/main/images/CGL_logo_low_mid_res.png"
+            alt="CGL Logo"
+          />
+          <h1>CGL Interactive Demos (WASM)</h1>
+        </div>
+      </a>
+      <button class="theme-toggle" id="themeToggle">
+        <!-- Icon will be updated dynamically -->
+      </button>
+    </header>
+    <main>
+      <div class="container">
+        <!-- Demo Panel -->
+        <div class="demo">
+          <iframe id="demoIframe" src=""></iframe>
+        </div>
+        <!-- Details Panel -->
+        <div class="details">
+          <div class="project-info">
+            <h2 id="projTitle">Project Title</h2>
+            <div class="project-meta" id="projMeta">
+              By AUTHOR · DATE · VIEWS views
+            </div>
+            <div class="difficulty" id="projDifficulty">Difficulty: ★★★☆☆</div>
+            <div class="tags" id="projTags">
+              <!-- Tags will be inserted here -->
+            </div>
+            <!-- a button called star in github -->
+
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              class="github-btn"
+              id="github-btn"
+            >
+              <svg
+                class="github-icon"
+                viewBox="0 0 16 16"
+                version="1.1"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+                ></path>
+              </svg>
+              Open in GitHub
+            </a>
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              class="youtube-btn"
+              id="youtube-btn"
+            >
+              <svg class="youtube-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                />
+              </svg>
+              Open in YouTube
+            </a>
+
+            <br />
+            <p id="projDesc">Project description goes here.</p>
+          </div>
+          <div class="documentation" id="projDoc">Loading documentation...</div>
+          <div class="actions">
+            <button id="copyLinkBtn">Copy Link</button>
+            <!-- More share buttons/icons can be added here -->
+          </div>
+          <!-- Embedded Source Code -->
+          <pre><code class="language-c" id="projSource">// Loading source code...</code></pre>
+        </div>
+      </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="./counterAPI.js"></script>
+    <script src="./prism.js"></script>
+    <script>
+      /***************** Theme Logic ******************/
+      function updateThemeToggleIcon() {
+        if (document.body.classList.contains("dark")) {
+          themeToggle.textContent = "☀️"; // Sun icon: click to switch to light
+        } else {
+          themeToggle.textContent = "🌙"; // Moon icon: click to switch to dark
+        }
+      }
+      function applyDefaultTheme() {
+        if (
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        ) {
+          document.body.classList.add("dark");
+        } else {
+          document.body.classList.remove("dark");
+        }
+        updateThemeToggleIcon();
+      }
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+        updateThemeToggleIcon();
+        if (window.umami) umami.track('theme_toggle', { theme: document.body.classList.contains("dark") ? 'dark' : 'light' });
+      });
+      applyDefaultTheme();
+      /*************** End Theme Logic ****************/
+
+      // Helper: Generate star rating for difficulty (0-5)
+      function getStarRating(difficulty) {
+        const maxStars = 5;
+        let stars = "";
+        for (let i = 0; i < maxStars; i++) {
+          stars += i < difficulty ? "★" : "☆";
+        }
+        return stars;
+      }
+
+      // Parse the project JSON from the "data" query parameter
+      const queryParams = new URLSearchParams(window.location.search);
+      const projectDataEncoded = queryParams.get("data");
+      if (!projectDataEncoded) {
+        document.body.innerHTML = "<p>Error: No project data provided.</p>";
+        throw new Error("No project data provided.");
+      }
+      let project;
+      try {
+        project = JSON.parse(decodeURIComponent(projectDataEncoded));
+      } catch (err) {
+        document.body.innerHTML = "<p>Error: Invalid project data.</p>";
+        throw err;
+      }
+
+      function getRawGithubUserContentURL(url) {
+        url = url.replace("github.com", "raw.githubusercontent.com");
+        url = url.replace("/blob/", "/refs/heads/");
+        return url;
+      }
+
+      async function main() {
+        // Increment the view count
+        let views = 0;
+        try {
+          views = await pageHit(project.path);
+        } catch (err) {
+          console.error("Failed to increment view count:", err);
+        }
+
+        // Populate project details
+        const githubBtn = document.getElementById("github-btn");
+        githubBtn.href = project.source_code;
+        githubBtn.addEventListener("click", () => {
+          if (window.umami) umami.track('github_click', { project: project.name });
+        });
+
+        const youtubeBtn = document.getElementById("youtube-btn");
+        if (project.youtube) {
+          youtubeBtn.href = project.youtube;
+          youtubeBtn.addEventListener("click", () => {
+            if (window.umami) umami.track('youtube_click', { project: project.name });
+          });
+        } else {
+          youtubeBtn.style.display = "none";
+        }
+
+        document.getElementById("projTitle").textContent = project.name;
+        document.getElementById("projMeta").textContent = `By ${
+          project.author
+        } · ${new Date(
+          project.published_date
+        ).toLocaleDateString()} · ${views} views`;
+        document.getElementById("projDifficulty").textContent =
+          "Difficulty: " + getStarRating(project.difficulty);
+        document.getElementById("projDesc").textContent = project.description;
+        const tagsEl = document.getElementById("projTags");
+        project.tags.forEach((tag) => {
+          const span = document.createElement("span");
+          span.textContent = tag;
+          tagsEl.appendChild(span);
+        });
+
+        // Set the demo iframe's URL to "./{project.path}/index.html"
+        const demoIframe = document.getElementById("demoIframe");
+        demoIframe.onload = () => {
+          if (window.umami) umami.track('demo_loaded', { project: project.name });
+          try {
+            if (demoIframe.contentDocument) {
+              const script = demoIframe.contentDocument.createElement('script');
+              script.defer = true;
+              script.src = "https://analytics.jaysmito.dev/script.js";
+              script.setAttribute('data-website-id', '30c24acc-e80e-4194-82a5-a49f6cf0b4ee');
+              demoIframe.contentDocument.head.appendChild(script);
+            }
+          } catch(e) {
+            // Ignore cross-origin errors if any
+          }
+        };
+        demoIframe.src = `${project.path}/index.html`;
+
+        // Attempt to load documentation from "./{project.path}/doc.md"
+        const docEl = document.getElementById("projDoc");
+        fetch(`${project.path}/doc.md`)
+          .then((response) => {
+            if (!response.ok) throw new Error("No doc found");
+            return response.text();
+          })
+          .then((text) => {
+            docEl.innerHTML = marked.parse(text);
+          })
+          .catch(() => {
+            docEl.innerHTML = "Accompanying blog coming soon";
+          });
+
+        // Share / Copy Link button functionality
+        document.getElementById("copyLinkBtn").addEventListener("click", () => {
+          if (window.umami) umami.track('copy_link', { project: project.name });
+          navigator.clipboard
+            .writeText(window.location.href)
+            .then(() => alert("Link copied!"))
+            .catch(() => alert("Failed to copy link."));
+        });
+
+        // Embed the source code using an iframe.
+        // Encode the project.source_code URL and inject into the embed URL.
+        // const encodedSource = encodeURIComponent(project.source_code);
+        try {
+          const sourceURL = getRawGithubUserContentURL(project.source_code);
+          fetch(sourceURL)
+            .then((response) => {
+              if (!response.ok) throw new Error("Failed to fetch source code");
+              return response.text();
+            })
+            .then((sourceCode) => {
+              document.getElementById("projSource").textContent = sourceCode;
+              Prism.highlightAll();
+            })
+            .catch((err) => {
+              console.error("Failed to embed source code:", err);
+              document.getElementById("projSource").textContent =
+                "// Failed to load source code.";
+            });
+        } catch (err) {
+          console.error("Failed to embed source code:", err);
+          document.getElementById("projSource").textContent =
+            "// Failed to load source code.";
+        }
+      }
+
+      main();
+    </script>
+  </body>
+</html>

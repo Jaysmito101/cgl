@@ -1,0 +1,25 @@
+var annotated_dup =
+[
+    [ "CGL_font_character", "d7/dbe/struct_c_g_l__font__character.html", "d7/dbe/struct_c_g_l__font__character" ],
+    [ "CGL_image", "d1/deb/struct_c_g_l__image.html", "d1/deb/struct_c_g_l__image" ],
+    [ "CGL_ivec4", "d1/dda/struct_c_g_l__ivec4.html", "d1/dda/struct_c_g_l__ivec4" ],
+    [ "CGL_mat3", "d0/dab/struct_c_g_l__mat3.html", "d0/dab/struct_c_g_l__mat3" ],
+    [ "CGL_mat4", "d2/d51/struct_c_g_l__mat4.html", "d2/d51/struct_c_g_l__mat4" ],
+    [ "CGL_mesh_cpu", "de/de2/struct_c_g_l__mesh__cpu.html", "de/de2/struct_c_g_l__mesh__cpu" ],
+    [ "CGL_mesh_vertex", "d7/d6c/struct_c_g_l__mesh__vertex.html", "d7/d6c/struct_c_g_l__mesh__vertex" ],
+    [ "CGL_node_editor_input", "d5/d7e/struct_c_g_l__node__editor__input.html", "d5/d7e/struct_c_g_l__node__editor__input" ],
+    [ "CGL_node_editor_node", "d2/d0f/struct_c_g_l__node__editor__node.html", "d2/d0f/struct_c_g_l__node__editor__node" ],
+    [ "CGL_node_editor_pin", "df/d5b/struct_c_g_l__node__editor__pin.html", "df/d5b/struct_c_g_l__node__editor__pin" ],
+    [ "CGL_noise_params", "d9/d4e/struct_c_g_l__noise__params.html", "d9/d4e/struct_c_g_l__noise__params" ],
+    [ "CGL_path_finding_node", "d1/d41/struct_c_g_l__path__finding__node.html", "d1/d41/struct_c_g_l__path__finding__node" ],
+    [ "CGL_quat", "de/d23/struct_c_g_l__quat.html", "de/d23/struct_c_g_l__quat" ],
+    [ "CGL_shape", "d1/d48/struct_c_g_l__shape.html", "d1/d48/struct_c_g_l__shape" ],
+    [ "CGL_shape_quad", "df/db8/struct_c_g_l__shape__quad.html", "df/db8/struct_c_g_l__shape__quad" ],
+    [ "CGL_shape_triangle", "d1/d56/struct_c_g_l__shape__triangle.html", "d1/d56/struct_c_g_l__shape__triangle" ],
+    [ "CGL_trail_point", "d0/db8/struct_c_g_l__trail__point.html", "d0/db8/struct_c_g_l__trail__point" ],
+    [ "CGL_transform", "df/ddd/struct_c_g_l__transform.html", "df/ddd/struct_c_g_l__transform" ],
+    [ "CGL_vec2", "d6/d00/struct_c_g_l__vec2.html", "d6/d00/struct_c_g_l__vec2" ],
+    [ "CGL_vec3", "d0/db6/struct_c_g_l__vec3.html", "d0/db6/struct_c_g_l__vec3" ],
+    [ "CGL_vec4", "da/db5/struct_c_g_l__vec4.html", "da/db5/struct_c_g_l__vec4" ],
+    [ "CGL_wav_file", "dd/df0/struct_c_g_l__wav__file.html", "dd/df0/struct_c_g_l__wav__file" ]
+];

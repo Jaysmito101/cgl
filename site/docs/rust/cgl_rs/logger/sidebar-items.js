@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConsoleColor","LogLevel"],"fn":["attach_log_file","detach_log_file","disable_console_logging","enable_console_logging","flush","get_context","init","log","set_auto_flush_on_log","set_context","shutdown"],"struct":["CGL_logger_context"]};

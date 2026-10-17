@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["activations","constants"],"struct":["IVector4","Matrix3x3","Matrix4x4","Vector2","Vector3","Vector4"]};
