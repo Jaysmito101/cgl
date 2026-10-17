@@ -30,8 +30,35 @@ SOFTWARE.
 #define CGL_IMPLEMENTATION
 #include "cgl.h"
 
-// NOTE: Shaders source for shaders/vertex.glsl shaders/fragment.glsl give at
-// the bottom of this file
+static const char *VERTEX_SHADER_SOURCE =
+    "#version 430 core\n"
+    "\n"
+    "layout (location = 0) in vec4 position;\n"
+    "layout (location = 1) in vec4 normal;\n"
+    "layout (location = 2) in vec4 texcoord;\n"
+    "\n"
+    "out vec2 TexCoord;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "        gl_Position = vec4(position.xyz, 1.0f);\n"
+    "        TexCoord = texcoord.xy;\n"
+    "}\n";
+
+static const char *FRAGMENT_SHADER_SOURCE =
+    "#version 430 core\n"
+    "\n"
+    "out vec4 FragColor;\n"
+    "\n"
+    "in vec2 TexCoord;\n"
+    "\n"
+    "uniform sampler2D u_tex;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "        vec4 color = texture(u_tex, vec2(TexCoord.x, 1-TexCoord.y));\n"
+    "        FragColor = color;\n"
+    "}\n";
 
 int main() {
   srand((uint32_t)time(NULL));
@@ -48,8 +75,8 @@ int main() {
   CGL_mesh_gpu* screen_quad_mesh_gpu = CGL_mesh_gpu_create();
   CGL_mesh_gpu_upload(screen_quad_mesh_gpu, screen_quad_mesh_cpu, true);
   CGL_mesh_cpu_destroy(screen_quad_mesh_cpu);
-  CGL_shader* shd = CGL_shader_create_from_files("shaders/vertex.glsl",
-                                                 "shaders/fragment.glsl", NULL);
+  CGL_shader* shd =
+      CGL_shader_create(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE, NULL);
   int u_tex = CGL_shader_get_uniform_location(shd, "u_tex");
   // Initialize Text Engine
   if (!CGL_text_init()) return EXIT_FAILURE;
@@ -96,39 +123,3 @@ int main() {
   CGL_shutdown();
   return 0;
 }
-
-/*
-shaders/vertex.glsl
--------------------
-#version 430 core
-
-layout (location = 0) in vec4 position;
-layout (location = 1) in vec4 normal;
-layout (location = 2) in vec4 texcoord;
-
-out vec2 TexCoord;
-
-void main()
-{
-        gl_Position = vec4(position.xyz, 1.0f);
-        TexCoord = texcoord.xy;
-}
-*/
-
-/*
-shaders/fragment.glsl
----------------------
-#version 430 core
-
-out vec4 FragColor;
-
-in vec2 TexCoord;
-
-uniform sampler2D u_tex;
-
-void main()
-{
-        vec4 color = texture(u_tex, vec2(TexCoord.x, 1-TexCoord.y));
-        FragColor = color;
-}
-*/
