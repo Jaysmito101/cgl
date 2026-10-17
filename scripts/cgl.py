@@ -466,10 +466,30 @@ def validate_build_args(args: argparse.Namespace, examples: list[str]) -> tuple[
     return platform, toolchain_file
 
 
-def build_example(args: argparse.Namespace) -> tuple[int, Path | None]:
+def glad_python_dependencies_available() -> bool:
+    try:
+        __import__("jinja2")
+    except ImportError:
+        print(
+            "error: Glad's Python generator requires Jinja2. Install it with "
+            "`python -m pip install -r lib/glad/requirements.txt`.",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+def build_example(
+    args: argparse.Namespace,
+    *,
+    check_glad_dependencies: bool = True,
+) -> tuple[int, Path | None]:
     examples = available_examples()
     if args.example not in examples:
         print(f"error: unknown example {args.example!r}; use `cgl list` to see choices", file=sys.stderr)
+        return 2, None
+
+    if check_glad_dependencies and not glad_python_dependencies_available():
         return 2, None
 
     validated = validate_build_args(args, examples)
@@ -521,6 +541,7 @@ def build_example(args: argparse.Namespace) -> tuple[int, Path | None]:
         f"-DCGL_BUILD_EXAMPLE={args.example}",
         f"-DCGL_EXAMPLE_OUTPUT_DIRECTORY={output_dir}",
         f"-DCMAKE_BUILD_TYPE={args.config}",
+        f"-DPython_EXECUTABLE={sys.executable}",
     ]
     if "REQUIRES_FREETYPE" in example_requirements(args.example) and not args.no_fetch:
         configure.append("-DCGL_FETCH_MISSING_FREETYPE=ON")
@@ -607,6 +628,8 @@ def build_all_examples(args: argparse.Namespace) -> int:
     if not shutil.which("cmake"):
         print("error: CMake was not found on PATH", file=sys.stderr)
         return 2
+    if not glad_python_dependencies_available():
+        return 2
     if (
         args.platform.lower() in {"wasm", "web"}
         and os.name == "nt"
@@ -630,7 +653,7 @@ def build_all_examples(args: argparse.Namespace) -> int:
             relative = catalog_build_relative_path(example) if args.site else None
             example_args.output_dir = output_root / (relative or Path(example))
 
-        result, _ = build_example(example_args)
+        result, _ = build_example(example_args, check_glad_dependencies=False)
         if result:
             failures.append(example)
 

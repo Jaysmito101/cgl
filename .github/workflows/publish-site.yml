@@ -35,7 +35,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.x"
+          python-version: "3.12"
+
+      - name: Install Glad generator requirements
+        run: python -m pip install --requirement lib/glad/requirements.txt
+
+      - name: Verify submodule sources
+        run: |
+          test -f lib/glad/cmake/CMakeLists.txt
+          test -f lib/glad/glad/__main__.py
+          test -f lib/glfw/include/GLFW/glfw3.h
+          test -f lib/openal/include/AL/al.h
+          test -f lib/stb/stb_image.h
+          test -f lib/nuklear/nuklear.h
 
       - name: Set up Emscripten
         uses: emscripten-core/setup-emsdk@v15
@@ -44,6 +56,9 @@ jobs:
 
       - name: Verify Emscripten
         run: emcc -v
+
+      - name: Verify Glad generator
+        run: python -c "import jinja2"
 
       - name: Build website examples
         run: python scripts/cgl.py build-all --platform wasm --site --jobs 2
