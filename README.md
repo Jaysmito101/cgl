@@ -42,6 +42,27 @@ Explore the [interactive WebAssembly examples](https://libcgl.tech/) served from
 
 <br>
 
+## Building C Examples
+
+Use the Python helper to build one C example without building every example target. Builds share a CMake directory per platform, so libraries are reused when you select another example:
+
+```sh
+python scripts/build_example.py --list
+python scripts/build_example.py --example hello_cube
+```
+
+The default `native` platform uses the compiler for the current machine. To build a browser version, activate the Emscripten SDK and run:
+
+```sh
+python scripts/build_example.py --example hello_cube --platform wasm
+```
+
+The WebAssembly JavaScript and `.wasm` files are written into `site/builds/hello_cube`, alongside that example's launch page.
+
+Use `--generator`, `--config`, `--jobs`, `--output-dir`, and repeatable `--cmake-arg` options to customize the build. Examples marked as requiring FreeType automatically fetch and build FreeType 2.14.3 when it is not installed; use `--no-auto-fetch` to disable that. `simple_ssl_tcp_client` still requires OpenSSL to be installed and discoverable by CMake.
+
+<br>
+
 ## What does CGL Provide? 
 
 * cgl-rs
