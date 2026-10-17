@@ -106,7 +106,27 @@
         "image": "builds/audio_visualizer/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 3
+        "difficulty": 3,
+        "web_page": {
+          "instructions": [
+            "Drag and drop any WAV file to play",
+            "Or, choose:"
+          ],
+          "file_actions": [
+            {
+              "label": "1. Sample Wav 1",
+              "url": "sample1.wav",
+              "virtual_path": "sample.wav",
+              "function": "load_file"
+            },
+            {
+              "label": "2. Sample Wav 2",
+              "url": "sample2.wav",
+              "virtual_path": "sample.wav",
+              "function": "load_file"
+            }
+          ]
+        }
     },
     {
         "name": "Barnsley Fern",
@@ -130,7 +150,17 @@
         "image": "builds/basic_node_editor/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 5
+        "difficulty": 5,
+        "web_page": {
+          "instructions": [
+            "Press A to add a Node",
+            "Click to select and drag to move",
+            "Shift to multi select",
+            "Delete to delete",
+            "You can drag and connect points",
+            "Drag out of a connrected point to disconnect"
+          ]
+        }
     },
     {
         "name": "Basic Plotting",
@@ -142,7 +172,15 @@
         "image": "builds/basic_plotting/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Press 1 for Curve Plots",
+            "Press 2 for Scatter Plot",
+            "Press 3 for Pie Chart",
+            "Press 4 for Bar Graphs"
+          ]
+        }
     },
     {
         "name": "Basic Raycast 2D Lighting",
@@ -154,7 +192,17 @@
         "image": "builds/basic_raycast_2d_lighting/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 4
+        "difficulty": 4,
+        "web_page": {
+          "instructions": [
+            "Click and drag to add wall",
+            "Press C to clear all walls",
+            "W/S -> to move around",
+            "Q/E-> To rotate direction",
+            "R -> to shoot ray",
+            "T -> to visualize mesh"
+          ]
+        }
     },
     {
         "name": "Bezier Curve Widget",
@@ -166,7 +214,13 @@
         "image": "builds/bezier_curve_widget/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Up/Down Arrow to increase line resolution",
+            "Use mosue to drag around the points"
+          ]
+        }
     },
     {
         "name": "Christmas Tree",
@@ -178,7 +232,12 @@
         "image": "builds/christmas_tree01/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Press Space to Start"
+          ]
+        }
     },
     {
         "name": "Climate Spiral",
@@ -190,7 +249,12 @@
         "image": "builds/climate_spiral/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Press Space to Start"
+          ]
+        }
     },
     {
         "name": "Fireworks",
@@ -202,7 +266,13 @@
         "image": "builds/fireworks/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "This demo might take a while to load, once screen is black, its loaded",
+            "Press Space to start"
+          ]
+        }
     },
     {
         "name": "Flappy Bird",
@@ -214,7 +284,13 @@
         "image": "builds/flappy_bird/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 3
+        "difficulty": 3,
+        "web_page": {
+          "instructions": [
+            "Space to play",
+            "R to restart if lost"
+          ]
+        }
     },
     { 
         "name": "Flappy Bird AI",
@@ -226,7 +302,13 @@
         "image": "builds/flappy_bird_ai/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 5
+        "difficulty": 5,
+        "web_page": {
+          "instructions": [
+            "Press Space to start training",
+            "You can introduce noise by spacing space while the AI plays"
+          ]
+        }
     },
     {
         "name": "Interactive 2D Triangulation",
@@ -238,7 +320,14 @@
         "image": "builds/interactive_2d_triangulation/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 3
+        "difficulty": 3,
+        "web_page": {
+          "instructions": [
+            "Left click to add a point",
+            "Right click on a point to remove it",
+            "Click and drag a point to move it"
+          ]
+        }
     },
     {
         "name": "Interactive Content Aware Crop",
@@ -250,7 +339,16 @@
         "image": "builds/interactive_content_aware_crop/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 5
+        "difficulty": 5,
+        "web_page": {
+          "instructions": [
+            "Drag and drop any image on the canvas",
+            "Press H + (Up/Down Arrow) to Increase/Decrease Height",
+            "Press W + (Left/Right Arrow) to Increase/Decrease Width",
+            "Note: This algorithm is pretty slow so be patient",
+            "Note: This algorithm is uses a lot of memory so dont drop a huge image"
+          ]
+        }
     },
     {
         "name": "Interactive Linear Regression",
@@ -262,7 +360,15 @@
         "image": "builds/interactive_linear_regression/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Left click to add points",
+            "Right click to remove points",
+            "Click and drag to move points",
+            "Keep adding and moving points the Line will try to auto adjust"
+          ]
+        }
     },
     {
         "name": "Interactive Polynomial Regression",
@@ -274,7 +380,15 @@
         "image": "builds/interactive_polynomial_regression/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Left click to add points",
+            "Right click to remove points",
+            "Click and drag to move points",
+            "Keep adding and moving points the Curve will try to auto adjust"
+          ]
+        }
     },
     {
         "name": "Menger Sponge Fractal",
@@ -286,7 +400,14 @@
         "image": "builds/menger_sponge_fractal/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Up Arrow or Down Arrow to Subdivide or Un-Subdivide",
+            "Press space to invert",
+            "Left Arrow or Right Arrow to scale"
+          ]
+        }
     },
     {
         "name": "Neopeed",
@@ -298,7 +419,16 @@
         "image": "builds/neopeed/thumb.png",
         "published_date": "2024-02-02",
         "author": "Jaysmito101",
-        "difficulty": 5
+        "difficulty": 5,
+        "web_page": {
+          "instructions": [
+            "Left/Right Arrow to move",
+            "Up/Down Arrow to change camera angle",
+            "R to restart after Game Over",
+            "Avoid the Red, Collect the Blue",
+            "NOTE: The Web version does not suppoer postprocessing(bloom & toon shading) so looks much shabbier than the native version"
+          ]
+        }
     },
     {
         "name": "Newton Equation Root Approximator",
@@ -310,7 +440,15 @@
         "image": "builds/newton_equation_root_appximator/thumb.png",
         "published_date": "2024-02-01",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Newton's Approximate Solver",
+            "Press R - Generate new random equation",
+            "Press S - Start solving from random point",
+            "The solver uses Newton's method to find roots of the plotted function"
+          ]
+        }
     },
     {
         "name": "Noise Generator",
@@ -322,7 +460,17 @@
         "image": "builds/noise_generator/thumb.png",
         "published_date": "2024-02-02",
         "author": "Jaysmito101",
-        "difficulty": 2
+        "difficulty": 2,
+        "web_page": {
+          "instructions": [
+            "Perlin Noise Controls",
+            "Arrow Keys - Move around",
+            "S + Up/Down - Zoom in/out",
+            "T + [0-9] - Change noise type",
+            "F + [0-9] - Change fractal type",
+            "Interactive Perlin noise visualization"
+          ]
+        }
     },
     {
       "name": "Quad Tree Visualizer",
@@ -334,7 +482,14 @@
       "image": "builds/simple_quad_tree/thumb.png",
       "published_date": "2024-02-02",
       "author": "Jaysmito101",
-      "difficulty": 5
+      "difficulty": 5,
+      "web_page": {
+        "instructions": [
+          "Press SPACE - Toggle quad tree / normal mode",
+          "Press Q (hold) - Debug render quad tree",
+          "Press F - Toggle some quad tree configurations"
+        ]
+      }
     },
     {
       "name": "Trail Renderer",
@@ -346,6 +501,12 @@
       "image": "builds/trail_renderer/thumb.png",
       "published_date": "2024-02-01",
       "author": "Jaysmito101",
-      "difficulty": 3
+      "difficulty": 3,
+      "web_page": {
+        "instructions": [
+          "This page showcases the Trail Renderer.",
+          "In the WebGL build, bloom is disabled, so it might look a bit less fancy compared to the native build."
+        ]
+      }
     }
 ]
